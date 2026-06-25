@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Shukuma — Find Today's Longest Word</title>
+  <meta name="description" content="Shukuma Wordsearch Mini Game — find the longest connected word on a hexagonal letter board." />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- Brand -->
+    <header id="brand-header">
+      <div id="brand-logo">Joyall</div>
+    </header>
+
+    <!-- 3D flip card -->
+    <div id="card-scene">
+      <div id="game-card">
+
+        <!-- ── Front: game board ───────────────────────────────────── -->
+        <div class="card-face front" id="game-front">
+
+          <!-- Top bar -->
+          <div id="game-topbar">
+            <span id="game-prompt">Find today's longest word</span>
+            <button id="info-btn" aria-label="Info / How to play">ℹ</button>
+          </div>
+
+          <!-- Hex board (built by JS) -->
+          <div id="board-container">
+            <svg id="hex-board" xmlns="http://www.w3.org/2000/svg"></svg>
+          </div>
+
+          <!-- Answer area -->
+          <div id="answer-area">
+            <span id="answer-text" aria-live="polite"></span>
+          </div>
+
+          <!-- Level bar -->
+          <div id="level-bar">
+            <div class="level-segment" data-level="1" title="Below Average (≤4)"></div>
+            <div class="level-segment" data-level="2" title="Average (5–6)"></div>
+            <div class="level-segment" data-level="3" title="Above Average (7–10)"></div>
+            <div class="level-segment" data-level="4" title="Master (11–14)"></div>
+            <div class="level-segment" data-level="5" title="Grandmaster (≥15)"></div>
+          </div>
+
+          <!-- Date -->
+          <div id="puzzle-date"></div>
+
+          <!-- Footer -->
+          <div id="game-footer">
+            <div id="score-section">
+              <div id="ticket-badge">
+                <span id="ticket-icon">🎫</span>
+                <span id="ticket-count">0</span>
+              </div>
+              <div id="score-display">
+                <span id="score-value">?</span>
+                <span id="score-level"></span>
+              </div>
+            </div>
+            <button id="share-btn" disabled>
+              Share ↗
+            </button>
+          </div>
+
+        </div><!-- /game-front -->
+
+        <!-- ── Back: info / answers ───────────────────────────────── -->
+        <div class="card-face back" id="game-back">
+
+          <div id="back-header">
+            <h2>How to play</h2>
+            <button id="back-btn" aria-label="Back to game">✕</button>
+          </div>
+
+          <div id="back-content">
+
+            <div class="how-section">
+              <h3>Goal</h3>
+              <p>Find the longest word you can using the letters on the board. Letters must be <strong>connected</strong> — each letter must touch the next.</p>
+            </div>
+
+            <div class="how-section">
+              <h3>How to play</h3>
+              <ul>
+                <li>Tap or drag across letters to build a word.</li>
+                <li>You can only use each letter <strong>once</strong>.</li>
+                <li>Letters must be <strong>adjacent</strong> (touching).</li>
+                <li>Tap a selected letter to deselect it and everything after.</li>
+                <li>A <strong>blank tile</strong> counts as any letter.</li>
+              </ul>
+            </div>
+
+            <div class="how-section">
+              <h3>Tile colours</h3>
+              <ul>
+                <li><strong style="color:#e8c840">Yellow</strong> — word in progress</li>
+                <li><strong style="color:#5cb85c">Green</strong> — valid word found!</li>
+                <li><strong style="color:#d9534f">Red</strong> — not a valid word</li>
+              </ul>
+            </div>
+
+            <div class="how-section">
+              <h3>Score levels</h3>
+              <ul>
+                <li>≤ 4 letters — Below Average</li>
+                <li>5–6 letters — Average</li>
+                <li>7–10 letters — Above Average</li>
+                <li>11–14 letters — Master</li>
+                <li>≥ 15 letters — Grandmaster</li>
+              </ul>
+            </div>
+
+            <div class="how-section">
+              <h3>Sharing</h3>
+              <p>Tap <strong>Share</strong> to post your score and earn a Joyall Ticket. Your word is never revealed!</p>
+            </div>
+
+            <!-- Previous day's answers -->
+            <div id="answers-section">
+              <h3>Yesterday's answers</h3>
+              <ul id="answers-list"></ul>
+            </div>
+
+          </div><!-- /back-content -->
+
+        </div><!-- /game-back -->
+
+      </div><!-- /game-card -->
+    </div><!-- /card-scene -->
+
+  </div><!-- /app -->
+
+  <script src="game.js"></script>
+</body>
+</html>
