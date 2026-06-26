@@ -981,8 +981,8 @@ function buildBoard() {
     text.setAttribute("text-anchor", "middle");
     text.setAttribute("dominant-baseline", "central");
     text.setAttribute("font-size", "20");
-    text.setAttribute("font-weight", "bold");
-    text.setAttribute("font-family", "Georgia, serif");
+    text.setAttribute("font-weight", "700");
+    text.setAttribute("font-family", "'Playfair Display', Georgia, serif");
     text.setAttribute("fill", c.text);
     text.setAttribute("pointer-events", "none");
     text.setAttribute("user-select", "none");
@@ -1467,7 +1467,7 @@ async function submitScore() {
     const batch = db.batch();
     batch.set(scoreRef, {
       uid: currentUser.uid, username, date: dateStr, puzzleId: puzzle.id,
-      score: bestScore, level,
+      score: bestScore, word: bestWord, level,
       attempts: attemptCount,
       timeSpent: Math.round(elapsed / 1000),
       submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -1544,7 +1544,7 @@ async function loadLeaderboard(filter) {
     if (lbFilter === "date") {
       var queryDate = getDateForOffset(lbDayOffset);
       snap = await db.collection("scores").where("date", "==", queryDate).get();
-      docs = snap.docs.slice().sort(function(a, b) { return (b.data().score || 0) - (a.data().score || 0); }).slice(0, 25);
+      docs = snap.docs.slice().sort(function(a, b) { return (b.data().score || 0) - (a.data().score || 0); });
     } else {
       snap = await db.collection("users").get();
       docs = snap.docs.filter(function(d) { return d.data().stats && d.data().stats.bestScore; })
@@ -1552,9 +1552,61 @@ async function loadLeaderboard(filter) {
     }
     loadingEl.hidden = true;
     listEl.hidden = false;
+    listEl.innerHTML = "";
+
     if (!docs.length) { listEl.innerHTML = '<div class="lb-empty">No scores yet — be first!</div>'; return; }
 
-    docs.forEach(function(doc, i) {
+    // Word distribution (date view only)
+    if (lbFilter === "date") {
+      var wordMap = {};
+      docs.forEach(function(doc) {
+        var d = doc.data();
+        var key = d.word ? d.word.toUpperCase() : null;
+        var scoreVal = d.score || 0;
+        if (!key) key = scoreVal + "-letter word";
+        if (!wordMap[key]) wordMap[key] = { count: 0, score: scoreVal, level: d.level || getScoreLevel(scoreVal), hasWord: !!d.word };
+        wordMap[key].count++;
+      });
+      var wordList = Object.keys(wordMap).map(function(w) {
+        return { word: w, count: wordMap[w].count, score: wordMap[w].score, level: wordMap[w].level };
+      }).sort(function(a, b) { return b.score - a.score || b.count - a.count; });
+
+      var maxCount = Math.max.apply(null, wordList.map(function(w) { return w.count; }));
+      // Highlight the word with the highest score (top find of the day)
+      var topScore = wordList.length ? wordList[0].score : 0;
+
+      var distDiv = document.createElement("div");
+      distDiv.className = "wd-section";
+
+      var titleDiv = document.createElement("div");
+      titleDiv.className = "wd-section-title";
+      titleDiv.textContent = "Words Found Today";
+      distDiv.appendChild(titleDiv);
+
+      wordList.forEach(function(w) {
+        var pct = Math.max(6, Math.round((w.count / maxCount) * 100));
+        var isTarget = w.score === topScore;
+        var row = document.createElement("div");
+        row.className = "wd-row";
+        row.innerHTML =
+          '<span class="wd-word">' + escHtml(w.word) + '</span>' +
+          '<div class="wd-bar-wrap"><div class="wd-bar' + (isTarget ? " is-target" : "") + '" style="width:' + pct + '%"></div></div>' +
+          '<span class="wd-count">' + w.count + '</span>' +
+          '<span class="wd-level">' + escHtml(w.level || "") + '</span>';
+        distDiv.appendChild(row);
+      });
+      listEl.appendChild(distDiv);
+
+      // Players section header
+      var playersTitle = document.createElement("div");
+      playersTitle.className = "wd-section-title";
+      playersTitle.textContent = "Players";
+      listEl.appendChild(playersTitle);
+    }
+
+    // Player rows
+    var topDocs = lbFilter === "date" ? docs.slice(0, 25) : docs;
+    topDocs.forEach(function(doc, i) {
       var d     = doc.data();
       var score = lbFilter === "date" ? d.score : ((d.stats && d.stats.bestScore) || 0);
       var name  = d.username || "Player";
