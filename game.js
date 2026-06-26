@@ -533,7 +533,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "1.6.4";
+const VERSION = "1.7.0";
 
 const CHANGELOG = [
   { version: "1.6.0", date: "26 Jun 2026", changes: [
@@ -712,6 +712,10 @@ let browsedDateStr = null; // null = today
 
 // Tile IDs forming the current best-score word (shown in indigo)
 let playedPath = [];
+
+var pointerDownX = 0, pointerDownY = 0;
+var pointerDownTile = null;
+var tapHintShown = false;
 
 // ─── Firebase / auth state ────────────────────────────────────────────────────
 let db = null, fbAuth = null, currentUser = null, userProfile = null;
@@ -1105,60 +1109,104 @@ function tileIdFromPoint(clientX, clientY) {
 function onPointerDown(e) {
   if (isChecking) return;
   e.preventDefault();
-  isDragging = true;
+  pointerDownX = e.clientX;
+  pointerDownY = e.clientY;
+  pointerDownTile = tileIdFromPoint(e.clientX, e.clientY);
+  isDragging = false;
   lastTileEntered = null;
-
-  // Start active-time timer on first interaction
-  if (!timerRunning) {
-    timerRunning = true;
-    timerLastStart = Date.now();
-  }
-
-  // Clear previous selection (preserves played tiles)
-  tiles.forEach(restoreTileDefault);
-  selectedPath = [];
-
-  const tileId = tileIdFromPoint(e.clientX, e.clientY);
-  enterTile(tileId);
+  if (!timerRunning) { timerRunning = true; timerLastStart = Date.now(); }
 }
 
 function onPointerMove(e) {
-  if (!isDragging) return;
   e.preventDefault();
-  const tileId = tileIdFromPoint(e.clientX, e.clientY);
-  if (tileId !== null) enterTile(tileId);
+  if (pointerDownTile === null) return;
+  var dx = e.clientX - pointerDownX;
+  var dy = e.clientY - pointerDownY;
+  if (!isDragging && Math.hypot(dx, dy) > 12) {
+    isDragging = true;
+    tiles.forEach(restoreTileDefault);
+    selectedPath = [];
+    lastTileEntered = null;
+    enterTile(pointerDownTile);
+  }
+  if (isDragging) {
+    var tileId = tileIdFromPoint(e.clientX, e.clientY);
+    if (tileId !== null) enterTile(tileId);
+  }
 }
 
 async function onPointerUp(e) {
-  if (!isDragging) return;
-  isDragging = false;
-  lastTileEntered = null;
+  if (isChecking) return;
 
-  if (selectedPath.length === 0) return;
-  attemptCount++;
-
-  // Local word list — instant
-  const validWord = validateWord(selectedPath);
-  if (validWord) {
-    lockValidWord(validWord);
+  if (isDragging) {
+    isDragging = false;
+    lastTileEntered = null;
+    pointerDownTile = null;
+    if (selectedPath.length === 0) return;
+    attemptCount++;
+    var validWord = validateWord(selectedPath);
+    if (validWord) { lockValidWord(validWord); return; }
+    var hasBlanks = selectedPath.some(function(id) { return tiles[id].blank; });
+    if (!hasBlanks && selectedPath.length >= 3) {
+      var word = selectedPath.map(function(id) { return tiles[id].letter.toLowerCase(); }).join("");
+      isChecking = true;
+      var answerEl = document.getElementById("answer-text");
+      if (answerEl) answerEl.classList.add("checking");
+      var found = false;
+      try { found = await checkDictionaryAPI(word); } catch (_) {}
+      isChecking = false;
+      if (answerEl) answerEl.classList.remove("checking");
+      if (found) { lockValidWord(word); return; }
+    }
+    flashInvalid();
     return;
   }
 
-  // API fallback for non-blank words (blank combos are too many to try via API)
-  const hasBlanks = selectedPath.some(id => tiles[id].blank);
-  if (!hasBlanks && selectedPath.length >= 3) {
-    const word = selectedPath.map(id => tiles[id].letter.toLowerCase()).join("");
-    isChecking = true;
-    const answerEl = document.getElementById("answer-text");
-    if (answerEl) answerEl.classList.add("checking");
-    let found = false;
-    try { found = await checkDictionaryAPI(word); } catch (_) {}
-    isChecking = false;
-    if (answerEl) answerEl.classList.remove("checking");
-    if (found) { lockValidWord(word); return; }
+  // Tap completed
+  isDragging = false;
+  var tileId = pointerDownTile;
+  pointerDownTile = null;
+  if (tileId === null) return;
+  if (!timerRunning) { timerRunning = true; timerLastStart = Date.now(); }
+
+  // Tapping the only tile: clear
+  if (selectedPath.length === 1 && selectedPath[0] === tileId) {
+    clearSelection();
+    return;
   }
 
-  flashInvalid();
+  // Tapping the last tile with ≥2 letters: submit
+  if (selectedPath.length >= 2 && selectedPath[selectedPath.length - 1] === tileId) {
+    attemptCount++;
+    await submitTappedWord();
+    return;
+  }
+
+  // Tapping another already-selected tile: backtrack
+  var pathIdx = selectedPath.indexOf(tileId);
+  if (pathIdx !== -1) {
+    var removed = selectedPath.splice(pathIdx + 1);
+    removed.forEach(function(id) { restoreTileDefault(tiles[id]); });
+    processWordState();
+    return;
+  }
+
+  // Tapping a new tile: check adjacency, start fresh if not adjacent
+  if (selectedPath.length > 0) {
+    var last = selectedPath[selectedPath.length - 1];
+    if (!adjacency[last] || !adjacency[last].has(tileId)) {
+      tiles.forEach(restoreTileDefault);
+      selectedPath = [];
+    }
+  }
+
+  selectedPath.push(tileId);
+  processWordState();
+  if (selectedPath.length >= 3 && !tapHintShown) {
+    tapHintShown = true;
+    showToast("Tap the last letter again to check your word");
+  }
+  pulseTileSubmitHint();
 }
 
 function lockValidWord(word) {
@@ -1201,6 +1249,33 @@ function flashInvalid() {
     if (resetBtn) resetBtn.classList.remove("is-throbbing");
     clearSelection();
   }, 700);
+}
+
+async function submitTappedWord() {
+  var validWord = validateWord(selectedPath);
+  if (validWord) { lockValidWord(validWord); return; }
+  var hasBlanks = selectedPath.some(function(id) { return tiles[id].blank; });
+  if (!hasBlanks && selectedPath.length >= 3) {
+    var word = selectedPath.map(function(id) { return tiles[id].letter.toLowerCase(); }).join("");
+    isChecking = true;
+    var answerEl = document.getElementById("answer-text");
+    if (answerEl) answerEl.classList.add("checking");
+    var found = false;
+    try { found = await checkDictionaryAPI(word); } catch (_) {}
+    isChecking = false;
+    if (answerEl) answerEl.classList.remove("checking");
+    if (found) { lockValidWord(word); return; }
+  }
+  flashInvalid();
+}
+
+function pulseTileSubmitHint() {
+  if (selectedPath.length < 2) return;
+  var lastId = selectedPath[selectedPath.length - 1];
+  var g = document.getElementById("tile-" + lastId);
+  if (!g) return;
+  g.classList.add("tile-submit-hint");
+  setTimeout(function() { g.classList.remove("tile-submit-hint"); }, 800);
 }
 
 // ─── Info panel ───────────────────────────────────────────────────────────────
@@ -2153,6 +2228,80 @@ function initIdleHint() {
   }, 8000);
 }
 
+// ─── Swipe navigation ─────────────────────────────────────────────────────────
+function initSwipeNavigation() {
+  var front = document.getElementById("game-front");
+  if (!front) return;
+  var startX = 0, startY = 0, swiping = false;
+  var MIN_SWIPE = 65;
+
+  front.addEventListener("touchstart", function(e) {
+    if (isDragging || isChecking) return;
+    if (e.target.closest && e.target.closest("#hex-board")) return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    swiping = true;
+    front.style.transition = "";
+  }, { passive: true });
+
+  front.addEventListener("touchmove", function(e) {
+    if (!swiping) return;
+    var dx = e.touches[0].clientX - startX;
+    var dy = e.touches[0].clientY - startY;
+    if (Math.abs(dy) > Math.abs(dx) * 0.9) { swiping = false; return; }
+    var canLeft = browseOffset > -13, canRight = browseOffset < 0;
+    var limited = (dx > 0 && !canLeft) || (dx < 0 && !canRight);
+    front.style.transform = "translateX(" + (limited ? dx * 0.25 : dx * 0.42) + "px)";
+    front.style.opacity = String(Math.max(0.65, 1 - Math.abs(dx) / 380));
+  }, { passive: true });
+
+  function endSwipe(dx) {
+    if (!swiping) return;
+    swiping = false;
+    var canLeft = browseOffset > -13, canRight = browseOffset < 0;
+    if (dx > MIN_SWIPE && canLeft) {
+      doDateNavigate("prev");
+    } else if (dx < -MIN_SWIPE && canRight) {
+      doDateNavigate("next");
+    } else {
+      front.style.transition = "transform 0.3s cubic-bezier(0.34,1.56,0.64,1), opacity 0.2s";
+      front.style.transform = "";
+      front.style.opacity = "";
+      setTimeout(function() { front.style.transition = front.style.transform = front.style.opacity = ""; }, 350);
+    }
+  }
+
+  front.addEventListener("touchend", function(e) { endSwipe(e.changedTouches[0].clientX - startX); }, { passive: true });
+  front.addEventListener("touchcancel", function() {
+    swiping = false;
+    front.style.transition = "transform 0.25s, opacity 0.2s";
+    front.style.transform = front.style.opacity = "";
+    setTimeout(function() { front.style.transition = ""; }, 300);
+  }, { passive: true });
+}
+
+function doDateNavigate(direction) {
+  var front = document.getElementById("game-front");
+  if (!front) return;
+  front.style.transition = "transform 0.18s ease-in, opacity 0.18s";
+  front.style.transform = direction === "prev" ? "translateX(55%)" : "translateX(-55%)";
+  front.style.opacity = "0";
+  setTimeout(function() {
+    if (direction === "prev" && browseOffset > -13) { browseOffset--; loadBoardForDate(getDateForOffset(browseOffset)); }
+    else if (direction === "next" && browseOffset < 0) { browseOffset++; loadBoardForDate(getDateForOffset(browseOffset)); }
+    front.style.transition = "";
+    front.style.transform = direction === "prev" ? "translateX(-40%)" : "translateX(40%)";
+    front.style.opacity = "0";
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        front.style.transition = "transform 0.26s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.22s ease-out";
+        front.style.transform = front.style.opacity = "";
+        setTimeout(function() { front.style.transition = front.style.transform = front.style.opacity = ""; }, 300);
+      });
+    });
+  }, 190);
+}
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 function init() {
   buildColours();
@@ -2195,6 +2344,7 @@ function init() {
   initVersionPanel();
   initPullToRefresh();
   initIdleHint();
+  initSwipeNavigation();
 
   updateScoreDisplay(null);
   updateTicketDisplay();
