@@ -1147,6 +1147,7 @@ html, body {
   align-items: flex-end;
   justify-content: center;
 }
+#changelog-modal[hidden] { display: none; }
 #changelog-overlay {
   position: absolute;
   inset: 0;
