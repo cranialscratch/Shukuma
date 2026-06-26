@@ -409,9 +409,18 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "1.8.0";
+const VERSION = "1.8.1";
 
 const CHANGELOG = [
+  { version: "1.8.1", date: "26 Jun 2026", changes: [
+    "Admin panel moved to Settings tab (no longer requires long-press on version tag)",
+    "Bottom nav renamed: Board → Play (hexagon icon), Stats → Profile (person icon)",
+    "Navigation bar redesigned as a pill/capsule segmented control",
+    "10 welcome tickets awarded on new account registration (email or Google)",
+    "Share button always enabled after a valid word; first share per day earns a ticket",
+    "Score display: larger value text (2.4rem) for better readability",
+    "Version number shown in Settings tab footer",
+  ]},
   { version: "1.8.0", date: "26 Jun 2026", changes: [
     "Full-screen layout — board fills the entire viewport with iOS safe-area support",
     "Glass-effect bottom navigation bar (Board / Scores / Stats / Settings) — iOS 27 style",
