@@ -532,6 +532,46 @@ const FIREBASE_CONFIG = {
   appId: "1:623730561112:web:064cbafbea6735a55d7a2d",
 };
 
+// ─── Version + changelog ──────────────────────────────────────────────────────
+const VERSION = "1.4.0";
+
+const CHANGELOG = [
+  { version: "1.4.0", date: "26 Jun 2026", changes: [
+    "Browse past 13 days’ puzzles with ‹ › arrows on the board",
+    "Leaderboard date navigation — see who scored what on any past day",
+    "Past-day target word revealed in the Scores tab",
+    "Attempt counter: tracks how many words you tried each session",
+    "Active-time timer: measures how long you spent playing",
+    "Attempts and time shown on leaderboard rows and in your history",
+  ]},
+  { version: "1.3.0", date: "25 Jun 2026", changes: [
+    "Sign in / create account (email or Google)",
+    "Save your score to a global leaderboard",
+    "My Stats: games played, best score, streak, average",
+    "Badges: earn 10 badges for milestones and streaks",
+    "Scores tab: Today’s scores and All Time leaderboards",
+    "Guest play always available — auth only needed to save scores",
+  ]},
+  { version: "1.2.0", date: "24 Jun 2026", changes: [
+    "365 validated daily puzzles with 10–13 letter target words",
+    "Puzzle solver ensures every board has a valid path",
+    "Puzzles date-anchored — same puzzle for all players each day",
+  ]},
+  { version: "1.1.0", date: "23 Jun 2026", changes: [
+    "Fixed tile selection on iOS (scrolling no longer interferes with the board)",
+    "Live dictionary API fallback (British and American English)",
+    "Added missing common words to local dictionary",
+  ]},
+  { version: "1.0.0", date: "22 Jun 2026", changes: [
+    "Initial launch!",
+    "22-tile hexagonal board with a new daily puzzle",
+    "Word validation with local dictionary + API fallback",
+    "Score levels from Below Average to Grandmaster",
+    "Share your result via Web Share API or clipboard",
+    "Progress saved locally so you can pick up where you left off",
+  ]},
+];
+
 // ─── Badge definitions ────────────────────────────────────────────────────────
 const BADGES = {
   first_word:    { icon: "🌱", name: "First Word",    desc: "Complete your first puzzle" },
@@ -1723,6 +1763,59 @@ function loadState() {
   } catch(_) {}
 }
 
+// ─── Version / changelog ──────────────────────────────────────────────────────
+function initVersionPanel() {
+  var tag = document.getElementById("version-tag");
+  if (tag) {
+    tag.textContent = "v" + VERSION;
+    tag.addEventListener("click", showChangelog);
+    tag.addEventListener("keydown", function(e) { if (e.key === "Enter" || e.key === " ") showChangelog(); });
+  }
+  var closeBtn = document.getElementById("changelog-close");
+  var overlay  = document.getElementById("changelog-overlay");
+  var forceBtn = document.getElementById("force-update-btn");
+  if (closeBtn) closeBtn.addEventListener("click", hideChangelog);
+  if (overlay)  overlay.addEventListener("click", hideChangelog);
+  if (forceBtn) forceBtn.addEventListener("click", function() {
+    var dest = window.location.pathname + "?v=" + VERSION + "&t=" + Date.now();
+    if (typeof caches !== "undefined") {
+      caches.keys().then(function(names) {
+        return Promise.all(names.map(function(n) { return caches.delete(n); }));
+      }).finally(function() { window.location.href = dest; });
+    } else {
+      window.location.href = dest;
+    }
+  });
+  renderChangelog();
+}
+
+function renderChangelog() {
+  var list = document.getElementById("changelog-list");
+  if (!list) return;
+  list.innerHTML = CHANGELOG.map(function(entry, i) {
+    var latest = i === 0;
+    return '<div class="cl-entry' + (latest ? " cl-latest" : "") + '">' +
+      '<div class="cl-version-row">' +
+        '<span class="cl-version">v' + entry.version + '</span>' +
+        (latest ? '<span class="cl-badge">Latest</span>' : "") +
+        '<span class="cl-date">' + entry.date + '</span>' +
+      '</div>' +
+      '<ul class="cl-changes">' +
+        entry.changes.map(function(c) { return "<li>" + escHtml(c) + "</li>"; }).join("") +
+      "</ul></div>";
+  }).join("");
+}
+
+function showChangelog() {
+  var modal = document.getElementById("changelog-modal");
+  if (modal) modal.hidden = false;
+}
+
+function hideChangelog() {
+  var modal = document.getElementById("changelog-modal");
+  if (modal) modal.hidden = true;
+}
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 function init() {
   puzzle = getTodaysPuzzle();
@@ -1757,6 +1850,7 @@ function init() {
   initAuthModal();
   initInfoPanel();
   initShare();
+  initVersionPanel();
 
   updateScoreDisplay(null);
   updateTicketDisplay();

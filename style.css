@@ -1014,3 +1014,128 @@ html, body {
   color: #aaa;
   padding-bottom: 2px;
 }
+
+/* ── Version tag ─────────────────────────────────────────────────────────── */
+#version-tag {
+  text-align: center;
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.35);
+  padding: 4px 0 6px;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  transition: color 0.15s;
+  user-select: none;
+}
+#version-tag:hover,
+#version-tag:focus { color: rgba(255,255,255,0.7); outline: none; text-decoration: underline; }
+
+/* ── Changelog modal ─────────────────────────────────────────────────────── */
+#changelog-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+#changelog-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+}
+#changelog-card {
+  position: relative;
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-width: 480px;
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.18);
+}
+#changelog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 10px;
+  border-bottom: 1px solid #eee;
+  flex-shrink: 0;
+}
+#changelog-header h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: #222;
+}
+#changelog-close {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  color: #888;
+  cursor: pointer;
+  padding: 4px 6px;
+  line-height: 1;
+}
+#force-update-btn {
+  margin: 10px 14px 4px;
+  padding: 10px;
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  color: #555;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: center;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+#force-update-btn:hover { background: #ececec; }
+#changelog-list {
+  overflow-y: auto;
+  flex: 1;
+  padding: 8px 14px 20px;
+}
+.cl-entry {
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.cl-entry:last-child { border-bottom: none; }
+.cl-version-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.cl-version {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #222;
+}
+.cl-badge {
+  background: var(--brand, #ff2d55);
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.cl-date {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: #aaa;
+}
+.cl-changes {
+  margin: 0;
+  padding-left: 18px;
+}
+.cl-changes li {
+  font-size: 0.8rem;
+  color: #555;
+  line-height: 1.5;
+  margin-bottom: 2px;
+}
+.cl-latest .cl-changes li { color: #333; }

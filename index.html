@@ -75,6 +75,8 @@
             </button>
           </div>
 
+          <div id="version-tag" role="button" tabindex="0" aria-label="Version history"></div>
+
         </div><!-- /game-front -->
 
         <!-- ── Back: tabbed panel ─────────────────────────────────── -->
@@ -246,6 +248,19 @@
       </button>
       <button id="auth-guest">Continue without saving</button>
       <p class="auth-switch-row">Already have an account? <button id="auth-switch-mode" class="auth-link-btn">Sign in instead</button></p>
+    </div>
+  </div>
+
+  <!-- Changelog modal -->
+  <div id="changelog-modal" role="dialog" aria-modal="true" aria-labelledby="cl-title" hidden>
+    <div id="changelog-overlay"></div>
+    <div id="changelog-card">
+      <div id="changelog-header">
+        <h2 id="cl-title">What's New</h2>
+        <button id="changelog-close" aria-label="Close">✕</button>
+      </div>
+      <button id="force-update-btn">🔄 Force Update</button>
+      <div id="changelog-list"></div>
     </div>
   </div>
 
