@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=1.7.3" />
+  <link rel="stylesheet" href="style.css?v=1.7.4" />
 </head>
 <body>
   <div id="app">
@@ -44,11 +44,11 @@
 
           <!-- Level bar -->
           <div id="level-bar">
-            <div class="level-segment" data-level="1" title="Below Average (≤4)"></div>
-            <div class="level-segment" data-level="2" title="Average (5–6)"></div>
-            <div class="level-segment" data-level="3" title="Above Average (7–10)"></div>
-            <div class="level-segment" data-level="4" title="Master (11–14)"></div>
-            <div class="level-segment" data-level="5" title="Grandmaster (≥15)"></div>
+            <div class="level-segment" data-level="1" title="Below Average (≤3)"></div>
+            <div class="level-segment" data-level="2" title="Average (4–5)"></div>
+            <div class="level-segment" data-level="3" title="Above Average (6–7)"></div>
+            <div class="level-segment" data-level="4" title="Master (8–9)"></div>
+            <div class="level-segment" data-level="5" title="Grandmaster (≥10)"></div>
           </div>
 
           <!-- Date + board navigation -->
@@ -57,6 +57,7 @@
             <div id="puzzle-date"></div>
             <button id="board-date-next" aria-label="Next day" disabled>›</button>
           </div>
+          <div id="difficulty-badge" hidden></div>
           <div id="past-game-banner" hidden>📅 Past game — explore for fun, scores won't count</div>
 
           <!-- Footer -->
@@ -126,11 +127,21 @@
               <div class="how-section">
                 <h3>Score levels</h3>
                 <ul>
-                  <li>≤ 4 letters — Below Average</li>
-                  <li>5–6 letters — Average</li>
-                  <li>7–10 letters — Above Average</li>
-                  <li>11–14 letters — Master</li>
-                  <li>≥ 15 letters — Grandmaster</li>
+                  <li>≤ 3 letters — Below Average</li>
+                  <li>4–5 letters — Average</li>
+                  <li>6–7 letters — Above Average</li>
+                  <li>8–9 letters — Master</li>
+                  <li>≥ 10 letters — Grandmaster</li>
+                  <li>Find the longest word first try — <strong>Grandmaster in One!</strong></li>
+                </ul>
+              </div>
+
+              <div class="how-section">
+                <h3>Day difficulty</h3>
+                <ul>
+                  <li><strong>Standard</strong> — target word is 10–12 letters</li>
+                  <li><strong>Hard ★</strong> — target word is 13–14 letters</li>
+                  <li><strong>Extra Hard ★★</strong> — target word is 15+ letters</li>
                 </ul>
               </div>
 
@@ -349,6 +360,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
-  <script src="game.js?v=1.7.3"></script>
+  <script src="game.js?v=1.7.4"></script>
 </body>
 </html>
