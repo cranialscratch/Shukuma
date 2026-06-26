@@ -546,9 +546,24 @@ const BADGES = {
   games_100:     { icon: "🧙", name: "Centurion",      desc: "100 puzzles completed" },
 };
 
+// Puzzle calendar: PUZZLES[0] = June 1 2026, PUZZLES[1] = June 2 2026, …
+const PUZZLE_BASE_MS = Date.UTC(2026, 5, 1);
+
+function getPuzzleIndex(ddmmyy) {
+  const dd = parseInt(ddmmyy.slice(0, 2), 10);
+  const mm = parseInt(ddmmyy.slice(2, 4), 10) - 1;
+  const yy = 2000 + parseInt(ddmmyy.slice(4, 6), 10);
+  const ms = Date.UTC(yy, mm, dd);
+  const off = Math.floor((ms - PUZZLE_BASE_MS) / 86400000);
+  return ((off % PUZZLES.length) + PUZZLES.length) % PUZZLES.length;
+}
+
 function getTodaysPuzzle() {
-  const dayIndex = Math.floor(Date.now() / 86400000);
-  return PUZZLES[dayIndex % PUZZLES.length];
+  return PUZZLES[getPuzzleIndex(getDateString())];
+}
+
+function getPuzzleForDate(ddmmyy) {
+  return PUZZLES[getPuzzleIndex(ddmmyy)];
 }
 
 function getDateString() {
@@ -557,6 +572,28 @@ function getDateString() {
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const yy = String(d.getFullYear()).slice(-2);
   return dd + mm + yy;
+}
+
+// Offset: 0 = today, -1 = yesterday, etc.
+function getDateForOffset(offset) {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return String(d.getDate()).padStart(2, "0") +
+         String(d.getMonth() + 1).padStart(2, "0") +
+         String(d.getFullYear()).slice(-2);
+}
+
+function formatDateDisplay(ddmmyy) {
+  const dd = parseInt(ddmmyy.slice(0, 2), 10);
+  const mm = parseInt(ddmmyy.slice(2, 4), 10) - 1;
+  const yy = 2000 + parseInt(ddmmyy.slice(4, 6), 10);
+  return new Date(yy, mm, dd).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+}
+
+function formatTime(secs) {
+  if (!secs || secs < 1) return "—";
+  if (secs < 60) return secs + "s";
+  return Math.floor(secs / 60) + "m " + (secs % 60) + "s";
 }
 
 function getScoreLevel(length) {
@@ -587,6 +624,16 @@ let gameCompleted = false;
 let lastTileEntered = null;
 const apiCache = new Map();
 let isChecking = false;
+
+// Attempt + time tracking
+let attemptCount = 0;
+let activeTimeMs = 0;
+let timerRunning = false;
+let timerLastStart = 0;
+
+// Board date browsing (0 = today, -1 = yesterday, …)
+let browseOffset = 0;
+let browsedDateStr = null; // null = today
 
 // ─── Firebase / auth state ────────────────────────────────────────────────────
 let db = null, fbAuth = null, currentUser = null, userProfile = null;
@@ -917,6 +964,12 @@ function onPointerDown(e) {
   isDragging = true;
   lastTileEntered = null;
 
+  // Start active-time timer on first interaction
+  if (!timerRunning) {
+    timerRunning = true;
+    timerLastStart = Date.now();
+  }
+
   // Clear previous selection
   tiles.forEach(t => { t.state = "neutral"; t._resolvedLetter = ""; });
   selectedPath = [];
@@ -938,6 +991,7 @@ async function onPointerUp(e) {
   lastTileEntered = null;
 
   if (selectedPath.length === 0) return;
+  attemptCount++;
 
   // Local word list — instant
   const validWord = validateWord(selectedPath);
@@ -1040,6 +1094,71 @@ function initInfoPanel() {
 
   var signoutBtn = document.getElementById("signout-btn");
   if (signoutBtn) signoutBtn.addEventListener("click", function() { fbSignOut(); });
+
+  // Leaderboard date navigation
+  var lbPrevBtn = document.getElementById("lb-date-prev");
+  var lbNextBtn = document.getElementById("lb-date-next");
+  if (lbPrevBtn) lbPrevBtn.addEventListener("click", function() {
+    if (lbDayOffset > -13) { lbDayOffset--; loadLeaderboard("date"); }
+  });
+  if (lbNextBtn) lbNextBtn.addEventListener("click", function() {
+    if (lbDayOffset < 0) { lbDayOffset++; loadLeaderboard("date"); }
+  });
+
+  // Board date navigation (for browsing past puzzles)
+  var boardPrevBtn = document.getElementById("board-date-prev");
+  var boardNextBtn = document.getElementById("board-date-next");
+  if (boardPrevBtn) boardPrevBtn.addEventListener("click", function() {
+    if (browseOffset > -13) { browseOffset--; loadBoardForDate(getDateForOffset(browseOffset)); }
+  });
+  if (boardNextBtn) boardNextBtn.addEventListener("click", function() {
+    if (browseOffset < 0) { browseOffset++; loadBoardForDate(getDateForOffset(browseOffset)); }
+  });
+}
+
+// ─── Board date browsing ──────────────────────────────────────────────────────
+function loadBoardForDate(ddmmyy) {
+  const isToday = ddmmyy === getDateString();
+  browsedDateStr = isToday ? null : ddmmyy;
+  puzzle = isToday ? getTodaysPuzzle() : getPuzzleForDate(ddmmyy);
+
+  // Reset game state for this date
+  tiles = []; selectedPath = []; isDragging = false;
+  bestScore = 0; bestWord = ""; ticketCount = 0; gameCompleted = false;
+  attemptCount = 0; activeTimeMs = 0; timerRunning = false; timerLastStart = 0;
+
+  loadState();
+
+  let tileIndex = 0;
+  for (let row = 0; row < ROW_SIZES.length; row++) {
+    for (let col = 0; col < ROW_SIZES[row]; col++) {
+      const letter = (puzzle.letters[tileIndex] !== undefined) ? puzzle.letters[tileIndex] : "";
+      tiles.push(makeTile(tileIndex, row, col, letter));
+      tileIndex++;
+    }
+  }
+  adjacency = buildAdjacency();
+  buildBoard();
+
+  updateScoreDisplay(null);
+  updateTicketDisplay();
+  if (bestScore > 0 && isToday) enableShare();
+
+  // Date display
+  const dateEl = document.getElementById("puzzle-date");
+  if (dateEl) dateEl.textContent = formatDateDisplay(ddmmyy);
+
+  // Prev/next arrows
+  const prevBtn = document.getElementById("board-date-prev");
+  const nextBtn = document.getElementById("board-date-next");
+  if (prevBtn) prevBtn.disabled = browseOffset <= -13;
+  if (nextBtn) nextBtn.disabled = browseOffset >= 0;
+
+  // Past-game banner + share button state
+  const banner = document.getElementById("past-game-banner");
+  const shareBtn = document.getElementById("share-btn");
+  if (banner)   banner.hidden = isToday;
+  if (shareBtn) shareBtn.disabled = !isToday || bestScore === 0;
 }
 
 function populateAnswers() {
@@ -1153,6 +1272,7 @@ function getYesterdayDateStr() {
 
 async function submitScore() {
   if (!db || !currentUser || bestScore === 0) return;
+  if (browsedDateStr) return; // never save scores for past-game browse mode
   const dateStr = getDateString();
   const scoreDocId = currentUser.uid + "_" + dateStr;
   try {
@@ -1168,9 +1288,16 @@ async function submitScore() {
     const streak = (lastDate === yesterday) ? prevStreak + 1 : (lastDate === dateStr ? prevStreak : 1);
     const bestStreakSoFar = Math.max(streak, (userProfile && userProfile.stats && userProfile.stats.bestStreak) || 0);
     const totalGamesNow  = ((userProfile && userProfile.stats && userProfile.stats.totalGames) || 0) + (existing.exists ? 0 : 1);
+    const elapsed = timerRunning ? activeTimeMs + (Date.now() - timerLastStart) : activeTimeMs;
 
     const batch = db.batch();
-    batch.set(scoreRef, { uid: currentUser.uid, username, date: dateStr, puzzleId: puzzle.id, score: bestScore, level, submittedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    batch.set(scoreRef, {
+      uid: currentUser.uid, username, date: dateStr, puzzleId: puzzle.id,
+      score: bestScore, level,
+      attempts: attemptCount,
+      timeSpent: Math.round(elapsed / 1000),
+      submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
 
     const userRef = db.collection("users").doc(currentUser.uid);
     const upd = { "stats.lastPlayedDate": dateStr, "stats.currentStreak": streak, "stats.bestStreak": bestStreakSoFar };
@@ -1195,27 +1322,54 @@ async function submitScore() {
 }
 
 // ─── Leaderboard ─────────────────────────────────────────────────────────────
-let lbFilter = "today";
+let lbFilter = "date";
+let lbDayOffset = 0; // 0 = today, -1 = yesterday, etc.
+
+function updateLbDateNav() {
+  var labelEl   = document.getElementById("lb-date-label");
+  var prevBtn   = document.getElementById("lb-date-prev");
+  var nextBtn   = document.getElementById("lb-date-next");
+  var revealEl  = document.getElementById("lb-word-reveal");
+  if (!labelEl) return;
+
+  var dateStr = getDateForOffset(lbDayOffset);
+  labelEl.textContent = lbDayOffset === 0 ? "Today" : formatDateDisplay(dateStr);
+  if (nextBtn) nextBtn.disabled = lbDayOffset >= 0;
+  if (prevBtn) prevBtn.disabled = lbDayOffset <= -13;
+
+  if (lbDayOffset < 0 && revealEl) {
+    var p = getPuzzleForDate(dateStr);
+    var word = p && p.prevAnswers && p.prevAnswers[0] ? p.prevAnswers[0].word : "";
+    revealEl.hidden = !word;
+    revealEl.innerHTML = word
+      ? '<span class="lb-word-label">Target word:</span> <strong class="lb-word-value">' + escHtml(word) + "</strong>"
+      : "";
+  } else if (revealEl) {
+    revealEl.hidden = true;
+  }
+}
 
 async function loadLeaderboard(filter) {
-  lbFilter = filter || "today";
-  const listEl    = document.getElementById("lb-list");
-  const loadingEl = document.getElementById("lb-loading");
-  const noauthEl  = document.getElementById("lb-noauth");
+  lbFilter = filter || "date";
+  updateLbDateNav();
+  var listEl    = document.getElementById("lb-list");
+  var loadingEl = document.getElementById("lb-loading");
+  var noauthEl  = document.getElementById("lb-noauth");
   if (!listEl) return;
 
-  if (!db) { noauthEl.hidden = false; listEl.hidden = true; return; }
+  if (!db) { noauthEl.hidden = false; listEl.hidden = true; if (loadingEl) loadingEl.hidden = true; return; }
   noauthEl.hidden = true;
   loadingEl.hidden = false;
   listEl.hidden = true;
   listEl.innerHTML = "";
 
   try {
-    let snap;
-    if (lbFilter === "today") {
-      snap = await db.collection("scores").where("date","==",getDateString()).orderBy("score","desc").limit(25).get();
+    var snap;
+    if (lbFilter === "date") {
+      var queryDate = getDateForOffset(lbDayOffset);
+      snap = await db.collection("scores").where("date", "==", queryDate).orderBy("score", "desc").limit(25).get();
     } else {
-      snap = await db.collection("users").orderBy("stats.bestScore","desc").limit(25).get();
+      snap = await db.collection("users").orderBy("stats.bestScore", "desc").limit(25).get();
     }
     loadingEl.hidden = true;
     listEl.hidden = false;
@@ -1223,17 +1377,20 @@ async function loadLeaderboard(filter) {
 
     snap.docs.forEach(function(doc, i) {
       var d     = doc.data();
-      var score = lbFilter === "today" ? d.score : ((d.stats && d.stats.bestScore) || 0);
+      var score = lbFilter === "date" ? d.score : ((d.stats && d.stats.bestScore) || 0);
       var name  = d.username || "Player";
       var isMe  = currentUser && (d.uid === currentUser.uid || doc.id === currentUser.uid);
       var rank  = i + 1;
+      var meta  = (lbFilter === "date" && (d.attempts || d.timeSpent))
+        ? '<span class="lb-meta">' + (d.attempts || "?") + " attempts · " + formatTime(d.timeSpent || 0) + "</span>"
+        : "";
       var row   = document.createElement("div");
       row.className = "lb-row" + (isMe ? " lb-row-me" : "");
       row.innerHTML =
         '<span class="lb-rank' + (rank <= 3 ? " top3" : "") + '">' + rank + "</span>" +
         '<span class="lb-name">' + escHtml(name) + (isMe ? ' <span style="color:var(--brand);font-size:0.65rem">(you)</span>' : "") + "</span>" +
         '<span class="lb-score">' + score + "</span>" +
-        '<span class="lb-level">' + getScoreLevel(score) + "</span>";
+        '<span class="lb-level">' + getScoreLevel(score) + "</span>" + meta;
       listEl.appendChild(row);
     });
   } catch (e) {
@@ -1455,10 +1612,13 @@ async function loadRecentHistory() {
       row.className = "history-row";
       var dt = d.date || "";
       var dateDisplay = dt.slice(0,2) + "/" + dt.slice(2,4) + "/" + dt.slice(4);
+      var meta = (d.attempts || d.timeSpent)
+        ? '<span class="history-meta">' + (d.attempts || "?") + " tries · " + formatTime(d.timeSpent || 0) + "</span>"
+        : "";
       row.innerHTML =
         '<span class="history-date">' + dateDisplay + "</span>" +
         '<span class="history-score">' + d.score + "</span>" +
-        '<span class="history-level">' + (d.level || "") + "</span>";
+        '<span class="history-level">' + (d.level || "") + "</span>" + meta;
       container.appendChild(row);
     });
   } catch (e) {
@@ -1476,7 +1636,7 @@ function switchBackTab(tabName) {
   document.querySelectorAll(".tab-panel").forEach(function(p) {
     p.hidden = p.id !== "tab-" + tabName;
   });
-  if (tabName === "scores") loadLeaderboard(lbFilter || "today");
+  if (tabName === "scores") { lbDayOffset = 0; loadLeaderboard(lbFilter || "date"); }
   if (tabName === "stats")  renderStatsPanel();
 }
 
@@ -1537,11 +1697,15 @@ function showToast(msg) {
 }
 
 // ─── Persistence ──────────────────────────────────────────────────────────────
-function storageKey() { return "shukuma-" + getDateString(); }
+function currentDateStr() { return browsedDateStr || getDateString(); }
+function storageKey() { return "shukuma-" + currentDateStr(); }
 
 function saveState() {
+  const elapsed = timerRunning ? activeTimeMs + (Date.now() - timerLastStart) : activeTimeMs;
   try {
-    localStorage.setItem(storageKey(), JSON.stringify({ bestWord, bestScore, ticketCount, gameCompleted }));
+    localStorage.setItem(storageKey(), JSON.stringify({
+      bestWord, bestScore, ticketCount, gameCompleted, attemptCount, activeTimeMs: elapsed,
+    }));
   } catch(_) {}
 }
 
@@ -1550,10 +1714,12 @@ function loadState() {
     const raw = localStorage.getItem(storageKey());
     if (!raw) return;
     const s = JSON.parse(raw);
-    bestWord = s.bestWord || "";
-    bestScore = s.bestScore || 0;
+    bestWord    = s.bestWord    || "";
+    bestScore   = s.bestScore   || 0;
     ticketCount = s.ticketCount || 0;
     gameCompleted = s.gameCompleted || false;
+    attemptCount  = s.attemptCount  || 0;
+    activeTimeMs  = s.activeTimeMs  || 0;
   } catch(_) {}
 }
 
@@ -1597,10 +1763,27 @@ function init() {
   if (bestScore > 0) enableShare();
 
   const dateEl = document.getElementById("puzzle-date");
-  if (dateEl) {
-    const d = new Date();
-    dateEl.textContent = d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-  }
+  if (dateEl) dateEl.textContent = formatDateDisplay(getDateString());
+
+  // Init board nav buttons
+  const boardPrevBtn = document.getElementById("board-date-prev");
+  const boardNextBtn = document.getElementById("board-date-next");
+  if (boardPrevBtn) boardPrevBtn.disabled = false;
+  if (boardNextBtn) boardNextBtn.disabled = true;
+
+  // Pause active timer when user leaves the tab/app
+  document.addEventListener("visibilitychange", function() {
+    if (document.hidden) {
+      if (timerRunning) {
+        activeTimeMs += Date.now() - timerLastStart;
+        timerRunning = false;
+        saveState();
+      }
+    } else if (!browsedDateStr && (bestScore > 0 || selectedPath.length > 0)) {
+      timerRunning = true;
+      timerLastStart = Date.now();
+    }
+  });
 }
 
 // Start

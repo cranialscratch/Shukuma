@@ -50,8 +50,13 @@
             <div class="level-segment" data-level="5" title="Grandmaster (≥15)"></div>
           </div>
 
-          <!-- Date -->
-          <div id="puzzle-date"></div>
+          <!-- Date + board navigation -->
+          <div id="date-nav-bar">
+            <button id="board-date-prev" aria-label="Previous day">‹</button>
+            <div id="puzzle-date"></div>
+            <button id="board-date-next" aria-label="Next day" disabled>›</button>
+          </div>
+          <div id="past-game-banner" hidden>📅 Past game — explore for fun, scores won't count</div>
 
           <!-- Footer -->
           <div id="game-footer">
@@ -180,8 +185,16 @@
             <!-- ── Tab: Scores ──────────────────────────────────────── -->
             <div id="tab-scores" class="tab-panel" role="tabpanel" hidden>
 
+              <div id="lb-date-nav">
+                <button id="lb-date-prev" aria-label="Previous day">‹</button>
+                <span id="lb-date-label">Today</span>
+                <button id="lb-date-next" disabled aria-label="Next day">›</button>
+              </div>
+
+              <div id="lb-word-reveal" hidden></div>
+
               <div id="lb-filter-row">
-                <button class="lb-filter-btn active" data-filter="today">Today</button>
+                <button class="lb-filter-btn active" data-filter="date">Scores</button>
                 <button class="lb-filter-btn" data-filter="alltime">All Time</button>
               </div>
 
