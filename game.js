@@ -533,7 +533,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "1.6.0";
+const VERSION = "1.6.4";
 
 const CHANGELOG = [
   { version: "1.6.0", date: "26 Jun 2026", changes: [
@@ -884,6 +884,7 @@ function updateAnswerArea() {
   if (!ansEl) return;
   if (selectedPath.length === 0) {
     ansEl.hidden = true; ansEl.textContent = "";
+    ansEl.style.fontSize = ""; ansEl.style.letterSpacing = "";
     if (promptEl) promptEl.hidden = false;
     if (resetBtn) resetBtn.hidden = true;
     return;
@@ -899,6 +900,11 @@ function updateAnswerArea() {
   ansEl.hidden = false;
   if (promptEl) promptEl.hidden = true;
   if (resetBtn) resetBtn.hidden = false;
+
+  // Scale font down for longer words to prevent topbar overflow
+  var wordLen = display.replace("?", "").length;
+  ansEl.style.fontSize    = wordLen <= 9  ? "" : wordLen <= 12 ? "1.2rem" : wordLen <= 15 ? "1rem" : "0.88rem";
+  ansEl.style.letterSpacing = wordLen <= 9  ? "" : wordLen <= 12 ? "0.08em" : "0.04em";
 }
 
 function updateScoreDisplay(validWord) {
@@ -957,7 +963,10 @@ function buildBoard() {
   defs.innerHTML =
     '<pattern id="invalid-hatch" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">' +
     '<line x1="0" y1="0" x2="0" y2="8" stroke="rgba(0,0,0,0.22)" stroke-width="4"/>' +
-    "</pattern>";
+    '</pattern>' +
+    '<filter id="tile-shadow" x="-15%" y="-15%" width="130%" height="140%" color-interpolation-filters="sRGB">' +
+    '<feDropShadow dx="0" dy="2.5" stdDeviation="1.8" flood-opacity="0.38"/>' +
+    '</filter>';
   svg.appendChild(defs);
 
   tiles.forEach(tile => {
@@ -974,6 +983,7 @@ function buildBoard() {
     poly.setAttribute("fill", tile.blank ? COLOURS.blank.fill : c.fill);
     poly.setAttribute("stroke", c.stroke);
     poly.setAttribute("stroke-width", "2");
+    poly.setAttribute("filter", "url(#tile-shadow)");
 
     const text = document.createElementNS(NS, "text");
     text.setAttribute("x", x);
