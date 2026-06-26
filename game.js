@@ -73,7 +73,7 @@ const WORDS = new Set([
   "naive","nifty","night","noble","noisy","north","noted","novel","nudge","nurse",
   "occur","olive","onset","opera","order","ought","ounce","outer","oxide",
   "panic","party","paste","patch","pause","peace","pearl","penny","perch","petty","phase","phone","piano","piece","pilot","pitch","pixel","pizza","place","plain","plane","plank","plant","plate","plaza","pluck","plumb","plume","point","polar","polka","power","price","pride","prime","prior","prize","probe","prone","proof","prose","proxy","prune","pulse","punch","pupil","puppy","purge","queen","quest","quote",
-  "rainy","rally","ranch","range","rapid","ratio","reach","ready","realm","rebel","refer","reign","relax","repay","reply","rerun","reuse","rider","ridge","rifle","right","risky","rival","river","rivet","robot","rocky","rouge","rough","round","route","rover","royal","ruler","runny","rural",
+  "rainy","raise","rally","ranch","range","rapid","ratio","reach","ready","realm","rebel","refer","reign","relax","repay","reply","rerun","reuse","rider","ridge","rifle","right","risky","rival","river","rivet","robot","rocky","rouge","rough","round","route","rover","royal","ruler","runny","rural",
   "sadly","saint","salad","sauce","savvy","scale","scary","scene","scone","scope","score","scorn","scout","scowl","sense","serve","setup","seven","sever","shall","shame","shape","share","shark","sharp","sheen","sheer","shelf","shell","shift","shine","shirt","shock","short","shout","shove","sight","silly","since","sixth","sixty","skate","skill","skull","slain","slake","slate","slave","sleek","sleep","sleet","slice","slide","sling","slink","slope","sloth","small","smart","smell","smile","smite","smoke","snare","sneak","sneer","snide","sniff","snore","solar","solid","solve","sorry","south","space","spade","spare","spark","spawn","speak","speed","spend","spice","spicy","spill","spine","spite","spoke","spook","spoon","spout","spray","staff","stage","stain","stale","stall","stamp","stare","stark","start","state","steak","steal","steam","steel","steep","steer","stern","stick","stiff","still","sting","stink","stock","stoke","stone","stood","store","storm","story","stout","strap","straw","stray","strip","strum","stuck","study","stuff","style","sugar","suite","sulky","sunny","super","surge","swear","sweat","sweep","sweet","swept","swift","swine","swipe","swirl","swoop","syrup",
   "table","taken","taste","tasty","tatty","tawny","teach","tease","teddy","tepid","thank","theme","there","these","thick","thing","think","third","thorn","those","three","threw","throw","thump","tiger","tight","timer","tired","title","today","token","touch","tough","tower","toxic","trace","track","trade","trail","train","trait","trawl","tread","treat","trend","trick","tried","trite","troll","troop","truck","truly","trump","tuner","twang","tweak","tweed","twist","tying",
   "ulcer","ultra","under","unfit","unite","until","upper","upset","urban","usher","utter",
@@ -95,7 +95,7 @@ const WORDS = new Set([
   "nation","native","nature","nearly","needle","normal","notice",
   "obtain","offend","office","oldest","onward","opener","option","output","oxygen",
   "parent","partly","patent","patrol","palace","papers","people","permit","person","phrase","player","plural","pocket","poison","police","policy","postal","praise","prison","profit","proper","proven","pursue",
-  "racial","rather","reason","recipe","reform","remain","remind","remove","render","repair","repeat","resign","resort","result","retail","return","reveal","reward","ruling",
+  "racial","raised","raises","rather","reason","recipe","reform","remain","remind","remove","render","repair","repeat","resign","resort","result","retail","return","reveal","reward","ruling",
   "safety","sample","school","second","secret","sector","series","served","simple","single","sister","slowly","social","sought","source","spirit","spoken","spread","stable","static","steady","stolen","stored","stream","street","strict","strike","strong","struck","stupid","submit","suffer","summit","supply","symbol","system",
   "talent","target","theory","though","threat","ticket","toward","travel","treaty","tribal","triple","trying","tunnel",
   "unique","unless","unveil","update","useful",
@@ -724,6 +724,9 @@ function init() {
     svg.addEventListener("pointerup", onPointerUp);
     svg.addEventListener("pointercancel", onPointerUp);
     svg.style.touchAction = "none";
+    // iOS Safari requires explicit touch listeners with passive:false to block scroll
+    svg.addEventListener("touchstart", e => e.preventDefault(), { passive: false });
+    svg.addEventListener("touchmove", e => e.preventDefault(), { passive: false });
   }
 
   initInfoPanel();
