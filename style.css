@@ -178,6 +178,14 @@ html, body {
 
 #answer-text.has-word { color: var(--text-light); }
 
+@keyframes checking-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+#answer-text.checking {
+  animation: checking-pulse 0.7s ease-in-out infinite;
+}
+
 /* footer bar */
 #game-footer {
   width: 100%;

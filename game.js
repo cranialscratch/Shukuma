@@ -229,6 +229,8 @@ let bestWord = "";
 let ticketCount = 0;
 let gameCompleted = false;
 let lastTileEntered = null;
+const apiCache = new Map();
+let isChecking = false;
 
 // ─── Tile factory ─────────────────────────────────────────────────────────────
 function makeTile(id, row, col, letter) {
@@ -316,6 +318,20 @@ function validateWord(path) {
     return null;
   }
   return tryBlanks(0, letters.slice());
+}
+
+// ─── Dictionary API fallback (en_US + en_GB) ─────────────────────────────────
+async function checkDictionaryAPI(word) {
+  const key = word.toLowerCase();
+  if (apiCache.has(key)) return apiCache.get(key);
+  for (const lang of ["en_US", "en_GB"]) {
+    try {
+      const resp = await fetch("https://api.dictionaryapi.dev/api/v2/entries/" + lang + "/" + key);
+      if (resp.ok) { apiCache.set(key, true); return true; }
+    } catch (_) {}
+  }
+  apiCache.set(key, false);
+  return false;
 }
 
 // ─── Rendering ────────────────────────────────────────────────────────────────
@@ -537,6 +553,7 @@ function tileIdFromPoint(clientX, clientY) {
 
 // ─── Pointer handlers ─────────────────────────────────────────────────────────
 function onPointerDown(e) {
+  if (isChecking) return;
   e.preventDefault();
   isDragging = true;
   lastTileEntered = null;
@@ -556,38 +573,61 @@ function onPointerMove(e) {
   if (tileId !== null) enterTile(tileId);
 }
 
-function onPointerUp(e) {
+async function onPointerUp(e) {
   if (!isDragging) return;
   isDragging = false;
   lastTileEntered = null;
 
   if (selectedPath.length === 0) return;
 
+  // Local word list — instant
   const validWord = validateWord(selectedPath);
-
-  if (!validWord) {
-    // Flash red then clear
-    selectedPath.forEach(id => { tiles[id].state = "invalid"; });
-    renderAllTiles();
-    setTimeout(() => {
-      tiles.forEach(t => { t.state = "neutral"; t._resolvedLetter = ""; });
-      selectedPath = [];
-      renderAllTiles();
-      updateAnswerArea();
-      updateScoreDisplay(null);
-    }, 700);
-  } else {
-    // Lock in valid word
-    const len = selectedPath.length;
-    if (len > bestScore) {
-      bestScore = len;
-      bestWord = validWord;
-      saveState();
-    }
-    // Keep green state
-    updateScoreDisplay(validWord);
-    enableShare();
+  if (validWord) {
+    lockValidWord(validWord);
+    return;
   }
+
+  // API fallback for non-blank words (blank combos are too many to try via API)
+  const hasBlanks = selectedPath.some(id => tiles[id].blank);
+  if (!hasBlanks && selectedPath.length >= 3) {
+    const word = selectedPath.map(id => tiles[id].letter.toLowerCase()).join("");
+    isChecking = true;
+    const answerEl = document.getElementById("answer-text");
+    if (answerEl) answerEl.classList.add("checking");
+    let found = false;
+    try { found = await checkDictionaryAPI(word); } catch (_) {}
+    isChecking = false;
+    if (answerEl) answerEl.classList.remove("checking");
+    if (found) { lockValidWord(word); return; }
+  }
+
+  flashInvalid();
+}
+
+function lockValidWord(word) {
+  selectedPath.forEach(id => { tiles[id].state = "valid"; });
+  renderAllTiles();
+  const len = selectedPath.length;
+  if (len > bestScore) {
+    bestScore = len;
+    bestWord = word;
+    saveState();
+  }
+  updateScoreDisplay(word);
+  updateAnswerArea();
+  enableShare();
+}
+
+function flashInvalid() {
+  selectedPath.forEach(id => { tiles[id].state = "invalid"; });
+  renderAllTiles();
+  setTimeout(function() {
+    tiles.forEach(t => { t.state = "neutral"; t._resolvedLetter = ""; });
+    selectedPath = [];
+    renderAllTiles();
+    updateAnswerArea();
+    updateScoreDisplay(null);
+  }, 700);
 }
 
 // ─── Info panel ───────────────────────────────────────────────────────────────
