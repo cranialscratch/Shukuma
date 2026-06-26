@@ -524,12 +524,12 @@ const PUZZLES = [
 // ─── Firebase config ─────────────────────────────────────────────────────────
 // Paste your Firebase SDK config here (console.firebase.google.com → Project settings → Your apps)
 const FIREBASE_CONFIG = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: "",
+  apiKey: "AIzaSyAfBsrmj7_DDxIlYmwmF9xNqYGccTiinMY",
+  authDomain: "shukuma-b09bf.firebaseapp.com",
+  projectId: "shukuma-b09bf",
+  storageBucket: "shukuma-b09bf.firebasestorage.app",
+  messagingSenderId: "623730561112",
+  appId: "1:623730561112:web:064cbafbea6735a55d7a2d",
 };
 
 // ─── Badge definitions ────────────────────────────────────────────────────────
