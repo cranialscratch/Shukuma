@@ -8,15 +8,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=1.6.1" />
+  <link rel="stylesheet" href="style.css?v=1.6.2" />
 </head>
 <body>
   <div id="app">
-
-    <!-- Brand -->
-    <header id="brand-header">
-      <div id="brand-logo">Joyall</div>
-    </header>
 
     <!-- 3D flip card -->
     <div id="card-scene">
@@ -30,12 +25,16 @@
 
           <!-- Top bar: ↺ reset | word/prompt | ℹ info -->
           <div id="game-topbar">
-            <button id="reset-btn" aria-label="Reset selection" hidden>↺</button>
+            <button id="reset-btn" aria-label="Reset selection" hidden>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            </button>
             <div id="topbar-word">
               <span id="game-prompt">Find today's longest word</span>
               <span id="answer-text" aria-live="polite" hidden></span>
             </div>
-            <button id="info-btn" aria-label="Info / How to play">ℹ</button>
+            <button id="info-btn" aria-label="Info / How to play">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="8" stroke-width="3"/><line x1="12" y1="12" x2="12" y2="16"/></svg>
+            </button>
           </div>
 
           <!-- Hex board (built by JS) -->
@@ -274,6 +273,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
-  <script src="game.js?v=1.6.1"></script>
+  <script src="game.js?v=1.6.2"></script>
 </body>
 </html>
