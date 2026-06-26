@@ -1973,6 +1973,10 @@ function loadState() {
 
 // ─── Version / changelog ──────────────────────────────────────────────────────
 function initVersionPanel() {
+  // Ensure modal is hidden on startup regardless of CSS specificity issues
+  var modalEl = document.getElementById("changelog-modal");
+  if (modalEl) { modalEl.hidden = true; modalEl.style.display = "none"; }
+
   var tag = document.getElementById("version-tag");
   if (tag) {
     tag.textContent = "v" + VERSION;
@@ -2017,12 +2021,12 @@ function renderChangelog() {
 
 function showChangelog() {
   var modal = document.getElementById("changelog-modal");
-  if (modal) modal.hidden = false;
+  if (modal) { modal.hidden = false; modal.style.display = ""; }
 }
 
 function hideChangelog() {
   var modal = document.getElementById("changelog-modal");
-  if (modal) modal.hidden = true;
+  if (modal) { modal.hidden = true; modal.style.display = "none"; }
 }
 
 // ─── Float animation ──────────────────────────────────────────────────────────
