@@ -691,10 +691,10 @@ html, body {
   border: none;
   border-bottom: 3px solid transparent;
   color: rgba(255,255,255,0.7);
-  font-size: 0.78rem;
+  font-size: 0.68rem;
   font-weight: bold;
   font-family: inherit;
-  padding: 12px 10px 9px;
+  padding: 7px 8px 6px;
   cursor: pointer;
   text-transform: uppercase;
   letter-spacing: 0.4px;
@@ -1397,3 +1397,165 @@ html, body {
   margin-bottom: 2px;
 }
 .cl-latest .cl-changes li { color: #333; }
+
+/* ── Settings tab ─────────────────────────────────────────────────── */
+.settings-section {
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.settings-section:last-child { border-bottom: none; }
+.settings-section-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 10px;
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  cursor: pointer;
+}
+.settings-label {
+  font-size: 0.88rem;
+  color: rgba(255,255,255,0.85);
+}
+.settings-toggle {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 42px;
+  height: 24px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.2);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.settings-toggle::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: white;
+  transition: transform 0.2s;
+}
+.settings-toggle:checked {
+  background: var(--brand);
+}
+.settings-toggle:checked::after {
+  transform: translateX(18px);
+}
+
+/* Colour theme grid */
+.colour-theme-grid {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.colour-theme-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 10px;
+  border-radius: 20px;
+  border: 2px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.7);
+  font-size: 0.78rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.colour-theme-btn.active {
+  border-color: white;
+  color: white;
+}
+.theme-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+/* Settings locale (mirrors the Rules tab toggle) */
+#locale-toggle-settings {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+/* Account action buttons */
+.settings-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+.settings-action-btn {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.85);
+  font-size: 0.85rem;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+.settings-action-btn:hover { background: rgba(255,255,255,0.12); }
+.settings-danger-btn {
+  border-color: rgba(217,83,79,0.5);
+  color: #e87572;
+}
+.settings-danger-btn:hover { background: rgba(217,83,79,0.15); }
+
+/* ── Dark mode ────────────────────────────────────────────────────── */
+html[data-theme="dark"] {
+  --page-bg:             #111111;
+  --board-bg:            #1a1a2e;
+  --tile-neutral:        #2a2a3e;
+  --tile-neutral-stroke: #3a3a5e;
+  --tile-blank:          #222234;
+  --tile-text:           #e8e8f0;
+}
+html[data-theme="dark"] body {
+  background: var(--page-bg);
+  color: var(--tile-text);
+}
+html[data-theme="dark"] #game-card {
+  background: var(--board-bg);
+}
+
+/* ── Colour-blind themes ──────────────────────────────────────────── */
+html[data-colour="protanopia"] {
+  --tile-valid:          #4a90d9;
+  --tile-valid-stroke:   #2a6aad;
+  --tile-invalid:        #f5a623;
+  --tile-invalid-stroke: #c07800;
+  --tile-selected:       #8b5cf6;
+  --tile-selected-stroke:#6d3fd1;
+}
+
+html[data-colour="highcontrast"] {
+  --tile-neutral:        #ffffff;
+  --tile-neutral-stroke: #000000;
+  --tile-text:           #000000;
+  --tile-valid:          #00cc00;
+  --tile-valid-stroke:   #007700;
+  --tile-invalid:        #ff0000;
+  --tile-invalid-stroke: #880000;
+  --tile-selected:       #ffff00;
+  --tile-selected-stroke:#888800;
+  --tile-played:         #0000ff;
+  --tile-played-stroke:  #000088;
+  --tile-text-light:     #ffffff;
+}

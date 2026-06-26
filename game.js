@@ -176,14 +176,14 @@ const PUZZLES = [
   { id: "p0003", letters: ["Y","D","N","T","A","I","U","O","R","N","A","N","R","O","G","S","D","U","N","G","E","S"], prevAnswers: [{"word":"SURROUNDING","pct":4},{"word":"ROUND","pct":15},{"word":"AUNT","pct":30},{"word":"NOUN","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0004", letters: ["F","O","U","A","N","R","R","C","M","I","E","D","E","E","P","A","F","V","I","E","E","A"], prevAnswers: [{"word":"REINFORCED","pct":4},{"word":"FORCE","pct":15},{"word":"ORDER","pct":30},{"word":"ACRE","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0005", letters: ["A","A","T","E","A","R","R","T","S","C","H","O","T","E","E","I","M","N","P","V","E","E"], prevAnswers: [{"word":"ACHIEVEMENTS","pct":4},{"word":"ACHIEVE","pct":15},{"word":"ACHE","pct":30},{"word":"ARCH","pct":35},{"word":"4 or lower","pct":16}] },
-  { id: "p0006", letters: ["N","I","T","T","S","N","R","L","O","T","U","O","B","B","R","C","D","Y","T","J","T","E"], prevAnswers: [{"word":"INSTRUCTED","pct":4},{"word":"COUNT","pct":15},{"word":"COURT","pct":30},{"word":"ROBOT","pct":35},{"word":"4 or lower","pct":16}] },
+  { id: "p0006", letters: ["N","I","T","T","S","B","R","L","O","T","U","O","B","B","R","C","D","Y","T","J","T","E"], prevAnswers: [{"word":"INSTRUCTED","pct":4},{"word":"COUNT","pct":15},{"word":"COURT","pct":30},{"word":"ROBOT","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0007", letters: ["H","P","A","F","D","Y","R","Y","F","O","G","O","R","A","C","E","R","E","P","H","O","J"], prevAnswers: [{"word":"CHOREOGRAPHY","pct":4},{"word":"CHORE","pct":15},{"word":"ERROR","pct":30},{"word":"RECAP","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0008", letters: ["W","P","R","N","I","L","E","W","A","N","T","H","T","T","I","O","I","L","N","V","N","A"], prevAnswers: [{"word":"INTERNATIONAL","pct":4},{"word":"NATIONAL","pct":9},{"word":"INVITE","pct":22},{"word":"HOTEL","pct":35},{"word":"4 or lower","pct":30}] },
   { id: "p0009", letters: ["T","C","R","E","O","R","E","E","F","N","L","A","A","I","C","E","B","F","E","S","J","N"], prevAnswers: [{"word":"ELECTRONICS","pct":4},{"word":"ALERT","pct":15},{"word":"ELECT","pct":30},{"word":"BALE","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0010", letters: ["A","T","N","A","R","N","I","O","R","I","Y","E","A","P","I","P","E","U","S","N","T","I"], prevAnswers: [{"word":"INSPIRATION","pct":4},{"word":"RATIO","pct":15},{"word":"PIPE","pct":30},{"word":"SPIN","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0011", letters: ["N","E","F","E","E","I","E","I","H","V","Y","R","N","F","T","N","A","O","S","A","T","I"], prevAnswers: [{"word":"STATIONARY","pct":4},{"word":"NASTY","pct":15},{"word":"RATIO","pct":30},{"word":"FERN","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0012", letters: ["H","O","I","N","T","T","S","I","G","I","G","I","L","V","N","T","A","K","G","I","C","H"], prevAnswers: [{"word":"INITIALISING","pct":4},{"word":"ALIGN","pct":15},{"word":"CHALK","pct":30},{"word":"STING","pct":35},{"word":"4 or lower","pct":16}] },
-  { id: "p0013", letters: ["Y","K","E","I","E","O","R","O","R","O","W","D","C","G","R","N","B","U","O","U","C","P"], prevAnswers: [{"word":"GROUNDWORK","pct":4},{"word":"DROWN","pct":15},{"word":"GROWN","pct":30},{"word":"ROUND","pct":35},{"word":"4 or lower","pct":16}] },
+  { id: "p0013", letters: ["Y","K","E","I","E","O","R","O","R","B","W","D","C","G","R","N","B","U","O","U","C","P"], prevAnswers: [{"word":"GROUNDWORK","pct":4},{"word":"DROWN","pct":15},{"word":"GROWN","pct":30},{"word":"ROUND","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0014", letters: ["U","R","T","E","O","G","N","W","A","J","A","N","J","A","E","L","M","L","A","I","S","O"], prevAnswers: [{"word":"JOURNALISM","pct":4},{"word":"AISLE","pct":15},{"word":"SLANT","pct":30},{"word":"ALSO","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0015", letters: ["R","A","T","D","G","G","T","S","T","E","P","A","N","D","M","L","Y","E","R","E","O","M"], prevAnswers: [{"word":"DEPLOYMENTS","pct":4},{"word":"DEPLOY","pct":15},{"word":"PLANE","pct":30},{"word":"PLANT","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0016", letters: ["N","N","I","Z","E","G","O","A","I","T","I","N","L","A","T","G","H","A","N","T","A","O"], prevAnswers: [{"word":"NATIONALIZING","pct":4},{"word":"NATIONAL","pct":9},{"word":"GOING","pct":30},{"word":"TITAN","pct":35},{"word":"4 or lower","pct":22}] },
@@ -204,7 +204,7 @@ const PUZZLES = [
   { id: "p0031", letters: ["N","E","G","L","T","E","D","E","V","M","A","N","P","R","O","N","D","E","M","O","I","E"], prevAnswers: [{"word":"INDEPENDENT","pct":4},{"word":"DEMON","pct":15},{"word":"INANE","pct":30},{"word":"LEDGE","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0032", letters: ["C","S","E","R","G","P","R","E","O","O","T","R","O","D","N","G","O","C","I","N","L","Y"], prevAnswers: [{"word":"CORRESPONDING","pct":4},{"word":"RESPOND","pct":15},{"word":"INTRO","pct":30},{"word":"COOL","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0033", letters: ["N","N","G","U","A","T","H","Y","M","I","O","W","Y","O","A","E","T","V","N","L","I","S"], prevAnswers: [{"word":"NATIONALITY","pct":4},{"word":"NATIONAL","pct":9},{"word":"STEAL","pct":30},{"word":"LEAN","pct":35},{"word":"4 or lower","pct":22}] },
-  { id: "p0034", letters: ["R","V","N","C","S","E","I","O","E","A","T","O","C","U","H","N","W","E","E","D","Y","W"], prevAnswers: [{"word":"CONVERSATION","pct":4},{"word":"COIN","pct":15},{"word":"HATE","pct":30},{"word":"NOON","pct":35},{"word":"4 or lower","pct":16}] },
+  { id: "p0034", letters: ["R","V","N","C","S","E","I","O","E","A","T","B","C","U","H","N","W","E","E","D","Y","W"], prevAnswers: [{"word":"OBITER","pct":4},{"word":"COIN","pct":15},{"word":"HATE","pct":30},{"word":"REIN","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0035", letters: ["R","I","O","H","E","F","N","Y","G","Y","A","D","N","R","W","W","I","U","D","C","T","I"], prevAnswers: [{"word":"WAYFINDING","pct":4},{"word":"FINDING","pct":15},{"word":"FADING","pct":22},{"word":"DRYER","pct":35},{"word":"4 or lower","pct":24}] },
   { id: "p0036", letters: ["D","A","M","O","N","I","C","A","U","T","A","E","I","E","R","T","D","E","G","D","S","L"], prevAnswers: [{"word":"INTEGRATED","pct":4},{"word":"RETAIN","pct":15},{"word":"DRAIN","pct":30},{"word":"GRACE","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0037", letters: ["E","E","N","F","N","O","P","D","E","I","H","O","T","M","S","T","S","A","C","C","I","C"], prevAnswers: [{"word":"SOPHISTICATED","pct":4},{"word":"PHONE","pct":15},{"word":"SHINE","pct":30},{"word":"SHONE","pct":35},{"word":"4 or lower","pct":16}] },
@@ -218,19 +218,19 @@ const PUZZLES = [
   { id: "p0045", letters: ["E","N","N","L","A","T","I","O","N","R","D","L","A","P","N","R","I","O","G","I","Z","S"], prevAnswers: [{"word":"RATIONALIZING","pct":4},{"word":"RATIO","pct":15},{"word":"DINE","pct":30},{"word":"EARN","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0046", letters: ["R","D","S","N","E","E","I","C","O","D","R","E","G","E","P","R","T","V","B","J","A","E"], prevAnswers: [{"word":"RECONSIDERED","pct":4},{"word":"PRICE","pct":15},{"word":"PRIDE","pct":30},{"word":"DEED","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0047", letters: ["I","Z","E","D","L","I","C","T","L","A","E","P","S","R","L","K","J","V","N","T","G","U"], prevAnswers: [{"word":"SPECIALIZED","pct":4},{"word":"LEARN","pct":15},{"word":"PEARL","pct":30},{"word":"EARL","pct":35},{"word":"4 or lower","pct":16}] },
-  { id: "p0048", letters: ["S","E","O","A","U","G","D","D","P","O","A","I","N","H","G","U","O","R","H","S","V","C"], prevAnswers: [{"word":"ROUGHHOUSED","pct":4},{"word":"DODGE","pct":15},{"word":"GUIDE","pct":30},{"word":"HOUSE","pct":35},{"word":"4 or lower","pct":16}] },
+  { id: "p0048", letters: ["S","E","O","A","U","B","D","D","P","O","B","I","N","H","G","U","O","R","H","S","V","C"], prevAnswers: [{"word":"ROUGHHOUSED","pct":4},{"word":"DODGE","pct":15},{"word":"GUIDE","pct":30},{"word":"HOUSE","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0049", letters: ["E","P","O","R","E","L","L","C","S","E","S","O","G","S","N","U","N","I","I","T","H","P"], prevAnswers: [{"word":"COUNSELLORS","pct":4},{"word":"CLOSES","pct":15},{"word":"CLOSE","pct":30},{"word":"COUNT","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0050", letters: ["K","O","A","E","L","N","S","G","P","C","S","E","R","O","N","C","L","E","I","T","O","F"], prevAnswers: [{"word":"REFLECTIONS","pct":4},{"word":"ELECTION","pct":9},{"word":"SECTION","pct":22},{"word":"LESSON","pct":35},{"word":"4 or lower","pct":30}] },
   { id: "p0051", letters: ["I","A","T","R","N","I","I","E","E","O","N","M","T","S","T","N","E","N","N","O","B","E"], prevAnswers: [{"word":"ENTERTAINMENT","pct":4},{"word":"RETAIN","pct":15},{"word":"ENTER","pct":30},{"word":"STONE","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0052", letters: ["C","E","S","J","T","L","T","T","I","F","T","E","S","E","L","S","N","S","A","E","S","E"], prevAnswers: [{"word":"SELFLESSNESS","pct":4},{"word":"ITSELF","pct":15},{"word":"LESSEN","pct":22},{"word":"NESTLE","pct":35},{"word":"4 or lower","pct":24}] },
-  { id: "p0053", letters: ["D","V","T","E","D","S","P","T","H","N","H","I","G","E","Z","S","C","U","I","T","I","T"], prevAnswers: [{"word":"CITIZENSHIP","pct":4},{"word":"SIGHT","pct":15},{"word":"HIGH","pct":30},{"word":"SITE","pct":35},{"word":"4 or lower","pct":16}] },
+  { id: "p0053", letters: ["D","V","T","E","D","S","P","T","H","N","H","B","G","E","Z","S","C","U","I","T","I","T"], prevAnswers: [{"word":"CITIZEN","pct":4},{"word":"ZITI","pct":15},{"word":"ZITS","pct":30},{"word":"TICS","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0054", letters: ["E","L","E","T","I","Y","N","I","I","E","A","I","F","C","U","S","F","H","O","R","D","E"], prevAnswers: [{"word":"DEFINITELY","pct":4},{"word":"DEFINE","pct":15},{"word":"FINITE","pct":22},{"word":"OCEAN","pct":35},{"word":"4 or lower","pct":24}] },
-  { id: "p0055", letters: ["N","D","Y","D","S","W","O","D","K","O","E","T","A","E","P","A","O","E","D","E","B","R"], prevAnswers: [{"word":"BREAKDOWNS","pct":4},{"word":"BREAKDOWN","pct":9},{"word":"BREAD","pct":30},{"word":"BREAK","pct":35},{"word":"4 or lower","pct":22}] },
+  { id: "p0055", letters: ["N","D","Y","D","S","W","O","D","K","O","E","T","A","E","B","A","O","E","D","E","B","R"], prevAnswers: [{"word":"BREAKDOWNS","pct":4},{"word":"BREAKDOWN","pct":9},{"word":"BREAD","pct":30},{"word":"BREAK","pct":35},{"word":"4 or lower","pct":22}] },
   { id: "p0056", letters: ["M","P","G","I","N","D","G","T","R","B","O","E","I","I","K","R","W","Y","N","I","N","G"], prevAnswers: [{"word":"TRIGGERING","pct":4},{"word":"BORE","pct":15},{"word":"BORN","pct":30},{"word":"KING","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0057", letters: ["E","R","N","T","A","L","E","T","U","I","M","W","B","E","G","N","O","H","H","N","R","V"], prevAnswers: [{"word":"REALIGNMENT","pct":4},{"word":"ALIGN","pct":15},{"word":"REALM","pct":30},{"word":"UTTER","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0058", letters: ["T","T","O","A","C","A","S","R","F","P","S","I","H","C","M","E","O","N","O","G","T","A"], prevAnswers: [{"word":"COMPASSIONATE","pct":4},{"word":"ARISE","pct":15},{"word":"ASSET","pct":30},{"word":"COMET","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0059", letters: ["I","N","H","U","T","J","T","M","F","I","N","A","F","T","A","E","N","S","R","I","A","E"], prevAnswers: [{"word":"HUMANITARIANS","pct":4},{"word":"HUMAN","pct":15},{"word":"INANE","pct":30},{"word":"TITAN","pct":35},{"word":"4 or lower","pct":16}] },
-  { id: "p0060", letters: ["T","K","E","E","E","C","D","K","O","U","O","S","C","T","N","D","A","O","I","H","T","R"], prevAnswers: [{"word":"SOUNDTRACK","pct":4},{"word":"ASKED","pct":15},{"word":"COUNT","pct":30},{"word":"TRACK","pct":35},{"word":"4 or lower","pct":16}] },
+  { id: "p0060", letters: ["T","K","E","E","E","C","D","K","O","U","O","S","C","B","N","D","A","O","I","H","T","R"], prevAnswers: [{"word":"SOUNDTRACK","pct":4},{"word":"ASKED","pct":15},{"word":"COUNT","pct":30},{"word":"TRACK","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0061", letters: ["T","C","M","G","T","P","O","F","I","T","R","O","I","S","A","H","V","I","B","L","E","A"], prevAnswers: [{"word":"COMFORTABLE","pct":4},{"word":"COMFORT","pct":15},{"word":"PORTAL","pct":22},{"word":"STABLE","pct":35},{"word":"4 or lower","pct":24}] },
   { id: "p0062", letters: ["O","P","H","M","I","N","R","D","O","Z","N","E","T","T","A","O","A","S","T","I","N","C"], prevAnswers: [{"word":"MODERNIZATION","pct":4},{"word":"MODERN","pct":15},{"word":"INNER","pct":30},{"word":"STERN","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0063", letters: ["E","Y","A","S","O","L","L","C","M","M","N","E","I","A","P","E","R","T","T","F","G","E"], prevAnswers: [{"word":"ENERGETICALLY","pct":4},{"word":"ALERT","pct":15},{"word":"GREEN","pct":30},{"word":"SCALE","pct":35},{"word":"4 or lower","pct":16}] },
@@ -251,7 +251,7 @@ const PUZZLES = [
   { id: "p0078", letters: ["U","C","E","R","T","A","F","V","P","I","N","U","T","O","N","D","U","E","R","N","M","O"], prevAnswers: [{"word":"PRECAUTION","pct":4},{"word":"CAUTION","pct":15},{"word":"UNION","pct":30},{"word":"FACE","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0079", letters: ["T","O","T","A","K","N","I","E","E","T","I","T","T","S","A","L","O","C","E","P","M","U"], prevAnswers: [{"word":"COMPLAINTS","pct":4},{"word":"PAINT","pct":15},{"word":"PLAIN","pct":30},{"word":"SAINT","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0080", letters: ["D","I","E","E","U","A","V","I","G","S","L","D","N","V","E","I","I","C","N","S","H","A"], prevAnswers: [{"word":"INDIVIDUALISE","pct":4},{"word":"ALIEN","pct":15},{"word":"HINGE","pct":30},{"word":"SLAVE","pct":35},{"word":"4 or lower","pct":16}] },
-  { id: "p0081", letters: ["K","P","I","O","A","N","O","T","H","S","W","Y","A","V","N","S","C","O","H","R","E","L"], prevAnswers: [{"word":"RELOCATIONS","pct":4},{"word":"LOCATION","pct":9},{"word":"COAT","pct":30},{"word":"KNOT","pct":35},{"word":"4 or lower","pct":22}] },
+  { id: "p0081", letters: ["K","B","I","O","A","N","O","T","H","S","W","Y","A","V","N","S","C","O","H","R","E","L"], prevAnswers: [{"word":"RELOCATIONS","pct":4},{"word":"LOCATION","pct":9},{"word":"COAT","pct":30},{"word":"KNOT","pct":35},{"word":"4 or lower","pct":22}] },
   { id: "p0082", letters: ["T","T","T","F","O","M","N","E","S","N","E","A","M","K","E","O","S","E","U","E","U","R"], prevAnswers: [{"word":"MEASUREMENT","pct":4},{"word":"EASE","pct":15},{"word":"KEEN","pct":30},{"word":"KNEE","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0083", letters: ["U","N","R","I","D","U","T","L","A","N","S","R","I","O","I","B","O","S","E","I","O","T"], prevAnswers: [{"word":"INDUSTRIALIST","pct":4},{"word":"ROBOT","pct":15},{"word":"TRIAL","pct":30},{"word":"BIND","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0084", letters: ["H","N","E","P","B","D","G","H","S","I","N","S","U","A","P","R","G","I","H","H","D","D"], prevAnswers: [{"word":"SUSPENDING","pct":4},{"word":"ENDING","pct":15},{"word":"SPEND","pct":30},{"word":"BIND","pct":35},{"word":"4 or lower","pct":16}] },
@@ -268,7 +268,7 @@ const PUZZLES = [
   { id: "p0095", letters: ["I","V","E","R","F","T","E","Y","S","I","Y","T","H","U","D","U","I","N","G","E","Y","G"], prevAnswers: [{"word":"EVERYTHING","pct":4},{"word":"EVERY","pct":15},{"word":"GUIDE","pct":30},{"word":"THING","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0096", letters: ["R","L","I","A","I","E","A","S","G","A","L","T","I","A","L","A","C","N","Y","P","N","R"], prevAnswers: [{"word":"REALISTICALLY","pct":4},{"word":"AERIAL","pct":15},{"word":"ALLAY","pct":30},{"word":"ATLAS","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0097", letters: ["D","L","E","P","D","R","W","B","S","Y","C","L","O","P","S","H","L","G","E","R","O","Y"], prevAnswers: [{"word":"PSYCHOLOGY","pct":4},{"word":"CHORE","pct":15},{"word":"GLOBE","pct":30},{"word":"HORSE","pct":35},{"word":"4 or lower","pct":16}] },
-  { id: "p0098", letters: ["N","T","H","R","I","T","M","O","F","R","P","G","I","H","R","G","N","H","F","E","W","A"], prevAnswers: [{"word":"FINGERPRINT","pct":4},{"word":"FINGER","pct":15},{"word":"ANGER","pct":30},{"word":"GOING","pct":35},{"word":"4 or lower","pct":16}] },
+  { id: "p0098", letters: ["N","T","H","R","I","T","M","O","F","R","P","B","I","H","R","G","N","H","F","E","W","A"], prevAnswers: [{"word":"FINGERPRINT","pct":4},{"word":"FINGER","pct":15},{"word":"ANGER","pct":30},{"word":"GOING","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0099", letters: ["R","S","N","O","L","V","O","T","I","F","I","E","A","O","E","P","L","R","M","X","Y","O"], prevAnswers: [{"word":"EXPLORATION","pct":4},{"word":"EARLY","pct":15},{"word":"PEARL","pct":30},{"word":"PLATE","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0100", letters: ["O","L","M","T","C","R","O","E","A","A","E","R","G","W","T","N","H","L","T","H","K","P"], prevAnswers: [{"word":"WATERCOLOR","pct":4},{"word":"GREAT","pct":15},{"word":"WATER","pct":30},{"word":"ACRE","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0101", letters: ["R","T","I","F","T","O","J","T","I","B","U","S","A","G","T","J","H","B","A","G","E","L"], prevAnswers: [{"word":"JUSTIFIABLE","pct":4},{"word":"ROBUST","pct":15},{"word":"STABLE","pct":22},{"word":"JOUST","pct":35},{"word":"4 or lower","pct":24}] },
@@ -276,7 +276,7 @@ const PUZZLES = [
   { id: "p0103", letters: ["P","H","A","Y","R","O","O","N","L","M","F","U","D","E","T","V","N","R","O","E","S","V"], prevAnswers: [{"word":"PROFOUNDLY","pct":4},{"word":"FOUND","pct":15},{"word":"HOUND","pct":30},{"word":"PROOF","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0104", letters: ["N","I","R","C","G","S","I","A","O","F","H","T","M","I","O","I","E","A","I","B","B","D"], prevAnswers: [{"word":"DEMOCRATISING","pct":4},{"word":"HIRING","pct":15},{"word":"COMET","pct":30},{"word":"RATIO","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0105", letters: ["I","H","R","E","E","C","E","P","D","D","E","N","I","A","L","U","T","C","I","B","A","T"], prevAnswers: [{"word":"UNPREDICTABLE","pct":4},{"word":"ATTIC","pct":15},{"word":"BLADE","pct":30},{"word":"BLUNT","pct":35},{"word":"4 or lower","pct":16}] },
-  { id: "p0106", letters: ["R","P","S","V","E","P","N","S","Y","A","R","N","W","J","A","O","R","P","T","I","T","A"], prevAnswers: [{"word":"PREPARATIONS","pct":4},{"word":"APRON","pct":15},{"word":"RATIO","pct":30},{"word":"EARN","pct":35},{"word":"4 or lower","pct":16}] },
+  { id: "p0106", letters: ["R","P","S","V","E","P","N","S","Y","A","R","N","W","B","A","O","R","P","T","I","T","A"], prevAnswers: [{"word":"PREPARATIONS","pct":4},{"word":"APRON","pct":15},{"word":"RATIO","pct":30},{"word":"EARN","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0107", letters: ["T","U","I","P","I","W","E","N","O","V","D","A","R","Y","N","H","T","S","U","O","B","C"], prevAnswers: [{"word":"EARTHBOUND","pct":4},{"word":"BOUND","pct":15},{"word":"DEATH","pct":30},{"word":"EARTH","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0108", letters: ["S","H","C","O","S","D","O","C","L","B","J","S","A","H","T","R","E","T","C","H","B","T"], prevAnswers: [{"word":"CHOCOLATES","pct":4},{"word":"THREAT","pct":15},{"word":"CHOSE","pct":30},{"word":"LASER","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0109", letters: ["A","F","N","X","T","N","A","E","P","E","I","R","E","H","M","E","A","L","U","A","T","G"], prevAnswers: [{"word":"EXPERIMENT","pct":4},{"word":"ANIME","pct":15},{"word":"EAGLE","pct":30},{"word":"FAINT","pct":35},{"word":"4 or lower","pct":16}] },
@@ -302,7 +302,7 @@ const PUZZLES = [
   { id: "p0129", letters: ["M","M","H","S","E","E","H","C","D","O","N","O","E","M","E","C","R","T","S","N","T","A"], prevAnswers: [{"word":"CONCENTRATED","pct":4},{"word":"SCHEME","pct":15},{"word":"SECRET","pct":22},{"word":"CHORE","pct":35},{"word":"4 or lower","pct":24}] },
   { id: "p0130", letters: ["F","I","C","I","C","U","O","S","T","S","N","N","C","B","S","E","O","A","S","I","C","H"], prevAnswers: [{"word":"CONSCIOUSNESS","pct":4},{"word":"CONSCIOUS","pct":9},{"word":"COST","pct":30},{"word":"ECHO","pct":35},{"word":"4 or lower","pct":22}] },
   { id: "p0131", letters: ["R","O","I","D","A","G","R","L","I","C","Y","L","N","E","F","L","E","U","U","L","T","M"], prevAnswers: [{"word":"GRACEFULLY","pct":4},{"word":"FULLY","pct":15},{"word":"GRACE","pct":30},{"word":"DINE","pct":35},{"word":"4 or lower","pct":16}] },
-  { id: "p0132", letters: ["H","S","I","P","O","G","O","A","S","A","O","H","S","R","D","B","O","T","S","Y","R","E"], prevAnswers: [{"word":"STORYBOARDS","pct":4},{"word":"BOARD","pct":15},{"word":"HASTE","pct":30},{"word":"HOARD","pct":35},{"word":"4 or lower","pct":16}] },
+  { id: "p0132", letters: ["H","S","I","P","B","B","B","A","S","A","O","H","S","R","D","B","O","T","S","Y","R","E"], prevAnswers: [{"word":"STORYBOARDS","pct":4},{"word":"BOARD","pct":15},{"word":"HASTE","pct":30},{"word":"HOARD","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0133", letters: ["N","T","I","C","D","V","F","A","T","L","U","I","I","F","T","E","C","O","T","S","P","N"], prevAnswers: [{"word":"SPECIFICATION","pct":4},{"word":"ACTION","pct":15},{"word":"FLUTE","pct":30},{"word":"FACT","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0134", letters: ["S","E","R","E","L","N","C","R","P","I","E","I","X","C","U","A","N","E","I","T","D","H"], prevAnswers: [{"word":"EXPERIENCE","pct":4},{"word":"PRICE","pct":15},{"word":"LINE","pct":30},{"word":"NICE","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0135", letters: ["T","E","L","C","R","B","R","A","F","E","J","I","R","S","N","L","U","E","S","A","S","F"], prevAnswers: [{"word":"CAREFULNESS","pct":4},{"word":"FAILURE","pct":15},{"word":"ASSERT","pct":22},{"word":"FERAL","pct":35},{"word":"4 or lower","pct":24}] },
@@ -328,7 +328,7 @@ const PUZZLES = [
   { id: "p0155", letters: ["T","D","T","W","R","S","H","O","E","E","R","A","R","S","E","N","I","T","S","A","E","H"], prevAnswers: [{"word":"WORTHINESS","pct":4},{"word":"ASSERT","pct":15},{"word":"SHARE","pct":30},{"word":"SHORE","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0156", letters: ["E","D","A","B","M","I","E","S","S","T","L","N","O","N","U","F","G","R","D","E","T","A"], prevAnswers: [{"word":"GRATEFULNESS","pct":4},{"word":"LESSON","pct":15},{"word":"AROSE","pct":30},{"word":"GRATE","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0157", letters: ["O","P","N","L","I","K","C","O","U","N","C","N","K","T","E","C","O","A","K","H","A","A"], prevAnswers: [{"word":"CHECKPOINT","pct":4},{"word":"ACCENT","pct":15},{"word":"CHECK","pct":30},{"word":"POINT","pct":35},{"word":"4 or lower","pct":16}] },
-  { id: "p0158", letters: ["N","I","Z","E","E","G","I","V","Y","S","W","L","W","P","O","B","A","L","G","L","Y","E"], prevAnswers: [{"word":"GLOBALIZING","pct":4},{"word":"GLOBAL","pct":15},{"word":"ALIGN","pct":30},{"word":"BALE","pct":35},{"word":"4 or lower","pct":16}] },
+  { id: "p0158", letters: ["N","I","Z","E","E","G","I","V","Y","S","W","L","W","B","O","B","A","L","G","L","Y","E"], prevAnswers: [{"word":"GLOBALIZING","pct":4},{"word":"GLOBAL","pct":15},{"word":"ALIGN","pct":30},{"word":"BALE","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0159", letters: ["I","A","N","N","N","R","E","T","O","T","E","S","I","M","U","E","G","E","T","Q","B","D"], prevAnswers: [{"word":"QUESTIONNAIRE","pct":4},{"word":"INTER","pct":15},{"word":"NOISE","pct":30},{"word":"QUEEN","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0160", letters: ["I","A","I","A","T","M","T","E","O","I","O","I","R","G","E","N","T","W","L","S","N","T"], prevAnswers: [{"word":"LEGITIMATIONS","pct":4},{"word":"ENTIRE","pct":15},{"word":"ATONE","pct":30},{"word":"INTRO","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0161", letters: ["E","R","U","O","V","O","L","N","E","T","U","O","R","N","T","I","A","Y","F","O","N","L"], prevAnswers: [{"word":"REVOLUTIONARY","pct":4},{"word":"LOVER","pct":15},{"word":"TONAL","pct":30},{"word":"LOAN","pct":35},{"word":"4 or lower","pct":16}] },
@@ -344,7 +344,7 @@ const PUZZLES = [
   { id: "p0171", letters: ["N","O","R","H","R","E","G","T","H","Y","N","R","E","T","R","I","D","V","H","N","I","O"], prevAnswers: [{"word":"NORTHERNER","pct":4},{"word":"NORTHERN","pct":9},{"word":"THRONE","pct":22},{"word":"NORTH","pct":35},{"word":"4 or lower","pct":30}] },
   { id: "p0172", letters: ["O","O","S","T","O","T","T","T","O","E","G","W","R","G","N","L","L","Y","C","I","E","T"], prevAnswers: [{"word":"STORYTELLING","pct":4},{"word":"STORY","pct":15},{"word":"LINE","pct":30},{"word":"4 or lower","pct":51}] },
   { id: "p0173", letters: ["I","G","L","O","S","S","O","N","E","T","P","H","T","I","G","K","C","E","I","H","U","N"], prevAnswers: [{"word":"TECHNOLOGISTS","pct":4},{"word":"GLOSS","pct":15},{"word":"PHONE","pct":30},{"word":"ECHO","pct":35},{"word":"4 or lower","pct":16}] },
-  { id: "p0174", letters: ["R","E","O","G","L","W","T","R","A","H","O","M","P","O","P","B","H","L","Y","N","N","E"], prevAnswers: [{"word":"PHOTOGRAPH","pct":4},{"word":"POWER","pct":15},{"word":"HELP","pct":30},{"word":"PART","pct":35},{"word":"4 or lower","pct":16}] },
+  { id: "p0174", letters: ["R","E","O","G","L","B","T","R","A","H","O","M","P","O","P","B","H","L","Y","N","N","E"], prevAnswers: [{"word":"PHOTOGRAPH","pct":4},{"word":"POWER","pct":15},{"word":"HELP","pct":30},{"word":"PART","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0175", letters: ["T","I","T","D","A","L","V","E","H","R","E","L","K","E","I","Y","R","T","I","E","H","E"], prevAnswers: [{"word":"RELATIVELY","pct":4},{"word":"DEVIL","pct":15},{"word":"ELITE","pct":30},{"word":"LEVEL","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0176", letters: ["O","E","G","O","S","I","E","T","U","T","D","E","O","I","I","Y","N","I","Y","N","C","T"], prevAnswers: [{"word":"DISTINCTION","pct":4},{"word":"DISTINCT","pct":9},{"word":"DENY","pct":30},{"word":"NEED","pct":35},{"word":"4 or lower","pct":22}] },
   { id: "p0177", letters: ["A","B","S","N","C","L","L","F","P","O","Y","O","K","B","I","N","C","C","E","I","A","H"], prevAnswers: [{"word":"BLOCKCHAIN","pct":4},{"word":"BLOCK","pct":15},{"word":"CHAIN","pct":30},{"word":"FLOCK","pct":35},{"word":"4 or lower","pct":16}] },
@@ -394,8 +394,8 @@ const PUZZLES = [
   { id: "p0221", letters: ["N","O","T","E","U","D","E","E","E","S","A","F","R","C","I","T","O","S","N","A","I","N"], prevAnswers: [{"word":"FASCINATIONS","pct":4},{"word":"DEFER","pct":15},{"word":"DOTE","pct":30},{"word":"FEAT","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0222", letters: ["T","N","N","T","E","M","E","S","O","E","T","S","E","I","N","D","V","I","B","O","T","N"], prevAnswers: [{"word":"INVESTMENTS","pct":4},{"word":"INTENT","pct":15},{"word":"INVEST","pct":22},{"word":"TENSE","pct":35},{"word":"4 or lower","pct":24}] },
   { id: "p0223", letters: ["U","T","T","M","O","H","O","N","B","G","L","A","A","U","O","E","L","K","E","R","H","T"], prevAnswers: [{"word":"THROUGHOUT","pct":4},{"word":"THROUGH","pct":15},{"word":"ROUGH","pct":30},{"word":"THERE","pct":35},{"word":"4 or lower","pct":16}] },
-  { id: "p0224", letters: ["F","P","S","N","T","Y","W","A","A","O","P","O","G","T","R","E","S","A","E","R","H","P"], prevAnswers: [{"word":"TROPOSPHERE","pct":4},{"word":"REPORT","pct":15},{"word":"SPHERE","pct":22},{"word":"GOES","pct":35},{"word":"4 or lower","pct":24}] },
-  { id: "p0225", letters: ["R","T","N","A","R","A","T","O","F","T","P","I","O","C","I","T","N","C","I","P","A","E"], prevAnswers: [{"word":"PARTICIPATION","pct":4},{"word":"ANTIC","pct":15},{"word":"OCEAN","pct":30},{"word":"RATIO","pct":35},{"word":"4 or lower","pct":16}] },
+  { id: "p0224", letters: ["F","P","S","N","T","Y","B","A","A","O","P","O","G","T","R","E","S","A","E","R","H","P"], prevAnswers: [{"word":"TROPOSPHERE","pct":4},{"word":"REPORT","pct":15},{"word":"SPHERE","pct":22},{"word":"GOES","pct":35},{"word":"4 or lower","pct":24}] },
+  { id: "p0225", letters: ["R","T","N","A","R","A","T","B","F","T","P","I","O","C","I","T","N","C","I","P","A","E"], prevAnswers: [{"word":"PARTICIPATION","pct":4},{"word":"ANTIC","pct":15},{"word":"OCEAN","pct":30},{"word":"RATIO","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0226", letters: ["E","O","R","A","L","A","B","T","H","E","T","E","E","S","E","N","L","L","H","O","Y","H"], prevAnswers: [{"word":"ELABORATELY","pct":4},{"word":"LABOR","pct":15},{"word":"SHEET","pct":30},{"word":"SHONE","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0227", letters: ["E","S","R","M","A","I","O","A","I","A","T","M","K","C","I","M","O","C","T","N","U","A"], prevAnswers: [{"word":"COMMUNICATORS","pct":4},{"word":"CITIES","pct":15},{"word":"COMMIT","pct":22},{"word":"AROSE","pct":35},{"word":"4 or lower","pct":24}] },
   { id: "p0228", letters: ["A","R","E","D","W","T","I","B","E","A","N","G","I","C","O","E","T","L","R","S","P","R"], prevAnswers: [{"word":"LIBERATING","pct":4},{"word":"ENTIRE","pct":15},{"word":"AWARE","pct":30},{"word":"BEING","pct":35},{"word":"4 or lower","pct":16}] },
@@ -406,7 +406,7 @@ const PUZZLES = [
   { id: "p0233", letters: ["N","T","N","I","R","E","G","N","G","R","H","I","T","N","A","Z","M","I","A","L","I","L"], prevAnswers: [{"word":"INTERNALIZING","pct":4},{"word":"TIMING","pct":15},{"word":"HINGE","pct":30},{"word":"INTER","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0234", letters: ["T","E","V","N","N","P","E","E","T","O","R","A","I","I","Y","R","N","O","B","A","F","O"], prevAnswers: [{"word":"PREVENTION","pct":4},{"word":"PREVENT","pct":15},{"word":"ARRAY","pct":30},{"word":"EVENT","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0235", letters: ["R","P","E","A","P","E","T","N","D","R","H","C","I","A","L","U","W","W","R","E","F","R"], prevAnswers: [{"word":"PERPENDICULAR","pct":4},{"word":"ENTER","pct":15},{"word":"FERAL","pct":30},{"word":"INTER","pct":35},{"word":"4 or lower","pct":16}] },
-  { id: "p0236", letters: ["A","F","V","C","E","L","W","O","O","I","A","C","O","R","S","O","N","O","E","V","R","T"], prevAnswers: [{"word":"CONTROVERSIAL","pct":4},{"word":"ACORN","pct":15},{"word":"COVER","pct":30},{"word":"LASER","pct":35},{"word":"4 or lower","pct":16}] },
+  { id: "p0236", letters: ["A","F","V","C","E","L","W","B","B","I","A","C","O","R","S","O","N","B","E","V","R","T"], prevAnswers: [{"word":"CONTROVERSIAL","pct":4},{"word":"ACORN","pct":15},{"word":"COVER","pct":30},{"word":"LASER","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0237", letters: ["U","O","F","R","I","A","U","R","E","Y","L","S","E","E","S","N","C","H","N","S","E","F"], prevAnswers: [{"word":"CHEERFULNESS","pct":4},{"word":"CHEER","pct":15},{"word":"FENCE","pct":30},{"word":"FOUL","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0238", letters: ["C","V","G","T","R","T","T","U","R","T","D","N","E","I","E","N","O","V","E","R","C","D"], prevAnswers: [{"word":"UNDERCOVER","pct":4},{"word":"RENDER","pct":15},{"word":"COVER","pct":30},{"word":"TREND","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0239", letters: ["R","L","A","A","N","T","H","E","I","O","O","N","E","L","T","A","B","E","C","E","L","H"], prevAnswers: [{"word":"TABLECLOTH","pct":4},{"word":"ENABLE","pct":15},{"word":"ATONE","pct":30},{"word":"CLOTH","pct":35},{"word":"4 or lower","pct":16}] },
@@ -425,10 +425,10 @@ const PUZZLES = [
   { id: "p0252", letters: ["D","P","L","S","O","N","G","A","E","U","O","B","I","V","W","H","N","O","H","R","T","R"], prevAnswers: [{"word":"NORTHBOUND","pct":4},{"word":"BOUND","pct":15},{"word":"HOUND","pct":30},{"word":"INTRO","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0253", letters: ["N","O","I","T","E","S","T","V","A","K","I","T","I","D","N","G","O","T","L","E","N","E"], prevAnswers: [{"word":"NEGOTIATIONS","pct":4},{"word":"STING","pct":15},{"word":"STONE","pct":30},{"word":"GONE","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0254", letters: ["N","E","X","G","N","T","P","E","A","A","A","R","S","D","S","M","N","S","S","T","O","I"], prevAnswers: [{"word":"EXPRESSION","pct":4},{"word":"EXPRESS","pct":15},{"word":"ANNEX","pct":30},{"word":"PRESS","pct":35},{"word":"4 or lower","pct":16}] },
-  { id: "p0255", letters: ["L","I","T","I","O","P","I","C","G","Y","S","A","N","N","S","N","B","O","U","E","L","I"], prevAnswers: [{"word":"POLITICIANS","pct":4},{"word":"BASIC","pct":15},{"word":"BLESS","pct":30},{"word":"CABLE","pct":35},{"word":"4 or lower","pct":16}] },
-  { id: "p0256", letters: ["M","O","U","O","L","G","K","O","C","N","S","S","N","R","I","O","L","I","R","T","A","D"], prevAnswers: [{"word":"CONSOLIDATING","pct":4},{"word":"LOSING","pct":15},{"word":"SOLID","pct":30},{"word":"ALSO","pct":35},{"word":"4 or lower","pct":16}] },
-  { id: "p0257", letters: ["A","S","E","E","P","I","I","E","F","S","C","P","T","U","T","F","Q","U","R","E","S","E"], prevAnswers: [{"word":"PICTURESQUE","pct":4},{"word":"SISTER","pct":15},{"word":"EPIC","pct":30},{"word":"FEET","pct":35},{"word":"4 or lower","pct":16}] },
-  { id: "p0258", letters: ["T","N","W","I","A","M","J","O","R","P","A","O","E","M","T","D","P","K","F","O","E","C"], prevAnswers: [{"word":"WOODPECKER","pct":4},{"word":"MAJOR","pct":15},{"word":"DAMP","pct":30},{"word":"DECK","pct":35},{"word":"4 or lower","pct":16}] },
+  { id: "p0255", letters: ["L","I","T","I","O","P","I","C","G","Y","B","A","N","N","S","N","B","O","U","E","L","I"], prevAnswers: [{"word":"POLITICIANS","pct":4},{"word":"BASIC","pct":15},{"word":"BLESS","pct":30},{"word":"CABLE","pct":35},{"word":"4 or lower","pct":16}] },
+  { id: "p0256", letters: ["M","O","U","B","L","G","K","O","C","N","S","S","N","R","I","O","L","I","R","T","A","D"], prevAnswers: [{"word":"CONSOLIDATING","pct":4},{"word":"LOSING","pct":15},{"word":"SOLID","pct":30},{"word":"ALSO","pct":35},{"word":"4 or lower","pct":16}] },
+  { id: "p0257", letters: ["A","S","E","E","P","I","I","E","F","B","C","P","T","U","T","F","Q","U","R","E","S","E"], prevAnswers: [{"word":"PICTURESQUE","pct":4},{"word":"SISTER","pct":15},{"word":"EPIC","pct":30},{"word":"FEET","pct":35},{"word":"4 or lower","pct":16}] },
+  { id: "p0258", letters: ["T","N","W","I","A","M","J","O","R","P","B","O","E","M","T","D","P","K","F","O","E","C"], prevAnswers: [{"word":"WOODPECKER","pct":4},{"word":"MAJOR","pct":15},{"word":"DAMP","pct":30},{"word":"DECK","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0259", letters: ["R","G","F","A","O","O","T","M","T","F","T","E","C","A","N","N","E","O","W","U","P","R"], prevAnswers: [{"word":"UNFORGOTTEN","pct":4},{"word":"ROTTEN","pct":15},{"word":"CENT","pct":30},{"word":"CORE","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0260", letters: ["N","H","G","N","M","C","O","N","I","Y","Y","T","O","S","A","R","V","I","N","S","I","T"], prevAnswers: [{"word":"TRANSITIONING","pct":4},{"word":"INTO","pct":15},{"word":"RAYS","pct":30},{"word":"4 or lower","pct":51}] },
   { id: "p0261", letters: ["H","I","T","E","R","C","B","P","S","A","E","S","L","D","H","Y","S","E","D","T","P","E"], prevAnswers: [{"word":"SLEEPYHEAD","pct":4},{"word":"BEACH","pct":15},{"word":"ARCH","pct":30},{"word":"BEAR","pct":35},{"word":"4 or lower","pct":16}] },
@@ -437,10 +437,10 @@ const PUZZLES = [
   { id: "p0264", letters: ["I","N","G","N","G","D","M","I","I","A","T","V","V","H","R","B","N","E","H","U","O","C"], prevAnswers: [{"word":"ENCOURAGING","pct":4},{"word":"TRADING","pct":15},{"word":"AGING","pct":30},{"word":"COBRA","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0265", letters: ["I","O","Y","E","L","P","A","H","A","Y","T","E","R","O","L","L","F","T","N","V","H","F"], prevAnswers: [{"word":"HEARTFELTLY","pct":4},{"word":"HEART","pct":15},{"word":"TREAT","pct":30},{"word":"AREA","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0266", letters: ["D","A","S","R","I","N","T","D","E","N","H","U","N","M","G","C","U","A","I","A","M","N"], prevAnswers: [{"word":"UNDERSTANDING","pct":4},{"word":"MIGHT","pct":15},{"word":"STAND","pct":30},{"word":"TUNED","pct":35},{"word":"4 or lower","pct":16}] },
-  { id: "p0267", letters: ["V","V","F","I","G","O","N","R","M","E","O","T","I","S","A","C","N","T","B","O","E","G"], prevAnswers: [{"word":"CONFIRMING","pct":4},{"word":"CONFIRM","pct":15},{"word":"BASE","pct":30},{"word":"CASE","pct":35},{"word":"4 or lower","pct":16}] },
-  { id: "p0268", letters: ["R","B","S","B","N","A","C","E","F","D","A","R","I","C","I","L","N","G","P","S","I","N"], prevAnswers: [{"word":"SCANDALISING","pct":4},{"word":"DARING","pct":15},{"word":"ACRES","pct":30},{"word":"BEING","pct":35},{"word":"4 or lower","pct":16}] },
+  { id: "p0267", letters: ["V","V","F","I","G","B","N","R","M","E","O","T","I","S","A","C","N","T","B","O","E","G"], prevAnswers: [{"word":"CONFIRMING","pct":4},{"word":"CONFIRM","pct":15},{"word":"BASE","pct":30},{"word":"CASE","pct":35},{"word":"4 or lower","pct":16}] },
+  { id: "p0268", letters: ["R","B","S","B","N","A","C","E","F","D","A","R","I","B","I","L","N","G","P","S","I","N"], prevAnswers: [{"word":"SCANDALISING","pct":4},{"word":"DARING","pct":15},{"word":"ACRES","pct":30},{"word":"BEING","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0269", letters: ["K","S","D","O","R","I","E","E","O","T","H","R","H","O","O","A","L","D","R","B","O","D"], prevAnswers: [{"word":"BROTHERHOOD","pct":4},{"word":"BROTH","pct":15},{"word":"LABOR","pct":30},{"word":"OTHER","pct":35},{"word":"4 or lower","pct":16}] },
-  { id: "p0270", letters: ["V","T","S","C","E","G","G","S","I","E","R","I","N","R","A","R","O","G","L","U","P","P"], prevAnswers: [{"word":"POPULARISING","pct":4},{"word":"POPULAR","pct":15},{"word":"LARGE","pct":30},{"word":"EARL","pct":35},{"word":"4 or lower","pct":16}] },
+  { id: "p0270", letters: ["V","T","S","C","E","G","G","S","I","B","R","I","N","R","A","R","O","G","L","U","P","P"], prevAnswers: [{"word":"POPULARISING","pct":4},{"word":"POPULAR","pct":15},{"word":"LARGE","pct":30},{"word":"EARL","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0271", letters: ["S","A","V","U","R","A","I","T","H","O","U","N","U","V","N","R","E","M","N","I","S","H"], prevAnswers: [{"word":"NOURISHMENT","pct":4},{"word":"NURSE","pct":15},{"word":"SAINT","pct":30},{"word":"AUNT","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0272", letters: ["R","I","O","Y","E","M","W","A","K","L","A","O","E","Y","B","R","C","N","A","K","C","N"], prevAnswers: [{"word":"REMARKABLY","pct":4},{"word":"AWAKE","pct":15},{"word":"BLAME","pct":30},{"word":"CORAL","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0273", letters: ["T","S","N","A","H","O","A","R","H","H","B","R","S","G","N","O","U","H","I","E","A","V"], prevAnswers: [{"word":"NEIGHBOURS","pct":4},{"word":"BOAST","pct":15},{"word":"BRUSH","pct":30},{"word":"HARSH","pct":35},{"word":"4 or lower","pct":16}] },
@@ -451,7 +451,7 @@ const PUZZLES = [
   { id: "p0278", letters: ["T","D","S","E","T","F","H","R","E","R","A","M","A","I","I","L","I","F","Z","I","N","G"], prevAnswers: [{"word":"FAMILIARIZING","pct":4},{"word":"FAMILIAR","pct":9},{"word":"ALIGN","pct":30},{"word":"SHAFT","pct":35},{"word":"4 or lower","pct":22}] },
   { id: "p0279", letters: ["N","A","R","E","N","E","G","R","F","A","R","I","R","O","T","H","F","R","R","H","U","V"], prevAnswers: [{"word":"REFRIGERATOR","pct":4},{"word":"EARTH","pct":15},{"word":"GREAT","pct":30},{"word":"AREA","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0280", letters: ["A","L","D","T","T","L","I","F","N","S","Y","S","E","K","Y","C","E","H","F","R","T","D"], prevAnswers: [{"word":"CRYSTALLISED","pct":4},{"word":"DECRY","pct":15},{"word":"SILLY","pct":30},{"word":"STALL","pct":35},{"word":"4 or lower","pct":16}] },
-  { id: "p0281", letters: ["Y","E","T","P","S","L","E","B","R","N","E","L","P","V","I","C","O","M","V","S","W","R"], prevAnswers: [{"word":"COMPLETELY","pct":4},{"word":"COMPLETE","pct":9},{"word":"BELOW","pct":30},{"word":"SLEET","pct":35},{"word":"4 or lower","pct":22}] },
+  { id: "p0281", letters: ["Y","E","T","P","S","L","E","B","R","N","E","L","P","V","I","C","O","M","V","S","B","R"], prevAnswers: [{"word":"COMPLETELY","pct":4},{"word":"COMPLETE","pct":9},{"word":"BELOW","pct":30},{"word":"SLEET","pct":35},{"word":"4 or lower","pct":22}] },
   { id: "p0282", letters: ["D","F","A","D","I","N","E","S","B","F","L","S","W","K","U","H","E","F","N","A","T","R"], prevAnswers: [{"word":"THANKFULNESS","pct":4},{"word":"ASSERT","pct":15},{"word":"ASSET","pct":30},{"word":"FLESH","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0283", letters: ["E","T","E","H","N","T","D","W","M","N","E","T","G","B","L","S","I","W","A","C","K","L"], prevAnswers: [{"word":"BLACKLISTED","pct":4},{"word":"LISTEN","pct":15},{"word":"BLACK","pct":30},{"word":"CABLE","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0284", letters: ["R","T","I","N","D","E","Y","M","A","T","E","R","T","N","C","L","I","G","H","N","O","A"], prevAnswers: [{"word":"DETERMINATION","pct":4},{"word":"AGILE","pct":15},{"word":"GIRL","pct":30},{"word":"LION","pct":35},{"word":"4 or lower","pct":16}] },
@@ -459,7 +459,7 @@ const PUZZLES = [
   { id: "p0286", letters: ["O","F","Y","F","E","I","Y","A","V","C","R","M","O","S","A","E","D","E","L","I","T","N"], prevAnswers: [{"word":"CREDENTIALS","pct":4},{"word":"DEALS","pct":15},{"word":"ENTER","pct":30},{"word":"ACRE","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0287", letters: ["N","G","W","N","I","O","W","O","D","V","M","N","I","T","H","O","H","M","R","A","E","T"], prevAnswers: [{"word":"EARTHMOVING","pct":4},{"word":"EARTH","pct":15},{"word":"HEART","pct":30},{"word":"DOWN","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0288", letters: ["A","P","H","E","S","U","Y","W","N","H","R","H","B","E","E","E","R","E","V","E","K","R"], prevAnswers: [{"word":"EVERYWHERE","pct":4},{"word":"EVERY","pct":15},{"word":"USHER","pct":30},{"word":"EVER","pct":35},{"word":"4 or lower","pct":16}] },
-  { id: "p0289", letters: ["G","C","T","P","I","Q","U","E","N","N","N","I","E","U","T","N","H","S","S","C","I","S"], prevAnswers: [{"word":"UNIQUENESS","pct":4},{"word":"QUEEN","pct":15},{"word":"QUIET","pct":30},{"word":"SHEET","pct":35},{"word":"4 or lower","pct":16}] },
+  { id: "p0289", letters: ["G","C","T","P","I","Q","U","E","N","N","B","I","E","U","T","N","H","S","S","C","I","S"], prevAnswers: [{"word":"UNIQUENESS","pct":4},{"word":"QUEEN","pct":15},{"word":"QUIET","pct":30},{"word":"SHEET","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0290", letters: ["E","S","A","C","N","V","G","V","K","C","D","R","N","J","E","E","W","O","G","D","L","M"], prevAnswers: [{"word":"ACKNOWLEDGED","pct":4},{"word":"KNOWLEDGE","pct":9},{"word":"AGREED","pct":22},{"word":"AGREE","pct":35},{"word":"4 or lower","pct":30}] },
   { id: "p0291", letters: ["L","I","V","O","W","N","E","R","L","O","R","D","O","M","R","E","A","F","R","H","D","S"], prevAnswers: [{"word":"OVERLOADED","pct":4},{"word":"DEVIL","pct":15},{"word":"DROVE","pct":30},{"word":"DROWN","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0292", letters: ["B","I","C","L","O","Y","C","I","U","O","E","D","T","R","R","M","C","A","M","R","O","R"], prevAnswers: [{"word":"DEMOCRATIC","pct":4},{"word":"ERROR","pct":15},{"word":"COME","pct":30},{"word":"TIDE","pct":35},{"word":"4 or lower","pct":16}] },
@@ -480,7 +480,7 @@ const PUZZLES = [
   { id: "p0307", letters: ["C","C","A","I","E","N","O","H","H","E","N","S","O","U","N","O","A","L","A","I","T","H"], prevAnswers: [{"word":"CONSOLATION","pct":4},{"word":"ATONE","pct":15},{"word":"SHONE","pct":30},{"word":"UNION","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0308", letters: ["I","S","O","R","M","S","O","N","T","M","I","E","R","O","C","R","E","U","N","H","I","U"], prevAnswers: [{"word":"COMMISSIONER","pct":4},{"word":"MISSION","pct":15},{"word":"HIRE","pct":30},{"word":"MISS","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0309", letters: ["W","D","B","E","J","E","D","Y","O","M","I","I","L","H","M","B","A","E","E","T","U","T"], prevAnswers: [{"word":"IMMEDIATELY","pct":4},{"word":"ABIDE","pct":15},{"word":"AIDED","pct":30},{"word":"MEDIA","pct":35},{"word":"4 or lower","pct":16}] },
-  { id: "p0310", letters: ["T","R","A","D","H","W","A","E","A","A","I","H","U","R","M","G","A","R","I","I","N","Y"], prevAnswers: [{"word":"HEARTWARMING","pct":4},{"word":"AIMING","pct":15},{"word":"AHEAD","pct":30},{"word":"EARTH","pct":35},{"word":"4 or lower","pct":16}] },
+  { id: "p0310", letters: ["T","R","B","D","H","W","A","E","B","A","I","H","U","R","M","G","A","R","I","I","N","Y"], prevAnswers: [{"word":"HEARTWARMING","pct":4},{"word":"AIMING","pct":15},{"word":"AHEAD","pct":30},{"word":"EARTH","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0311", letters: ["M","E","N","U","C","E","P","T","D","N","A","I","D","I","H","N","T","H","E","I","E","V"], prevAnswers: [{"word":"ENHANCEMENT","pct":4},{"word":"ENHANCE","pct":15},{"word":"INANE","pct":30},{"word":"PAINT","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0312", letters: ["U","A","Y","N","L","O","F","O","S","O","O","I","E","O","I","T","X","S","E","D","E","P"], prevAnswers: [{"word":"EXPEDITIONS","pct":4},{"word":"EDITION","pct":15},{"word":"FIXED","pct":30},{"word":"FOOL","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0313", letters: ["T","E","C","P","E","R","O","T","E","I","N","G","B","S","A","B","A","O","F","L","E","L"], prevAnswers: [{"word":"RECOGNISABLE","pct":4},{"word":"FABLE","pct":15},{"word":"TONAL","pct":30},{"word":"TRIAL","pct":35},{"word":"4 or lower","pct":16}] },
@@ -497,8 +497,8 @@ const PUZZLES = [
   { id: "p0324", letters: ["S","I","O","N","S","E","P","E","R","F","R","L","I","N","O","M","M","K","A","O","A","B"], prevAnswers: [{"word":"PROFESSION","pct":4},{"word":"NOISE","pct":15},{"word":"PRESS","pct":30},{"word":"REPEL","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0325", letters: ["T","N","L","A","A","T","U","B","A","H","F","P","C","O","T","H","J","E","U","G","R","D"], prevAnswers: [{"word":"THOUGHTFUL","pct":4},{"word":"BLUNT","pct":15},{"word":"TOUGH","pct":30},{"word":"THAT","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0326", letters: ["A","C","O","A","M","S","N","H","W","T","I","T","U","D","Y","E","I","T","A","N","O","Y"], prevAnswers: [{"word":"CONSTITUTION","pct":4},{"word":"CAST","pct":15},{"word":"MAST","pct":30},{"word":"SITE","pct":35},{"word":"4 or lower","pct":16}] },
-  { id: "p0327", letters: ["L","G","S","N","E","E","S","O","V","B","U","B","I","K","C","S","T","O","R","I","P","C"], prevAnswers: [{"word":"SUBSCRIPTIONS","pct":4},{"word":"LESSON","pct":15},{"word":"BUCK","pct":30},{"word":"LESS","pct":35},{"word":"4 or lower","pct":16}] },
-  { id: "p0328", letters: ["S","K","A","T","B","O","B","H","L","S","P","H","O","S","I","B","I","Y","C","I","L","T"], prevAnswers: [{"word":"POSSIBILITY","pct":4},{"word":"BATH","pct":15},{"word":"4 or lower","pct":81}] },
+  { id: "p0327", letters: ["L","G","S","N","E","E","S","O","V","B","U","B","I","K","C","S","T","O","R","B","P","C"], prevAnswers: [{"word":"LESSON","pct":4},{"word":"CUBS","pct":15},{"word":"BUCK","pct":30},{"word":"LESS","pct":35},{"word":"4 or lower","pct":16}] },
+  { id: "p0328", letters: ["S","K","A","T","B","O","B","H","L","S","P","H","O","S","I","B","I","Y","B","I","L","T"], prevAnswers: [{"word":"POSSIBILITY","pct":4},{"word":"BATH","pct":15},{"word":"4 or lower","pct":81}] },
   { id: "p0329", letters: ["A","U","Q","O","R","T","D","K","V","E","R","A","O","P","S","E","H","E","O","E","N","A"], prevAnswers: [{"word":"HEADQUARTERS","pct":4},{"word":"AHEAD","pct":15},{"word":"HEART","pct":30},{"word":"HOARD","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0330", letters: ["A","T","N","M","H","R","E","E","E","N","Y","P","L","T","O","M","W","F","U","A","O","C"], prevAnswers: [{"word":"COMPLEMENTARY","pct":4},{"word":"COMPEL","pct":15},{"word":"AMPLE","pct":30},{"word":"ENTER","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0331", letters: ["C","A","T","H","H","N","I","A","L","G","L","Y","R","U","R","E","E","N","N","D","D","E"], prevAnswers: [{"word":"UNDERLYING","pct":4},{"word":"ANGLE","pct":15},{"word":"GREED","pct":30},{"word":"GREEN","pct":35},{"word":"4 or lower","pct":16}] },
@@ -516,7 +516,7 @@ const PUZZLES = [
   { id: "p0343", letters: ["D","B","G","N","R","A","O","I","I","A","A","S","R","E","V","Y","P","E","M","T","T","M"], prevAnswers: [{"word":"SPRINGBOARD","pct":4},{"word":"SPRING","pct":15},{"word":"BOARD","pct":30},{"word":"EMPTY","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0344", letters: ["M","A","N","U","T","A","T","T","R","T","E","E","O","V","E","O","N","F","S","A","I","U"], prevAnswers: [{"word":"UNFORTUNATE","pct":4},{"word":"ROTTEN","pct":15},{"word":"FORT","pct":30},{"word":"MATE","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0345", letters: ["S","U","M","R","H","N","M","A","I","N","N","G","Z","C","L","N","N","I","S","C","S","G"], prevAnswers: [{"word":"SUMMARIZING","pct":4},{"word":"4 or lower","pct":96}] },
-  { id: "p0346", letters: ["B","O","W","W","S","P","P","H","R","R","I","M","E","G","N","T","I","A","I","G","V","C"], prevAnswers: [{"word":"SPRINGTIME","pct":4},{"word":"AIMING","pct":15},{"word":"SPRING","pct":22},{"word":"TIMING","pct":35},{"word":"4 or lower","pct":24}] },
+  { id: "p0346", letters: ["B","B","W","W","S","P","P","H","R","R","I","M","E","G","N","T","I","A","I","G","V","C"], prevAnswers: [{"word":"SPRINGTIME","pct":4},{"word":"AIMING","pct":15},{"word":"SPRING","pct":22},{"word":"TIMING","pct":35},{"word":"4 or lower","pct":24}] },
   { id: "p0347", letters: ["N","Y","E","S","C","R","T","E","O","N","S","I","R","G","I","U","M","A","E","S","H","M"], prevAnswers: [{"word":"SUMMARISING","pct":4},{"word":"SISTER","pct":15},{"word":"AROSE","pct":30},{"word":"RESET","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0348", letters: ["E","T","I","T","H","E","C","V","E","A","X","S","M","D","I","P","N","E","T","N","T","H"], prevAnswers: [{"word":"EXCITEMENT","pct":4},{"word":"THEME","pct":15},{"word":"HEAD","pct":30},{"word":"SPIN","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0349", letters: ["I","E","I","O","H","T","C","A","L","H","S","I","L","A","U","F","F","Y","N","O","T","C"], prevAnswers: [{"word":"UNOFFICIALLY","pct":4},{"word":"FISCAL","pct":15},{"word":"OFFICE","pct":22},{"word":"CALL","pct":35},{"word":"4 or lower","pct":24}] },
@@ -524,7 +524,7 @@ const PUZZLES = [
   { id: "p0351", letters: ["R","A","T","E","E","N","H","N","S","A","A","U","M","B","D","E","S","S","T","C","I","A"], prevAnswers: [{"word":"ENTHUSIASM","pct":4},{"word":"SUNSET","pct":15},{"word":"MUSIC","pct":30},{"word":"AREA","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0352", letters: ["N","W","I","A","S","O","I","E","T","I","G","O","B","T","E","G","L","A","A","Z","I","L"], prevAnswers: [{"word":"GLOBALIZATION","pct":4},{"word":"GLOBAL","pct":15},{"word":"GLOBE","pct":30},{"word":"BALL","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0353", letters: ["T","R","S","F","S","N","A","H","H","I","I","Y","F","T","O","N","R","T","I","H","R","D"], prevAnswers: [{"word":"TRANSITION","pct":4},{"word":"SAINT","pct":15},{"word":"TRAIN","pct":30},{"word":"ARTS","pct":35},{"word":"4 or lower","pct":16}] },
-  { id: "p0354", letters: ["H","E","N","C","R","I","O","O","F","A","T","N","T","L","E","T","O","W","P","M","B","E"], prevAnswers: [{"word":"CONTEMPLATION","pct":4},{"word":"ATONE","pct":15},{"word":"METAL","pct":30},{"word":"PLATE","pct":35},{"word":"4 or lower","pct":16}] },
+  { id: "p0354", letters: ["H","E","N","C","R","I","B","O","F","A","T","N","T","L","E","T","O","W","P","M","B","E"], prevAnswers: [{"word":"PLATE","pct":4},{"word":"PETAL","pct":15},{"word":"METAL","pct":30},{"word":"TALE","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0355", letters: ["B","F","T","A","E","N","T","R","E","E","T","L","N","M","V","A","V","I","E","L","O","N"], prevAnswers: [{"word":"INVOLVEMENT","pct":4},{"word":"EVENT","pct":15},{"word":"METAL","pct":30},{"word":"TREAT","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0356", letters: ["E","I","R","B","L","G","S","A","T","U","E","L","I","O","L","E","F","O","V","I","T","N"], prevAnswers: [{"word":"LEGISLATION","pct":4},{"word":"ARISE","pct":15},{"word":"ELITE","pct":30},{"word":"RATIO","pct":35},{"word":"4 or lower","pct":16}] },
   { id: "p0357", letters: ["I","T","H","N","V","O","E","T","I","A","M","P","G","T","I","S","I","I","O","N","O","A"], prevAnswers: [{"word":"MOTIVATIONS","pct":4},{"word":"SMOTE","pct":15},{"word":"VOMIT","pct":30},{"word":"AIMS","pct":35},{"word":"4 or lower","pct":16}] },
@@ -551,9 +551,16 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "1.7.2";
+const VERSION = "1.7.3";
 
 const CHANGELOG = [
+  { version: "1.7.3", date: "26 Jun 2026", changes: [
+    "Settings tab: dark mode, sound, haptics, colour themes (blue/yellow & high contrast for accessibility)",
+    "Dictionary selection also in Settings; push notification opt-in",
+    "Account settings: email prefs, change password, delete data / account",
+    "Previous day's answers moved to the Scores tab — browse past dates to reveal them",
+    "All 365 puzzles pre-screened: offensive words can no longer be traced on the board",
+  ]},
   { version: "1.6.0", date: "26 Jun 2026", changes: [
     "Brand design system — cream tiles on dark wine board; indigo ‘played’ word tiles",
     "Answer word now displays in the top bar (↺ reset | WORD | ℹ info)",
@@ -750,6 +757,40 @@ function updateLocaleBtns() {
   document.querySelectorAll(".locale-btn").forEach(function(btn) {
     btn.classList.toggle("active", btn.dataset.locale === selectedLocale);
   });
+}
+
+// ─── User settings ────────────────────────────────────────────────────────────
+var darkMode      = false;
+var soundEnabled  = true;
+var hapticsEnabled = true;
+var colourTheme   = "default"; // "default" | "protanopia" | "highcontrast"
+
+function triggerHaptic(ms) {
+  if (!hapticsEnabled) return;
+  if (navigator.vibrate) navigator.vibrate(ms || 8);
+}
+
+function applyDarkMode(on) {
+  darkMode = on;
+  document.documentElement.dataset.theme = on ? "dark" : "";
+  localStorage.setItem("shukuma-dark-mode", on ? "1" : "0");
+}
+
+function applyColourTheme(theme) {
+  colourTheme = theme;
+  document.documentElement.dataset.colour = theme === "default" ? "" : theme;
+  localStorage.setItem("shukuma-colour-theme", theme);
+  buildColours();
+  renderAllTiles();
+}
+
+function loadUserSettings() {
+  darkMode       = localStorage.getItem("shukuma-dark-mode") === "1";
+  soundEnabled   = localStorage.getItem("shukuma-sound") !== "0";
+  hapticsEnabled = localStorage.getItem("shukuma-haptics") !== "0";
+  colourTheme    = localStorage.getItem("shukuma-colour-theme") || "default";
+  document.documentElement.dataset.theme  = darkMode ? "dark" : "";
+  document.documentElement.dataset.colour = colourTheme === "default" ? "" : colourTheme;
 }
 
 // Attempt + time tracking
@@ -1136,6 +1177,7 @@ function enterTile(tileId) {
   }
 
   selectedPath.push(tileId);
+  triggerHaptic(8);
   processWordState();
 }
 
@@ -1365,7 +1407,6 @@ function initInfoPanel() {
     infoBtn.addEventListener("click", function() {
       card.classList.add("flipped");
       switchBackTab("rules");
-      populateAnswers();
     });
   }
 
@@ -1383,7 +1424,6 @@ function initInfoPanel() {
   document.querySelectorAll(".back-tab").forEach(function(tab) {
     tab.addEventListener("click", function() {
       switchBackTab(tab.dataset.tab);
-      if (tab.dataset.tab === "rules") populateAnswers();
     });
   });
 
@@ -1473,20 +1513,22 @@ function loadBoardForDate(ddmmyy) {
   if (banner) banner.hidden = isToday;
 }
 
-function populateAnswers() {
+function populateAnswers(explicitDateStr) {
   var section = document.getElementById("answers-section");
   var list    = document.getElementById("answers-list");
   var btn     = document.getElementById("answers-reveal-btn");
   var label   = document.getElementById("answers-reveal-label");
   if (!section || !list) return;
 
-  if (!browsedDateStr) {
+  var dateStr = explicitDateStr || browsedDateStr;
+  if (!dateStr) {
     section.hidden = true;
     return;
   }
 
+  var puz = getPuzzleForDate(dateStr);
   section.hidden = false;
-  if (label) label.textContent = formatDateDisplay(browsedDateStr) + " — Reveal answers";
+  if (label) label.textContent = formatDateDisplay(dateStr) + " — Reveal answers";
 
   // Reset to collapsed whenever date changes
   list.hidden = true;
@@ -1507,10 +1549,10 @@ function populateAnswers() {
 
   function buildAnswerList() {
     list.innerHTML = "";
-    if (!puzzle || !puzzle.prevAnswers) return;
+    if (!puz || !puz.prevAnswers) return;
 
     // Sort longest → shortest
-    var answers = puzzle.prevAnswers.slice().sort(function(a, b) {
+    var answers = puz.prevAnswers.slice().sort(function(a, b) {
       return (b.word || "").length - (a.word || "").length;
     });
 
@@ -1819,6 +1861,8 @@ async function loadLeaderboard(filter) {
     var docs;
     if (lbFilter === "date") {
       var queryDate = getDateForOffset(lbDayOffset);
+      if (lbDayOffset < 0) populateAnswers(queryDate);
+      else { var answersSection = document.getElementById("answers-section"); if (answersSection) answersSection.hidden = true; }
       snap = await db.collection("scores").where("date", "==", queryDate).get();
       docs = snap.docs.slice().sort(function(a, b) { return (b.data().score || 0) - (a.data().score || 0); });
     } else {
@@ -2147,8 +2191,9 @@ function switchBackTab(tabName) {
   document.querySelectorAll(".tab-panel").forEach(function(p) {
     p.hidden = p.id !== "tab-" + tabName;
   });
-  if (tabName === "scores") { lbDayOffset = 0; loadLeaderboard(lbFilter || "date"); }
-  if (tabName === "stats")  renderStatsPanel();
+  if (tabName === "scores")   { lbDayOffset = 0; loadLeaderboard(lbFilter || "date"); }
+  if (tabName === "stats")    renderStatsPanel();
+  if (tabName === "settings") renderSettingsPanel();
 }
 
 // ─── Share ────────────────────────────────────────────────────────────────────
@@ -2498,8 +2543,124 @@ function doDateNavigate(direction) {
   }, 190);
 }
 
+// ─── Settings ─────────────────────────────────────────────────────────────────
+function renderSettingsPanel() {
+  // Appearance
+  var darkToggle  = document.getElementById("setting-dark-mode");
+  var soundToggle = document.getElementById("setting-sound");
+  var hapticToggle= document.getElementById("setting-haptics");
+  if (darkToggle)   darkToggle.checked   = darkMode;
+  if (soundToggle)  soundToggle.checked  = soundEnabled;
+  if (hapticToggle) hapticToggle.checked = hapticsEnabled;
+
+  // Colour theme
+  document.querySelectorAll(".colour-theme-btn").forEach(function(btn) {
+    btn.classList.toggle("active", btn.dataset.theme === colourTheme);
+  });
+
+  // Account section
+  var accountSection = document.getElementById("settings-account");
+  if (accountSection) accountSection.hidden = !currentUser;
+  var notifToggle = document.getElementById("setting-notif");
+  var marketingToggle = document.getElementById("setting-marketing");
+  if (currentUser) loadAccountPrefs(notifToggle, marketingToggle);
+}
+
+async function loadAccountPrefs(notifEl, marketingEl) {
+  if (!db || !currentUser) return;
+  try {
+    var snap = await db.collection("users").doc(currentUser.uid).get();
+    var prefs = (snap.exists && snap.data().prefs) || {};
+    if (notifEl)    notifEl.checked    = prefs.pushNotifications !== false;
+    if (marketingEl) marketingEl.checked = prefs.marketing !== false;
+  } catch (e) { /* silent */ }
+}
+
+function initSettings() {
+  var panel = document.getElementById("tab-settings");
+  if (!panel) return;
+
+  // Dark mode
+  var darkToggle = document.getElementById("setting-dark-mode");
+  if (darkToggle) darkToggle.addEventListener("change", function() {
+    applyDarkMode(this.checked);
+    localStorage.setItem("shukuma-dark-mode", this.checked ? "1" : "0");
+  });
+
+  // Sound
+  var soundToggle = document.getElementById("setting-sound");
+  if (soundToggle) soundToggle.addEventListener("change", function() {
+    soundEnabled = this.checked;
+    localStorage.setItem("shukuma-sound", soundEnabled ? "1" : "0");
+  });
+
+  // Haptics
+  var hapticToggle = document.getElementById("setting-haptics");
+  if (hapticToggle) hapticToggle.addEventListener("change", function() {
+    hapticsEnabled = this.checked;
+    localStorage.setItem("shukuma-haptics", hapticsEnabled ? "1" : "0");
+  });
+
+  // Colour theme
+  document.querySelectorAll(".colour-theme-btn").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      applyColourTheme(btn.dataset.theme);
+      document.querySelectorAll(".colour-theme-btn").forEach(function(b) {
+        b.classList.toggle("active", b.dataset.theme === colourTheme);
+      });
+    });
+  });
+
+  // Push notifications
+  var notifToggle = document.getElementById("setting-notif");
+  if (notifToggle) notifToggle.addEventListener("change", function() {
+    if (!db || !currentUser) return;
+    db.collection("users").doc(currentUser.uid).set(
+      { prefs: { pushNotifications: this.checked } }, { merge: true }
+    );
+  });
+
+  // Marketing emails
+  var marketingToggle = document.getElementById("setting-marketing");
+  if (marketingToggle) marketingToggle.addEventListener("change", function() {
+    if (!db || !currentUser) return;
+    db.collection("users").doc(currentUser.uid).set(
+      { prefs: { marketing: this.checked } }, { merge: true }
+    );
+  });
+
+  // Change password
+  var changePwBtn = document.getElementById("settings-change-password");
+  if (changePwBtn) changePwBtn.addEventListener("click", function() {
+    if (!fbAuth || !currentUser || !currentUser.email) return;
+    fbAuth.sendPasswordResetEmail(currentUser.email).then(function() {
+      showToast("Password reset email sent.");
+    }).catch(function(e) {
+      showToast("Failed: " + e.message);
+    });
+  });
+
+  // Delete account
+  var deleteBtn = document.getElementById("settings-delete-account");
+  if (deleteBtn) deleteBtn.addEventListener("click", function() {
+    if (!confirm("This will permanently delete your account and all your data. Are you sure?")) return;
+    if (!db || !currentUser) return;
+    var uid = currentUser.uid;
+    var batch = db.batch();
+    batch.delete(db.collection("users").doc(uid));
+    batch.commit().then(function() {
+      return currentUser.delete();
+    }).then(function() {
+      showToast("Account deleted.");
+    }).catch(function(e) {
+      showToast("Error: " + e.message);
+    });
+  });
+}
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 function init() {
+  loadUserSettings();
   buildColours();
   puzzle = getTodaysPuzzle();
   loadState();
@@ -2542,6 +2703,7 @@ function init() {
   initPullToRefresh();
   initIdleHint();
   initSwipeNavigation();
+  initSettings();
 
   updateScoreDisplay(null);
   updateTicketDisplay();

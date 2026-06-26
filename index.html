@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=1.7.2" />
+  <link rel="stylesheet" href="style.css?v=1.7.3" />
 </head>
 <body>
   <div id="app">
@@ -86,8 +86,9 @@
           <div id="back-header">
             <nav id="back-tabs" role="tablist">
               <button class="back-tab active" data-tab="rules" role="tab" aria-selected="true">Rules</button>
-              <button class="back-tab" data-tab="stats" role="tab" aria-selected="false">My Stats</button>
+              <button class="back-tab" data-tab="stats" role="tab" aria-selected="false">Stats</button>
               <button class="back-tab" data-tab="scores" role="tab" aria-selected="false">Scores</button>
+              <button class="back-tab" data-tab="settings" role="tab" aria-selected="false">Settings</button>
             </nav>
             <button id="back-btn" aria-label="Back to game">✕</button>
           </div>
@@ -147,15 +148,6 @@
                 </div>
               </div>
 
-              <!-- Past day's answers (hidden when viewing today) -->
-              <div id="answers-section" hidden>
-                <button id="answers-reveal-btn" class="reveal-toggle">
-                  <span id="answers-reveal-label">Reveal answers</span>
-                  <span class="reveal-chevron">›</span>
-                </button>
-                <ul id="answers-list" hidden></ul>
-              </div>
-
             </div><!-- /tab-rules -->
 
             <!-- ── Tab: My Stats ────────────────────────────────────── -->
@@ -208,6 +200,15 @@
 
               <div id="lb-word-reveal" hidden></div>
 
+              <!-- Past day's answers (shown in Scores tab when browsing past dates) -->
+              <div id="answers-section" hidden>
+                <button id="answers-reveal-btn" class="reveal-toggle">
+                  <span id="answers-reveal-label">Reveal answers</span>
+                  <span class="reveal-chevron">›</span>
+                </button>
+                <ul id="answers-list" hidden></ul>
+              </div>
+
               <div id="lb-filter-row">
                 <button class="lb-filter-btn active" data-filter="date">Scores</button>
                 <button class="lb-filter-btn" data-filter="alltime">All Time</button>
@@ -223,6 +224,72 @@
               <div id="lb-list" hidden></div>
 
             </div><!-- /tab-scores -->
+
+            <!-- ── Tab: Settings ────────────────────────────────────── -->
+            <div id="tab-settings" class="tab-panel" role="tabpanel" hidden>
+
+              <div class="settings-section">
+                <h3 class="settings-section-title">Appearance</h3>
+                <label class="settings-row">
+                  <span class="settings-label">Dark Mode</span>
+                  <input type="checkbox" id="setting-dark-mode" class="settings-toggle" />
+                </label>
+                <label class="settings-row">
+                  <span class="settings-label">Sound</span>
+                  <input type="checkbox" id="setting-sound" class="settings-toggle" checked />
+                </label>
+                <label class="settings-row">
+                  <span class="settings-label">Haptic Feedback</span>
+                  <input type="checkbox" id="setting-haptics" class="settings-toggle" checked />
+                </label>
+              </div>
+
+              <div class="settings-section">
+                <h3 class="settings-section-title">Colour Theme</h3>
+                <div class="colour-theme-grid">
+                  <button class="colour-theme-btn active" data-theme="default">
+                    <span class="theme-swatch" style="background:#5cb85c"></span>
+                    <span class="theme-swatch" style="background:#d9534f"></span>
+                    Default
+                  </button>
+                  <button class="colour-theme-btn" data-theme="protanopia">
+                    <span class="theme-swatch" style="background:#4a90d9"></span>
+                    <span class="theme-swatch" style="background:#f5a623"></span>
+                    Protanopia
+                  </button>
+                  <button class="colour-theme-btn" data-theme="highcontrast">
+                    <span class="theme-swatch" style="background:#00ff00"></span>
+                    <span class="theme-swatch" style="background:#ff0000"></span>
+                    High Contrast
+                  </button>
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <h3 class="settings-section-title">Dictionary</h3>
+                <div id="locale-toggle-settings">
+                  <button class="locale-btn" data-locale="en_US">🇺🇸 US English</button>
+                  <button class="locale-btn" data-locale="en_GB">🇬🇧 UK English</button>
+                </div>
+              </div>
+
+              <div class="settings-section" id="settings-account" hidden>
+                <h3 class="settings-section-title">Account</h3>
+                <label class="settings-row">
+                  <span class="settings-label">Push Notifications</span>
+                  <input type="checkbox" id="setting-notif" class="settings-toggle" checked />
+                </label>
+                <label class="settings-row">
+                  <span class="settings-label">Marketing Emails</span>
+                  <input type="checkbox" id="setting-marketing" class="settings-toggle" checked />
+                </label>
+                <div class="settings-actions">
+                  <button id="settings-change-password" class="settings-action-btn">Change Password</button>
+                  <button id="settings-delete-account" class="settings-action-btn settings-danger-btn">Delete Account &amp; Data</button>
+                </div>
+              </div>
+
+            </div><!-- /tab-settings -->
 
           </div><!-- /back-content -->
 
@@ -282,6 +349,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
-  <script src="game.js?v=1.7.2"></script>
+  <script src="game.js?v=1.7.3"></script>
 </body>
 </html>
