@@ -980,7 +980,7 @@ function buildBoard() {
     text.setAttribute("y", y);
     text.setAttribute("text-anchor", "middle");
     text.setAttribute("dominant-baseline", "central");
-    text.setAttribute("font-size", "20");
+    text.setAttribute("font-size", "22");
     text.setAttribute("font-weight", "700");
     text.setAttribute("font-family", "'Playfair Display', Georgia, serif");
     text.setAttribute("fill", c.text);
@@ -2114,12 +2114,31 @@ function initIdleHint() {
     if (gameCompleted) return;
     if (selectedPath.length > 0) return;
     if (Date.now() - lastInteraction < 7000) return;
-    tiles.forEach(function(tile) {
-      if (tile.state !== "neutral") return;
+    // Pick a random neutral tile, then walk 2-3 adjacent neutral tiles to form a chain
+    var neutralTiles = tiles.filter(function(t) { return t.state === "neutral"; });
+    if (neutralTiles.length < 2) return;
+    var seed = neutralTiles[Math.floor(Math.random() * neutralTiles.length)];
+    var chain = [seed];
+    var seen = {};
+    seen[seed.id] = true;
+    for (var i = 0; i < 3; i++) {
+      var last = chain[chain.length - 1];
+      var adj = (adjacency[last.id] || []).filter(function(id) {
+        return !seen[id] && tiles[id] && tiles[id].state === "neutral";
+      });
+      if (!adj.length) break;
+      var next = tiles[adj[Math.floor(Math.random() * adj.length)]];
+      seen[next.id] = true;
+      chain.push(next);
+    }
+    // Stagger pulse across the chain tiles
+    chain.forEach(function(tile, idx) {
       var g = document.getElementById("tile-" + tile.id);
       if (!g) return;
-      g.classList.add("tile-hint");
-      setTimeout(function() { g.classList.remove("tile-hint"); }, 1200);
+      setTimeout(function() {
+        g.classList.add("tile-hint");
+        setTimeout(function() { g.classList.remove("tile-hint"); }, 1100);
+      }, idx * 140);
     });
   }, 8000);
 }
