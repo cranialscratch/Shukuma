@@ -95,6 +95,7 @@ html, body {
 
 /* ── Game front face ──────────────────────────────────────────────── */
 #game-front {
+  position: relative;
   background: var(--board-bg);
   border-radius: var(--radius);
   overflow: hidden;
@@ -1039,6 +1040,7 @@ html, body {
   align-items: flex-end;
   justify-content: center;
 }
+#changelog-modal[hidden] { display: none; }
 #changelog-overlay {
   position: absolute;
   inset: 0;
@@ -1140,6 +1142,85 @@ html, body {
   margin-bottom: 2px;
 }
 .cl-latest .cl-changes li { color: #333; }
+
+/* ─── Pull-to-refresh ────────────────────────────────────────────────────── */
+#ptr-indicator {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  margin-left: -20px;
+  width: 40px;
+  height: 40px;
+  opacity: 0;
+  transform: translateY(-48px);
+  z-index: 10;
+  pointer-events: none;
+}
+#ptr-spinner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--brand, #ff2d55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#ptr-spinner::after {
+  content: "↻";
+  font-size: 1.4rem;
+  color: #fff;
+  line-height: 1;
+}
+#ptr-indicator.ptr-ready #ptr-spinner { background: #2a9a4a; }
+@keyframes ptrSpin {
+  to { transform: rotate(360deg); }
+}
+#ptr-indicator.ptr-spinning #ptr-spinner {
+  animation: ptrSpin 0.5s linear infinite;
+}
+
+/* ─── Reveal toggle (answers section) ───────────────────────────────────── */
+.reveal-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: #f5f5f5;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #444;
+  cursor: pointer;
+  margin-bottom: 6px;
+}
+.reveal-toggle:active { background: #ebebeb; }
+.reveal-chevron {
+  font-size: 1.1rem;
+  color: #aaa;
+}
+
+/* ─── Leaderboard reveal button ──────────────────────────────────────────── */
+.lb-reveal-btn {
+  display: block;
+  width: 100%;
+  margin: 6px 0;
+  padding: 8px 14px;
+  background: #f0f0f0;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #555;
+  cursor: pointer;
+  text-align: center;
+}
+.lb-reveal-btn:active { background: #e4e4e4; }
+.lb-word-inner {
+  display: block;
+  padding: 6px 0 2px;
+}
 
 /* ─── Float reward animation ──────────────────────────────────────────────── */
 @keyframes shuFloat {

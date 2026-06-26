@@ -22,6 +22,9 @@
         <!-- ── Front: game board ───────────────────────────────────── -->
         <div class="card-face front" id="game-front">
 
+          <!-- Pull-to-refresh indicator -->
+          <div id="ptr-indicator" aria-hidden="true"><div id="ptr-spinner"></div></div>
+
           <!-- Top bar -->
           <div id="game-topbar">
             <span id="game-prompt">Find today's longest word</span>
@@ -137,10 +140,13 @@
                 <p>Tap <strong>Share</strong> to post your score and earn a Joyall Ticket. Your word is never revealed!</p>
               </div>
 
-              <!-- Previous day's answers -->
-              <div id="answers-section">
-                <h3>Yesterday's answers</h3>
-                <ul id="answers-list"></ul>
+              <!-- Past day's answers (hidden when viewing today) -->
+              <div id="answers-section" hidden>
+                <button id="answers-reveal-btn" class="reveal-toggle">
+                  <span id="answers-reveal-label">Reveal answers</span>
+                  <span class="reveal-chevron">›</span>
+                </button>
+                <ul id="answers-list" hidden></ul>
               </div>
 
             </div><!-- /tab-rules -->
