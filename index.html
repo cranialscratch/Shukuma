@@ -84,17 +84,14 @@
         <!-- ── Back: tabbed panel (slide-up sheet) ──────────────── -->
         <div class="card-face back" id="game-back">
 
-          <!-- Drag handle -->
-          <div id="panel-drag-handle"></div>
-
           <div id="back-header">
-            <nav id="back-tabs" role="tablist">
-              <button class="back-tab active" data-tab="rules" role="tab" aria-selected="true">Rules</button>
-              <button class="back-tab" data-tab="stats" role="tab" aria-selected="false">Stats</button>
-              <button class="back-tab" data-tab="scores" role="tab" aria-selected="false">Scores</button>
-              <button class="back-tab" data-tab="settings" role="tab" aria-selected="false">Settings</button>
-            </nav>
-            <button id="back-btn" aria-label="Back to game">✕</button>
+            <div id="panel-drag-handle"></div>
+            <div id="back-header-row">
+              <span id="back-panel-title"></span>
+              <button id="back-btn" aria-label="Close panel">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
           </div>
 
           <div id="back-content">
@@ -291,6 +288,14 @@
                 </div>
               </div>
 
+              <div class="settings-section">
+                <button id="settings-admin-btn" class="settings-action-btn">Developer / Admin Tools</button>
+              </div>
+
+              <div class="settings-footer">
+                <span id="settings-version-label"></span>
+              </div>
+
             </div><!-- /tab-settings -->
 
           </div><!-- /back-content -->
@@ -305,38 +310,40 @@
 
     <!-- ── Bottom Navigation Bar ─────────────────────────────── -->
     <nav id="bottom-nav" role="navigation" aria-label="Main navigation">
-      <button class="nav-btn active" data-panel="board" aria-label="Game Board">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <polygon points="12 2 19 8 19 20 5 20 5 8"/>
-          <path d="M9 20V12h6v8"/>
-        </svg>
-        <span>Board</span>
-      </button>
-      <button class="nav-btn" data-panel="scores" aria-label="Scores &amp; Leaderboard">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
-          <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
-          <path d="M4 22h16"/>
-          <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
-          <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
-          <path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/>
-        </svg>
-        <span>Scores</span>
-      </button>
-      <button class="nav-btn" data-panel="stats" aria-label="My Stats">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M3 3v18h18"/>
-          <path d="m19 9-5 5-4-4-3 3"/>
-        </svg>
-        <span>Stats</span>
-      </button>
-      <button class="nav-btn" data-panel="settings" aria-label="Settings">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-          <circle cx="12" cy="12" r="3"/>
-        </svg>
-        <span>Settings</span>
-      </button>
+      <div id="bottom-nav-inner">
+        <button class="nav-btn active" data-panel="play" aria-label="Play">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="12 3 21.5 8.5 21.5 19.5 12 25 2.5 19.5 2.5 8.5"/>
+            <polygon points="12 5 19.5 9.25 19.5 17.75 12 22 4.5 17.75 4.5 9.25" fill="currentColor" opacity="0.15" stroke="none"/>
+          </svg>
+          <span>Play</span>
+        </button>
+        <button class="nav-btn" data-panel="scores" aria-label="Scores &amp; Leaderboard">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
+            <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+            <path d="M4 22h16"/>
+            <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+            <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
+            <path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/>
+          </svg>
+          <span>Scores</span>
+        </button>
+        <button class="nav-btn" data-panel="profile" aria-label="My Profile">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="8" r="4"/>
+            <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+          </svg>
+          <span>Profile</span>
+        </button>
+        <button class="nav-btn" data-panel="settings" aria-label="Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+          <span>Settings</span>
+        </button>
+      </div>
     </nav>
 
     <!-- ── Admin Panel ─────────────────────────────────────────── -->

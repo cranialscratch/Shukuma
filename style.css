@@ -110,7 +110,7 @@ html, body {
   border-radius: 0;
   position: absolute;
   inset: 0;
-  bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(68px + env(safe-area-inset-bottom, 0px));
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -377,11 +377,10 @@ html, body {
 #game-back {
   position: fixed;
   left: 0; right: 0;
-  top: 10dvh;
-  bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+  top: 0;
+  bottom: 0;
   background: #ffffff;
-  border-radius: 20px 20px 0 0;
-  box-shadow: 0 -4px 40px rgba(0,0,0,0.22);
+  border-radius: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -394,59 +393,65 @@ html, body {
   transform: translateY(0);
 }
 
-/* Drag handle pill */
-#panel-drag-handle {
-  width: 36px;
-  height: 4px;
-  background: rgba(0,0,0,0.18);
-  border-radius: 2px;
-  margin: 8px auto 0;
-  flex-shrink: 0;
-}
-
-/* Panel backdrop — dims board when sheet is open */
+/* Panel backdrop — kept for JS compat (not visible since sheet is full-screen) */
 #panel-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.45);
+  background: transparent;
   z-index: 149;
-  transition: opacity 0.3s;
+  pointer-events: none;
 }
 
 #back-header {
   background: var(--brand);
   color: white;
-  padding: 6px 14px 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  padding-top: env(safe-area-inset-top, 0px);
   flex-shrink: 0;
 }
 
-#back-header h2 {
+/* Drag handle pill */
+#panel-drag-handle {
+  width: 36px;
+  height: 4px;
+  background: rgba(255,255,255,0.35);
+  border-radius: 2px;
+  margin: 8px auto 4px;
+}
+
+#back-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 14px 10px;
+}
+
+#back-panel-title {
   font-size: 1rem;
-  font-weight: bold;
-  letter-spacing: 0.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: white;
 }
 
 #back-btn {
   background: rgba(255,255,255,0.2);
   border: none;
   border-radius: 50%;
-  width: 28px; height: 28px;
-  font-size: 0.85rem;
+  width: 32px; height: 32px;
   color: white;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
+#back-btn:hover { background: rgba(255,255,255,0.32); }
 
 #back-content {
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding: 14px;
+  padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
 }
 
 /* How to play */
@@ -673,7 +678,7 @@ html, body {
 /* ── Toast ───────────────────────────────────────────────────────── */
 #toast {
   position: fixed;
-  bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(84px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%) translateY(20px);
   background: #222;
@@ -724,49 +729,6 @@ html, body {
 }
 #user-btn:hover { background: rgba(255,255,255,0.28); }
 #user-btn.logged-in { background: var(--brand); border-color: var(--brand); }
-
-/* ── Back panel tabs ─────────────────────────────────────────────── */
-#back-header {
-  background: var(--brand);
-  color: white;
-  padding: 0 10px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-#back-tabs {
-  display: flex;
-  gap: 0;
-  flex: 1;
-  overflow: hidden;
-}
-
-.back-tab {
-  background: none;
-  border: none;
-  border-bottom: 3px solid transparent;
-  color: rgba(255,255,255,0.65);
-  font-size: var(--fs-xs);
-  font-weight: 700;
-  font-family: inherit;
-  padding: 10px 10px 8px;
-  cursor: pointer;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  transition: color 0.15s, border-color 0.15s;
-  white-space: nowrap;
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-}
-.back-tab:hover { color: rgba(255,255,255,0.9); }
-.back-tab.active {
-  color: white;
-  border-bottom-color: white;
-}
 
 .tab-panel { display: block; }
 .tab-panel[hidden] { display: none; }
@@ -1583,6 +1545,15 @@ html, body {
 }
 .settings-danger-btn:hover { background: rgba(217,83,79,0.06); }
 
+.settings-footer {
+  text-align: center;
+  padding: 16px 0 8px;
+}
+#settings-version-label {
+  font-size: var(--fs-xs);
+  color: rgba(0,0,0,0.3);
+}
+
 /* ── Dark mode ────────────────────────────────────────────────────── */
 html[data-theme="dark"] {
   --page-bg:             #111111;
@@ -1633,8 +1604,11 @@ html[data-theme="dark"] #bottom-nav {
   background: rgba(28,28,30,0.92);
   border-top-color: rgba(255,255,255,0.1);
 }
+html[data-theme="dark"] #bottom-nav-inner { background: rgba(255,255,255,0.08); }
 html[data-theme="dark"] .nav-btn { color: rgba(255,255,255,0.35); }
-html[data-theme="dark"] .nav-btn.active { color: var(--brand); }
+html[data-theme="dark"] .nav-btn.active { background: rgba(255,255,255,0.12); color: var(--brand); box-shadow: none; }
+html[data-theme="dark"] #game-back { background: #1c1c1e; }
+html[data-theme="dark"] #settings-version-label { color: rgba(255,255,255,0.25); }
 html[data-theme="dark"] .answer-word { color: rgba(255,255,255,0.85); }
 html[data-theme="dark"] .answer-blurred { color: rgba(255,255,255,0.55); }
 html[data-theme="dark"] .lb-filter-btn { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.6); }
@@ -1672,15 +1646,26 @@ html[data-colour="highcontrast"] {
 #bottom-nav {
   position: fixed;
   bottom: 0; left: 0; right: 0;
-  height: calc(60px + env(safe-area-inset-bottom, 0px));
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  height: calc(68px + env(safe-area-inset-bottom, 0px));
+  padding: 8px 12px env(safe-area-inset-bottom, 0px);
   background: rgba(255,255,255,0.88);
   backdrop-filter: blur(24px) saturate(1.8);
   -webkit-backdrop-filter: blur(24px) saturate(1.8);
-  border-top: 0.5px solid rgba(0,0,0,0.12);
+  border-top: 0.5px solid rgba(0,0,0,0.10);
   display: flex;
   align-items: flex-start;
   z-index: 200;
+}
+
+#bottom-nav-inner {
+  display: flex;
+  width: 100%;
+  background: rgba(0,0,0,0.07);
+  border-radius: 100px;
+  padding: 4px;
+  gap: 2px;
+  align-items: center;
+  height: 52px;
 }
 
 .nav-btn {
@@ -1689,24 +1674,30 @@ html[data-colour="highcontrast"] {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 2px;
   background: none;
   border: none;
   cursor: pointer;
-  padding: 8px 4px 6px;
-  height: 60px;
-  color: rgba(0,0,0,0.38);
+  padding: 4px 6px;
+  height: 44px;
+  min-width: 0;
+  border-radius: 100px;
+  color: rgba(0,0,0,0.40);
   font-family: inherit;
-  font-size: 0.6rem;
-  font-weight: 500;
-  letter-spacing: 0.2px;
-  transition: color 0.18s;
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.1px;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
   -webkit-tap-highlight-color: transparent;
 }
-.nav-btn.active { color: var(--brand); }
+.nav-btn.active {
+  background: #ffffff;
+  color: var(--brand);
+  box-shadow: 0 1px 8px rgba(0,0,0,0.14);
+}
 .nav-btn svg {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
 }
 .nav-btn span { display: block; }

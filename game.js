@@ -1310,25 +1310,25 @@ function pulseTileSubmitHint() {
 
 // ─── Info panel ───────────────────────────────────────────────────────────────
 // ─── Sheet open / close ──────────────────────────────────────────────────────
+// Maps internal tab name → bottom-nav data-panel value
+var TAB_TO_NAV = { rules: "rules", scores: "scores", stats: "profile", settings: "settings" };
+var PANEL_TITLES = { rules: "How to Play", scores: "Scores", stats: "Profile", settings: "Settings" };
+
 function openSheet(tabName) {
   var sheet   = document.getElementById("game-back");
-  var backdrop = document.getElementById("panel-backdrop");
   if (sheet)   { sheet.classList.add("open"); }
-  if (backdrop) { backdrop.hidden = false; }
   if (tabName) switchBackTab(tabName);
-  // Mark bottom nav
+  var navKey = TAB_TO_NAV[tabName] || tabName;
   document.querySelectorAll(".nav-btn").forEach(function(b) {
-    b.classList.toggle("active", b.dataset.panel === tabName);
+    b.classList.toggle("active", b.dataset.panel === navKey);
   });
 }
 
 function closeSheet() {
   var sheet   = document.getElementById("game-back");
-  var backdrop = document.getElementById("panel-backdrop");
   if (sheet)   { sheet.classList.remove("open"); }
-  if (backdrop) { backdrop.hidden = true; }
   document.querySelectorAll(".nav-btn").forEach(function(b) {
-    b.classList.toggle("active", b.dataset.panel === "board");
+    b.classList.toggle("active", b.dataset.panel === "play");
   });
 }
 
@@ -1344,17 +1344,13 @@ function initInfoPanel() {
   var backBtn = document.getElementById("back-btn");
   if (backBtn) backBtn.addEventListener("click", closeSheet);
 
-  // Backdrop tap → close sheet
-  var backdrop = document.getElementById("panel-backdrop");
-  if (backdrop) backdrop.addEventListener("click", closeSheet);
+  // (Backdrop removed — sheet is full-screen, no backdrop tap needed)
 
   document.querySelectorAll(".locale-btn").forEach(function(btn) {
     btn.addEventListener("click", function() { setLocale(btn.dataset.locale); });
   });
 
-  document.querySelectorAll(".back-tab").forEach(function(tab) {
-    tab.addEventListener("click", function() { switchBackTab(tab.dataset.tab); });
-  });
+  // (back-tabs removed — bottom nav handles panel switching)
 
   document.querySelectorAll(".lb-filter-btn").forEach(function(btn) {
     btn.addEventListener("click", function() {
@@ -1411,14 +1407,16 @@ function initInfoPanel() {
     }
   });
 
-  // Bottom navigation
+  // Bottom navigation — maps nav panel names to internal tab names
+  var NAV_TO_TAB = { play: null, scores: "scores", profile: "stats", settings: "settings" };
   document.querySelectorAll(".nav-btn").forEach(function(btn) {
     btn.addEventListener("click", function() {
       var panel = btn.dataset.panel;
-      if (panel === "board") {
+      var tabName = NAV_TO_TAB[panel];
+      if (panel === "play" || tabName === null) {
         closeSheet();
       } else {
-        openSheet(panel);
+        openSheet(tabName || panel);
       }
     });
   });
@@ -1638,7 +1636,12 @@ async function fbSignUp(username, email, password) {
     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     stats: { totalGames: 0, totalScore: 0, bestScore: 0, bestWord: "", currentStreak: 0, bestStreak: 0, lastPlayedDate: "" },
     badges: {},
+    tickets: 10,
   });
+  // Welcome bonus — 10 tickets for new registrations
+  ticketCount += 10;
+  updateTicketDisplay();
+  saveState();
   return cred.user;
 }
 
@@ -1659,7 +1662,11 @@ async function fbSignInGoogle() {
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       stats: { totalGames: 0, totalScore: 0, bestScore: 0, bestWord: "", currentStreak: 0, bestStreak: 0, lastPlayedDate: "" },
       badges: {},
+      tickets: 10,
     });
+    ticketCount += 10;
+    updateTicketDisplay();
+    saveState();
   }
   return cred.user;
 }
@@ -2073,13 +2080,11 @@ async function loadRecentHistory() {
 
 // ─── Tab switching ────────────────────────────────────────────────────────────
 function switchBackTab(tabName) {
-  document.querySelectorAll(".back-tab").forEach(function(b) {
-    b.classList.toggle("active", b.dataset.tab === tabName);
-    b.setAttribute("aria-selected", b.dataset.tab === tabName ? "true" : "false");
-  });
   document.querySelectorAll(".tab-panel").forEach(function(p) {
     p.hidden = p.id !== "tab-" + tabName;
   });
+  var titleEl = document.getElementById("back-panel-title");
+  if (titleEl) titleEl.textContent = PANEL_TITLES[tabName] || tabName;
   if (tabName === "scores")   { lbDayOffset = 0; loadLeaderboard(lbFilter || "date"); }
   if (tabName === "stats")    renderStatsPanel();
   if (tabName === "settings") renderSettingsPanel();
@@ -2089,18 +2094,13 @@ function switchBackTab(tabName) {
 function updateShareBtn() {
   var btn = document.getElementById("share-btn");
   if (!btn) return;
-  if (gameCompleted) {
-    btn.disabled = true;
-    btn.textContent = "Reward added ✓";
-    btn.classList.remove("is-throbbing");
-  } else if (bestScore > 0 && browsedDateStr === null) {
+  btn.classList.remove("is-throbbing");
+  if (bestScore > 0 && browsedDateStr === null) {
     btn.disabled = false;
-    btn.textContent = "Share to earn Tickets! ↗";
-    btn.classList.add("is-throbbing");
+    btn.textContent = "Share ↗";
   } else {
     btn.disabled = true;
     btn.textContent = "Share ↗";
-    btn.classList.remove("is-throbbing");
   }
 }
 
@@ -2118,20 +2118,29 @@ function initShare() {
       var dateStr = getDateString();
       var text = "I scored '" + displayLevel + "' with " + bestScore +
         " letters on Shukuma!\nHow did you do?\nhttps://cranialscratch.github.io/Shukuma/\n#Shukuma" + dateStr;
-      ticketCount++;
+
+      // First share of the day earns a ticket; subsequent shares are free but don't earn
+      var todayKey = "sharedToday-" + dateStr;
+      var alreadyEarned = !!localStorage.getItem(todayKey);
+      if (!alreadyEarned) {
+        ticketCount++;
+        localStorage.setItem(todayKey, "1");
+        updateTicketDisplay();
+        showToast("Ticket earned! 🎟");
+      }
       gameCompleted = true;
       saveState();
-      updateTicketDisplay();
       updateShareBtn();
       if (currentUser) submitScore().catch(function() {});
+
       if (navigator.share) {
         navigator.share({ title: "Shukuma", text: text }).catch(function() {
           navigator.clipboard && navigator.clipboard.writeText(text);
-          showToast("Score copied to clipboard!");
+          if (alreadyEarned) showToast("Score copied to clipboard!");
         });
       } else if (navigator.clipboard) {
         navigator.clipboard.writeText(text).then(function() {
-          showToast("Score copied to clipboard!");
+          if (alreadyEarned) showToast("Score copied to clipboard!");
         }).catch(function() {});
       } else {
         showToast("Share: " + text.split("\n")[0]);
@@ -2199,17 +2208,6 @@ function initVersionPanel() {
     tag.textContent = "v" + VERSION;
     tag.addEventListener("click", showChangelog);
     tag.addEventListener("keydown", function(e) { if (e.key === "Enter" || e.key === " ") showChangelog(); });
-    // Long-press (≥1.5 s) opens the admin panel
-    var longPressTimer = null;
-    tag.addEventListener("pointerdown", function() {
-      longPressTimer = setTimeout(function() {
-        longPressTimer = null;
-        var adminPanel = document.getElementById("admin-panel");
-        if (adminPanel) { adminPanel.hidden = false; }
-      }, 1500);
-    });
-    tag.addEventListener("pointerup",     function() { clearTimeout(longPressTimer); });
-    tag.addEventListener("pointercancel", function() { clearTimeout(longPressTimer); });
   }
   var closeBtn = document.getElementById("changelog-close");
   var overlay  = document.getElementById("changelog-overlay");
@@ -2576,6 +2574,14 @@ function initAdmin() {
   var panel = document.getElementById("admin-panel");
   if (!panel) return;
 
+  // Settings tab admin trigger button
+  var settingsAdminBtn = document.getElementById("settings-admin-btn");
+  if (settingsAdminBtn) settingsAdminBtn.addEventListener("click", function() { panel.hidden = false; });
+
+  // Settings version label
+  var versionLabel = document.getElementById("settings-version-label");
+  if (versionLabel) versionLabel.textContent = "Shukuma v" + VERSION;
+
   // Close button (HTML uses id="admin-close")
   var closeBtn = document.getElementById("admin-close");
   if (closeBtn) closeBtn.addEventListener("click", function() { panel.hidden = true; });
@@ -2716,6 +2722,12 @@ async function seedDemoData() {
   }
 
   await batch.commit();
+
+  // Give Matt 100 tickets
+  await db.collection("users").doc(uid).set({ tickets: 100 }, { merge: true });
+  ticketCount = 100;
+  updateTicketDisplay();
+  saveState();
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
