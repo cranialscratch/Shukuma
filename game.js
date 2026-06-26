@@ -1462,17 +1462,21 @@ async function loadLeaderboard(filter) {
 
   try {
     var snap;
+    var docs;
     if (lbFilter === "date") {
       var queryDate = getDateForOffset(lbDayOffset);
-      snap = await db.collection("scores").where("date", "==", queryDate).orderBy("score", "desc").limit(25).get();
+      snap = await db.collection("scores").where("date", "==", queryDate).get();
+      docs = snap.docs.slice().sort(function(a, b) { return (b.data().score || 0) - (a.data().score || 0); }).slice(0, 25);
     } else {
-      snap = await db.collection("users").orderBy("stats.bestScore", "desc").limit(25).get();
+      snap = await db.collection("users").get();
+      docs = snap.docs.filter(function(d) { return d.data().stats && d.data().stats.bestScore; })
+        .slice().sort(function(a, b) { return (b.data().stats.bestScore || 0) - (a.data().stats.bestScore || 0); }).slice(0, 25);
     }
     loadingEl.hidden = true;
     listEl.hidden = false;
-    if (snap.empty) { listEl.innerHTML = '<div class="lb-empty">No scores yet — be first!</div>'; return; }
+    if (!docs.length) { listEl.innerHTML = '<div class="lb-empty">No scores yet — be first!</div>'; return; }
 
-    snap.docs.forEach(function(doc, i) {
+    docs.forEach(function(doc, i) {
       var d     = doc.data();
       var score = lbFilter === "date" ? d.score : ((d.stats && d.stats.bestScore) || 0);
       var name  = d.username || "Player";
