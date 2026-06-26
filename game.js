@@ -409,9 +409,19 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "1.8.1";
+const VERSION = "1.9.0";
 
 const CHANGELOG = [
+  { version: "1.9.0", date: "26 Jun 2026", changes: [
+    "Redesigned UI: clean white/light theme with purple brand accent",
+    "New header with TODAY'S PUZZLE label and date",
+    "Word display box replaces topbar — shows current word or prompt",
+    "Stats row: CURRENT / YOUR BEST / TICKETS cards replace score section",
+    "Action bar: UNDO, CLEAR, HINT buttons replace bottom navigation",
+    "Sheet navigation: tab row inside sheet header for Rules/Scores/Profile/Settings",
+    "UNDO button removes last selected tile from path",
+    "HINT button triggers idle-hint animation on demand",
+  ]},
   { version: "1.8.1", date: "26 Jun 2026", changes: [
     "Admin panel moved to Settings tab (no longer requires long-press on version tag)",
     "Bottom nav renamed: Board → Play (hexagon icon), Stats → Profile (person icon)",
@@ -818,12 +828,12 @@ function buildColours() {
   var s = getComputedStyle(document.documentElement);
   function g(v) { return s.getPropertyValue(v).trim() || null; }
   COLOURS = {
-    neutral:  { fill: g("--tile-neutral")       || "#e8dfc8", stroke: g("--tile-neutral-stroke")  || "#c8b098", text: g("--tile-text")        || "#1a0a00" },
-    selected: { fill: g("--tile-selected")      || "#e8c840", stroke: g("--tile-selected-stroke") || "#c9a820", text: g("--tile-text")        || "#1a0a00" },
-    valid:    { fill: g("--tile-valid")         || "#5cb85c", stroke: g("--tile-valid-stroke")    || "#3d8b3d", text: g("--tile-text-light")  || "#ffffff" },
-    invalid:  { fill: g("--tile-invalid")       || "#d9534f", stroke: g("--tile-invalid-stroke")  || "#a02020", text: g("--tile-text-light")  || "#ffffff" },
-    played:   { fill: g("--tile-played")        || "#4c5ab8", stroke: g("--tile-played-stroke")   || "#333f8f", text: g("--tile-text-light")  || "#ffffff" },
-    blank:    { fill: g("--tile-blank")         || "#d4c8a8", stroke: g("--tile-neutral-stroke")  || "#c8b098", text: g("--tile-text")        || "#1a0a00" },
+    neutral:  { fill: g("--tile-neutral")       || "#ffffff", stroke: g("--tile-neutral-stroke")  || "#e5e7eb", text: g("--tile-text")        || "#1f2937" },
+    selected: { fill: g("--tile-selected")      || "#7c4dff", stroke: g("--tile-selected-stroke") || "#5e35b1", text: g("--tile-text-light")  || "#ffffff" },
+    valid:    { fill: g("--tile-valid")         || "#22c55e", stroke: g("--tile-valid-stroke")    || "#16a34a", text: g("--tile-text-light")  || "#ffffff" },
+    invalid:  { fill: g("--tile-invalid")       || "#ef4444", stroke: g("--tile-invalid-stroke")  || "#dc2626", text: g("--tile-text-light")  || "#ffffff" },
+    played:   { fill: g("--tile-played")        || "#4ade80", stroke: g("--tile-played-stroke")   || "#22c55e", text: g("--tile-text")        || "#1f2937" },
+    blank:    { fill: g("--tile-blank")         || "#f3f4f6", stroke: g("--tile-neutral-stroke")  || "#e5e7eb", text: g("--tile-text")        || "#1f2937" },
   };
 }
 
@@ -901,18 +911,21 @@ function updateAnswerArea() {
 }
 
 function updateScoreDisplay(validWord) {
-  const scoreEl = document.getElementById("score-value");
-  const levelEl = document.getElementById("score-level");
+  const scoreEl     = document.getElementById("score-value");
+  const levelEl     = document.getElementById("score-level");
+  const liveEl      = document.getElementById("score-value-live");
   if (!scoreEl) return;
   if (validWord && selectedPath.length > 0) {
     const len = selectedPath.length;
     scoreEl.textContent = len;
     if (levelEl) levelEl.textContent = getScoreLevel(len);
     scoreEl.className = "valid";
+    if (liveEl) liveEl.textContent = len;
   } else if (selectedPath.length > 0) {
     scoreEl.textContent = "?";
     if (levelEl) levelEl.textContent = "";
     scoreEl.className = "invalid";
+    if (liveEl) liveEl.textContent = selectedPath.length;
   } else {
     scoreEl.textContent = bestScore > 0 ? bestScore : "?";
     if (levelEl) {
@@ -920,6 +933,7 @@ function updateScoreDisplay(validWord) {
       levelEl.textContent = (inOneAchieved && bestScore > 0) ? "Grandmaster in One!" : baseLevel;
     }
     scoreEl.className = "";
+    if (liveEl) liveEl.textContent = selectedPath.length > 0 ? selectedPath.length : "—";
   }
   updateLevelBar();
 }
@@ -1317,6 +1331,40 @@ function pulseTileSubmitHint() {
   setTimeout(function() { g.classList.remove("tile-submit-hint"); }, 800);
 }
 
+function undoLastTile() {
+  if (selectedPath.length === 0) return;
+  var id = selectedPath.pop();
+  restoreTileDefault(tiles[id]);
+  processWordState();
+}
+
+function triggerHint() {
+  var neutralTiles = tiles.filter(function(t) { return t.state === "neutral"; });
+  if (neutralTiles.length < 2) return;
+  var seed = neutralTiles[Math.floor(Math.random() * neutralTiles.length)];
+  var chain = [seed];
+  var seen = {};
+  seen[seed.id] = true;
+  for (var i = 0; i < 3; i++) {
+    var last = chain[chain.length - 1];
+    var adj = Array.from(adjacency[last.id] || []).filter(function(id) {
+      return !seen[id] && tiles[id] && tiles[id].state === "neutral";
+    });
+    if (!adj.length) break;
+    var next = tiles[adj[Math.floor(Math.random() * adj.length)]];
+    seen[next.id] = true;
+    chain.push(next);
+  }
+  chain.forEach(function(tile, idx) {
+    var g = document.getElementById("tile-" + tile.id);
+    if (!g) return;
+    setTimeout(function() {
+      g.classList.add("tile-hint");
+      setTimeout(function() { g.classList.remove("tile-hint"); }, 1100);
+    }, idx * 140);
+  });
+}
+
 // ─── Info panel ───────────────────────────────────────────────────────────────
 // ─── Sheet open / close ──────────────────────────────────────────────────────
 // Maps internal tab name → bottom-nav data-panel value
@@ -1324,13 +1372,9 @@ var TAB_TO_NAV = { rules: "rules", scores: "scores", stats: "profile", settings:
 var PANEL_TITLES = { rules: "How to Play", scores: "Scores", stats: "Profile", settings: "Settings" };
 
 function openSheet(tabName) {
-  var sheet   = document.getElementById("game-back");
-  if (sheet)   { sheet.classList.add("open"); }
+  var sheet = document.getElementById("game-back");
+  if (sheet) { sheet.classList.add("open"); }
   if (tabName) switchBackTab(tabName);
-  var navKey = TAB_TO_NAV[tabName] || tabName;
-  document.querySelectorAll(".nav-btn").forEach(function(b) {
-    b.classList.toggle("active", b.dataset.panel === navKey);
-  });
 }
 
 function closeSheet() {
@@ -1342,24 +1386,42 @@ function closeSheet() {
 }
 
 function initInfoPanel() {
+  // Word box reset (×) button
   var resetBtn = document.getElementById("reset-btn");
   if (resetBtn) resetBtn.addEventListener("click", clearSelection);
 
-  // Info button → open Rules sheet
-  var infoBtn = document.getElementById("info-btn");
-  if (infoBtn) infoBtn.addEventListener("click", function() { openSheet("rules"); });
+  // Header buttons
+  var menuBtn = document.getElementById("menu-btn");
+  if (menuBtn) menuBtn.addEventListener("click", function() { openSheet("rules"); });
+
+  var scoresBtn = document.getElementById("scores-btn");
+  if (scoresBtn) scoresBtn.addEventListener("click", function() { openSheet("scores"); });
+
+  // Action bar
+  var undoBtn = document.getElementById("undo-btn");
+  if (undoBtn) undoBtn.addEventListener("click", undoLastTile);
+
+  var clearBtn = document.getElementById("clear-btn");
+  if (clearBtn) clearBtn.addEventListener("click", clearSelection);
+
+  var hintBtn = document.getElementById("hint-btn");
+  if (hintBtn) hintBtn.addEventListener("click", function() {
+    if (gameCompleted || selectedPath.length > 0) return;
+    triggerHint();
+  });
 
   // Back / close button → close sheet
   var backBtn = document.getElementById("back-btn");
   if (backBtn) backBtn.addEventListener("click", closeSheet);
 
-  // (Backdrop removed — sheet is full-screen, no backdrop tap needed)
+  // Sheet tab row
+  document.querySelectorAll(".back-tab").forEach(function(btn) {
+    btn.addEventListener("click", function() { switchBackTab(btn.dataset.tab); });
+  });
 
   document.querySelectorAll(".locale-btn").forEach(function(btn) {
     btn.addEventListener("click", function() { setLocale(btn.dataset.locale); });
   });
-
-  // (back-tabs removed — bottom nav handles panel switching)
 
   document.querySelectorAll(".lb-filter-btn").forEach(function(btn) {
     btn.addEventListener("click", function() {
@@ -1414,20 +1476,6 @@ function initInfoPanel() {
       lbDayOffset = browseOffset;
       loadBoardForDate(getDateForOffset(browseOffset));
     }
-  });
-
-  // Bottom navigation — maps nav panel names to internal tab names
-  var NAV_TO_TAB = { play: null, scores: "scores", profile: "stats", settings: "settings" };
-  document.querySelectorAll(".nav-btn").forEach(function(btn) {
-    btn.addEventListener("click", function() {
-      var panel = btn.dataset.panel;
-      var tabName = NAV_TO_TAB[panel];
-      if (panel === "play" || tabName === null) {
-        closeSheet();
-      } else {
-        openSheet(tabName || panel);
-      }
-    });
   });
 }
 
@@ -2092,6 +2140,9 @@ function switchBackTab(tabName) {
   document.querySelectorAll(".tab-panel").forEach(function(p) {
     p.hidden = p.id !== "tab-" + tabName;
   });
+  document.querySelectorAll(".back-tab").forEach(function(b) {
+    b.classList.toggle("active", b.dataset.tab === tabName);
+  });
   var titleEl = document.getElementById("back-panel-title");
   if (titleEl) titleEl.textContent = PANEL_TITLES[tabName] || tabName;
   if (tabName === "scores")   { lbDayOffset = 0; loadLeaderboard(lbFilter || "date"); }
@@ -2104,13 +2155,7 @@ function updateShareBtn() {
   var btn = document.getElementById("share-btn");
   if (!btn) return;
   btn.classList.remove("is-throbbing");
-  if (bestScore > 0 && browsedDateStr === null) {
-    btn.disabled = false;
-    btn.textContent = "Share ↗";
-  } else {
-    btn.disabled = true;
-    btn.textContent = "Share ↗";
-  }
+  btn.disabled = !(bestScore > 0 && browsedDateStr === null);
 }
 
 function enableShare() { updateShareBtn(); }
@@ -2349,32 +2394,7 @@ function initIdleHint() {
     if (gameCompleted) return;
     if (selectedPath.length > 0) return;
     if (Date.now() - lastInteraction < 7000) return;
-    // Pick a random neutral tile, then walk 2-3 adjacent neutral tiles to form a chain
-    var neutralTiles = tiles.filter(function(t) { return t.state === "neutral"; });
-    if (neutralTiles.length < 2) return;
-    var seed = neutralTiles[Math.floor(Math.random() * neutralTiles.length)];
-    var chain = [seed];
-    var seen = {};
-    seen[seed.id] = true;
-    for (var i = 0; i < 3; i++) {
-      var last = chain[chain.length - 1];
-      var adj = (adjacency[last.id] || []).filter(function(id) {
-        return !seen[id] && tiles[id] && tiles[id].state === "neutral";
-      });
-      if (!adj.length) break;
-      var next = tiles[adj[Math.floor(Math.random() * adj.length)]];
-      seen[next.id] = true;
-      chain.push(next);
-    }
-    // Stagger pulse across the chain tiles
-    chain.forEach(function(tile, idx) {
-      var g = document.getElementById("tile-" + tile.id);
-      if (!g) return;
-      setTimeout(function() {
-        g.classList.add("tile-hint");
-        setTimeout(function() { g.classList.remove("tile-hint"); }, 1100);
-      }, idx * 140);
-    });
+    triggerHint();
   }, 8000);
 }
 

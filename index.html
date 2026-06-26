@@ -7,81 +7,135 @@
   <meta name="description" content="Shukuma Wordsearch Mini Game — find the longest connected word on a hexagonal letter board." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=1.8.1" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=1.9.0" />
 </head>
 <body>
   <div id="app">
 
-    <!-- 3D flip card -->
     <div id="card-scene">
       <div id="game-card">
 
-        <!-- ── Front: game board ───────────────────────────────────── -->
+        <!-- ── Front: game screen ──────────────────────────────────── -->
         <div class="card-face front" id="game-front">
 
           <!-- Pull-to-refresh indicator -->
           <div id="ptr-indicator" aria-hidden="true"><div id="ptr-spinner"></div></div>
 
-          <!-- Top bar: ↺ reset | word/prompt | ℹ info -->
-          <div id="game-topbar">
-            <button id="reset-btn" aria-label="Reset selection" hidden>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          <!-- Header -->
+          <div id="game-header">
+            <button id="menu-btn" aria-label="Menu">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+              </svg>
             </button>
-            <div id="topbar-word">
-              <span id="game-prompt">Find today's longest word</span>
-              <span id="answer-text" aria-live="polite" hidden></span>
+            <div id="header-center">
+              <div id="header-label">TODAY'S PUZZLE</div>
+              <div id="puzzle-date"></div>
             </div>
-            <button id="info-btn" aria-label="Info / How to play">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 7v1M12 11v6"/></svg>
+            <button id="scores-btn" aria-label="Scores">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+              </svg>
             </button>
           </div>
 
-          <!-- Hex board (built by JS) -->
+          <!-- Word display box -->
+          <div id="word-box">
+            <span id="game-prompt">Find today's longest word</span>
+            <span id="answer-text" aria-live="polite" hidden></span>
+            <button id="reset-btn" aria-label="Clear selection" hidden>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Hex board -->
           <div id="board-container">
             <svg id="hex-board" xmlns="http://www.w3.org/2000/svg"></svg>
           </div>
 
-          <!-- Level bar -->
-          <div id="level-bar">
-            <div class="level-segment" data-level="1" title="Below Average (≤3)"></div>
-            <div class="level-segment" data-level="2" title="Average (4–5)"></div>
-            <div class="level-segment" data-level="3" title="Above Average (6–7)"></div>
-            <div class="level-segment" data-level="4" title="Master (8–9)"></div>
-            <div class="level-segment" data-level="5" title="Grandmaster (≥10)"></div>
-          </div>
-
-          <!-- Date + board navigation -->
-          <div id="date-nav-bar">
-            <button id="board-date-prev" aria-label="Previous day">‹</button>
-            <div id="puzzle-date"></div>
-            <button id="board-date-next" aria-label="Next day" disabled>›</button>
-          </div>
-          <div id="difficulty-badge" hidden></div>
-          <div id="past-game-banner" hidden>📅 Past game — explore for fun, scores won't count</div>
-
-          <!-- Footer -->
-          <div id="game-footer">
-            <div id="score-section">
-              <div id="ticket-badge">
-                <span id="ticket-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><line x1="9" y1="5" x2="9" y2="19"/></svg></span>
-                <span id="ticket-count">0</span>
-              </div>
-              <div id="score-display">
-                <span id="score-value">?</span>
-                <span id="score-level"></span>
-              </div>
+          <!-- Stats row -->
+          <div id="stats-row">
+            <div class="stat-card">
+              <div class="stat-card-label">CURRENT</div>
+              <div class="stat-card-value" id="score-value-live">—</div>
+              <div class="stat-card-sub">letters</div>
             </div>
-            <button id="share-btn" disabled>
-              Share ↗
+            <div class="stat-card stat-card-center">
+              <div class="stat-card-label">YOUR BEST</div>
+              <div class="stat-card-value accent" id="score-value">?</div>
+              <div class="stat-card-sub" id="score-level"></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card-label">TICKETS</div>
+              <div class="stat-card-value accent" id="ticket-count">0</div>
+              <div class="stat-card-sub">earned</div>
+            </div>
+          </div>
+
+          <!-- Share CTA -->
+          <button id="share-btn" disabled>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>
+            </svg>
+            <div id="share-text-col">
+              <div id="share-headline">SHARE YOUR SCORE!</div>
+              <div id="share-subline">Share to earn a Ticket each day</div>
+            </div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
+
+          <!-- Action bar -->
+          <div id="action-bar">
+            <button id="undo-btn" class="action-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>
+              </svg>
+              <span>Undo</span>
+            </button>
+            <button id="clear-btn" class="action-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/>
+              </svg>
+              <span>Clear</span>
+            </button>
+            <button id="hint-btn" class="action-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/>
+                <path d="M9 18h6"/><path d="M10 22h4"/>
+              </svg>
+              <span>Hint</span>
             </button>
           </div>
 
+          <!-- Hidden legacy elements (JS compatibility) -->
+          <div style="display:none" aria-hidden="true">
+            <div id="ticket-badge"><span id="ticket-icon"></span></div>
+            <div id="score-section"><div id="score-display"></div></div>
+            <div id="level-bar">
+              <div class="level-segment" data-level="1"></div>
+              <div class="level-segment" data-level="2"></div>
+              <div class="level-segment" data-level="3"></div>
+              <div class="level-segment" data-level="4"></div>
+              <div class="level-segment" data-level="5"></div>
+            </div>
+            <div id="date-nav-bar">
+              <button id="board-date-prev"></button>
+              <button id="board-date-next" disabled></button>
+            </div>
+          </div>
+
+          <div id="difficulty-badge" hidden></div>
+          <div id="past-game-banner" hidden>Past game — explore for fun, scores won't count</div>
           <div id="version-tag" role="button" tabindex="0" aria-label="Version history"></div>
 
         </div><!-- /game-front -->
 
-        <!-- ── Back: tabbed panel (slide-up sheet) ──────────────── -->
+        <!-- ── Back: slide-up sheet ────────────────────────────────── -->
         <div class="card-face back" id="game-back">
 
           <div id="back-header">
@@ -89,14 +143,22 @@
             <div id="back-header-row">
               <span id="back-panel-title"></span>
               <button id="back-btn" aria-label="Close panel">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
               </button>
+            </div>
+            <div id="back-tabs">
+              <button class="back-tab active" data-tab="rules">How to Play</button>
+              <button class="back-tab" data-tab="scores">Scores</button>
+              <button class="back-tab" data-tab="stats">Profile</button>
+              <button class="back-tab" data-tab="settings">Settings</button>
             </div>
           </div>
 
           <div id="back-content">
 
-            <!-- ── Tab: Rules ───────────────────────────────────────── -->
+            <!-- ── Tab: Rules ─────────────────────────────────────────── -->
             <div id="tab-rules" class="tab-panel" role="tabpanel">
 
               <div class="how-section">
@@ -118,9 +180,9 @@
               <div class="how-section">
                 <h3>Tile colours</h3>
                 <ul>
-                  <li><strong style="color:#e8c840">Yellow</strong> — word in progress</li>
-                  <li><strong style="color:#5cb85c">Green</strong> — valid word found!</li>
-                  <li><strong style="color:#d9534f">Red</strong> — not a valid word</li>
+                  <li><strong style="color:#7c4dff">Purple</strong> — word in progress</li>
+                  <li><strong style="color:#22c55e">Green</strong> — valid word found!</li>
+                  <li><strong style="color:#ef4444">Red</strong> — not a valid word</li>
                 </ul>
               </div>
 
@@ -137,32 +199,28 @@
               </div>
 
               <div class="how-section">
-                <h3>Day difficulty</h3>
-                <ul>
-                  <li><strong>Standard</strong> — target word is 10–12 letters</li>
-                  <li><strong>Hard ★</strong> — target word is 13–14 letters</li>
-                  <li><strong>Extra Hard ★★</strong> — target word is 15+ letters</li>
-                </ul>
+                <h3>Sharing</h3>
+                <p>Tap <strong>Share</strong> to post your score. First share each day earns a Ticket. Your word is never revealed!</p>
               </div>
 
               <div class="how-section">
-                <h3>Sharing</h3>
-                <p>Tap <strong>Share</strong> to post your score and earn a Ticket. Your word is never revealed!</p>
+                <div id="locale-toggle">
+                  <button class="locale-btn" data-locale="en_US">🇺🇸 US English</button>
+                  <button class="locale-btn" data-locale="en_GB">🇬🇧 UK English</button>
+                </div>
               </div>
 
             </div><!-- /tab-rules -->
 
-            <!-- ── Tab: My Stats ────────────────────────────────────── -->
+            <!-- ── Tab: My Stats ──────────────────────────────────────── -->
             <div id="tab-stats" class="tab-panel" role="tabpanel" hidden>
 
-              <!-- Logged-out state -->
               <div id="stats-logged-out">
                 <div class="stats-cta-icon">🏆</div>
                 <p class="stats-cta-text">Sign in to track your progress, earn badges, and compete with friends.</p>
                 <button id="stats-signin-btn" class="brand-btn">Sign In / Create Account</button>
               </div>
 
-              <!-- Logged-in state -->
               <div id="stats-logged-in" hidden>
 
                 <div id="user-profile-row">
@@ -187,11 +245,11 @@
                 <div class="section-label" style="margin-top:14px">Recent Games</div>
                 <div id="history-list"></div>
 
-              </div><!-- /stats-logged-in -->
+              </div>
 
             </div><!-- /tab-stats -->
 
-            <!-- ── Tab: Scores ──────────────────────────────────────── -->
+            <!-- ── Tab: Scores ────────────────────────────────────────── -->
             <div id="tab-scores" class="tab-panel" role="tabpanel" hidden>
 
               <div id="lb-date-nav">
@@ -202,9 +260,8 @@
 
               <div id="lb-word-reveal" hidden></div>
 
-              <!-- Past day's answers — always visible, per-word eye toggle -->
               <div id="answers-section" hidden>
-                <button id="answers-reveal-btn" hidden><!-- kept for JS compat --></button>
+                <button id="answers-reveal-btn" hidden></button>
                 <ul id="answers-list"></ul>
               </div>
 
@@ -224,7 +281,7 @@
 
             </div><!-- /tab-scores -->
 
-            <!-- ── Tab: Settings ────────────────────────────────────── -->
+            <!-- ── Tab: Settings ──────────────────────────────────────── -->
             <div id="tab-settings" class="tab-panel" role="tabpanel" hidden>
 
               <div class="settings-section">
@@ -247,8 +304,8 @@
                 <h3 class="settings-section-title">Colour Theme</h3>
                 <div class="colour-theme-grid">
                   <button class="colour-theme-btn active" data-theme="default">
-                    <span class="theme-swatch" style="background:#5cb85c"></span>
-                    <span class="theme-swatch" style="background:#d9534f"></span>
+                    <span class="theme-swatch" style="background:#22c55e"></span>
+                    <span class="theme-swatch" style="background:#ef4444"></span>
                     Default
                   </button>
                   <button class="colour-theme-btn" data-theme="protanopia">
@@ -261,14 +318,6 @@
                     <span class="theme-swatch" style="background:#ff0000"></span>
                     High Contrast
                   </button>
-                </div>
-              </div>
-
-              <div class="settings-section">
-                <h3 class="settings-section-title">Dictionary</h3>
-                <div id="locale-toggle-settings">
-                  <button class="locale-btn" data-locale="en_US">🇺🇸 US English</button>
-                  <button class="locale-btn" data-locale="en_GB">🇬🇧 UK English</button>
                 </div>
               </div>
 
@@ -305,122 +354,14 @@
       </div><!-- /game-card -->
     </div><!-- /card-scene -->
 
-    <!-- ── Panel backdrop (dims board behind sheet) ──────────── -->
+    <!-- Backdrop (kept for JS compat) -->
     <div id="panel-backdrop" hidden></div>
-
-    <!-- ── Bottom Navigation Bar ─────────────────────────────── -->
-    <nav id="bottom-nav" role="navigation" aria-label="Main navigation">
-      <div id="bottom-nav-inner">
-        <button class="nav-btn active" data-panel="play" aria-label="Play">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polygon points="12 3 21.5 8.5 21.5 19.5 12 25 2.5 19.5 2.5 8.5"/>
-            <polygon points="12 5 19.5 9.25 19.5 17.75 12 22 4.5 17.75 4.5 9.25" fill="currentColor" opacity="0.15" stroke="none"/>
-          </svg>
-          <span>Play</span>
-        </button>
-        <button class="nav-btn" data-panel="scores" aria-label="Scores &amp; Leaderboard">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
-            <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
-            <path d="M4 22h16"/>
-            <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
-            <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
-            <path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/>
-          </svg>
-          <span>Scores</span>
-        </button>
-        <button class="nav-btn" data-panel="profile" aria-label="My Profile">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="8" r="4"/>
-            <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-          </svg>
-          <span>Profile</span>
-        </button>
-        <button class="nav-btn" data-panel="settings" aria-label="Settings">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-            <circle cx="12" cy="12" r="3"/>
-          </svg>
-          <span>Settings</span>
-        </button>
-      </div>
-    </nav>
-
-    <!-- ── Admin Panel ─────────────────────────────────────────── -->
-    <div id="admin-panel" hidden>
-      <div id="admin-header">
-        <h2>Theme Admin</h2>
-        <button id="admin-close" aria-label="Close admin">✕</button>
-      </div>
-      <div id="admin-content">
-        <div class="admin-section">
-          <h3>Brand</h3>
-          <div class="admin-row">
-            <label for="ac-brand">Primary colour</label>
-            <input type="color" id="ac-brand" value="#ff2d55">
-          </div>
-          <div class="admin-row">
-            <label for="ac-board-bg">Board background</label>
-            <input type="color" id="ac-board-bg" value="#3d1a24">
-          </div>
-        </div>
-        <div class="admin-section">
-          <h3>Tile Colours</h3>
-          <div class="admin-row">
-            <label for="ac-tile-neutral">Neutral</label>
-            <input type="color" id="ac-tile-neutral" value="#e8dfc8">
-          </div>
-          <div class="admin-row">
-            <label for="ac-tile-selected">Selected</label>
-            <input type="color" id="ac-tile-selected" value="#e8c840">
-          </div>
-          <div class="admin-row">
-            <label for="ac-tile-valid">Valid word</label>
-            <input type="color" id="ac-tile-valid" value="#5cb85c">
-          </div>
-          <div class="admin-row">
-            <label for="ac-tile-invalid">Invalid word</label>
-            <input type="color" id="ac-tile-invalid" value="#d9534f">
-          </div>
-          <div class="admin-row">
-            <label for="ac-tile-played">Best word (played)</label>
-            <input type="color" id="ac-tile-played" value="#4c5ab8">
-          </div>
-        </div>
-        <div class="admin-section">
-          <h3>Typography</h3>
-          <div class="admin-row">
-            <label for="ac-font">Font family</label>
-            <select id="ac-font">
-              <option value="Inter, -apple-system, sans-serif">Inter (default)</option>
-              <option value="-apple-system, 'Helvetica Neue', sans-serif">System UI</option>
-              <option value="Georgia, 'Times New Roman', serif">Georgia</option>
-              <option value="'Courier New', monospace">Courier</option>
-            </select>
-          </div>
-          <div class="admin-row">
-            <label for="ac-font-scale">Font scale</label>
-            <input type="range" id="ac-font-scale" min="85" max="120" value="100" step="5">
-          </div>
-        </div>
-        <div class="admin-section">
-          <h3>Data Tools</h3>
-          <div class="admin-actions">
-            <button class="admin-btn" id="admin-seed-btn">Seed demo scores (past 7 days)</button>
-            <button class="admin-btn admin-btn-secondary" id="admin-apply-btn">Apply &amp; save theme</button>
-            <button class="admin-btn admin-btn-secondary" id="admin-reset-btn">Reset to defaults</button>
-            <button class="admin-btn admin-btn-danger" id="admin-clear-storage-btn">Clear all local data</button>
-          </div>
-        </div>
-      </div>
-    </div>
 
   </div><!-- /app -->
 
-  <!-- Toast (created by JS, kept here for reference) -->
   <div id="toast"></div>
 
-  <!-- ── Auth Modal ──────────────────────────────────────────────────────── -->
+  <!-- ── Auth Modal ─────────────────────────────────────────────────────── -->
   <div id="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title" hidden>
     <div id="auth-overlay"></div>
     <div id="auth-card">
@@ -461,11 +402,80 @@
     </div>
   </div>
 
-  <!-- Firebase SDKs (compat mode — exposes global `firebase` object) -->
+  <!-- Admin Panel -->
+  <div id="admin-panel" hidden>
+    <div id="admin-header">
+      <h2>Theme Admin</h2>
+      <button id="admin-close" aria-label="Close admin">✕</button>
+    </div>
+    <div id="admin-content">
+      <div class="admin-section">
+        <h3>Brand</h3>
+        <div class="admin-row">
+          <label for="ac-brand">Primary colour</label>
+          <input type="color" id="ac-brand" value="#7c4dff">
+        </div>
+        <div class="admin-row">
+          <label for="ac-board-bg">Board background</label>
+          <input type="color" id="ac-board-bg" value="#f2f2f7">
+        </div>
+      </div>
+      <div class="admin-section">
+        <h3>Tile Colours</h3>
+        <div class="admin-row">
+          <label for="ac-tile-neutral">Neutral</label>
+          <input type="color" id="ac-tile-neutral" value="#ffffff">
+        </div>
+        <div class="admin-row">
+          <label for="ac-tile-selected">Selected</label>
+          <input type="color" id="ac-tile-selected" value="#7c4dff">
+        </div>
+        <div class="admin-row">
+          <label for="ac-tile-valid">Valid word</label>
+          <input type="color" id="ac-tile-valid" value="#22c55e">
+        </div>
+        <div class="admin-row">
+          <label for="ac-tile-invalid">Invalid word</label>
+          <input type="color" id="ac-tile-invalid" value="#ef4444">
+        </div>
+        <div class="admin-row">
+          <label for="ac-tile-played">Best word (played)</label>
+          <input type="color" id="ac-tile-played" value="#4ade80">
+        </div>
+      </div>
+      <div class="admin-section">
+        <h3>Typography</h3>
+        <div class="admin-row">
+          <label for="ac-font">Font family</label>
+          <select id="ac-font">
+            <option value="Inter, -apple-system, sans-serif">Inter (default)</option>
+            <option value="-apple-system, 'Helvetica Neue', sans-serif">System UI</option>
+            <option value="Georgia, 'Times New Roman', serif">Georgia</option>
+            <option value="'Courier New', monospace">Courier</option>
+          </select>
+        </div>
+        <div class="admin-row">
+          <label for="ac-font-scale">Font scale</label>
+          <input type="range" id="ac-font-scale" min="85" max="120" value="100" step="5">
+        </div>
+      </div>
+      <div class="admin-section">
+        <h3>Data Tools</h3>
+        <div class="admin-actions">
+          <button class="admin-btn" id="admin-seed-btn">Seed demo scores (past 7 days)</button>
+          <button class="admin-btn admin-btn-secondary" id="admin-apply-btn">Apply &amp; save theme</button>
+          <button class="admin-btn admin-btn-secondary" id="admin-reset-btn">Reset to defaults</button>
+          <button class="admin-btn admin-btn-danger" id="admin-clear-storage-btn">Clear all local data</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
-  <script src="game.js?v=1.8.1"></script>
+  <script src="game.js?v=1.9.0"></script>
 </body>
 </html>
