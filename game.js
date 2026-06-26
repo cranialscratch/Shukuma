@@ -409,9 +409,21 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "1.7.4";
+const VERSION = "1.8.0";
 
 const CHANGELOG = [
+  { version: "1.8.0", date: "26 Jun 2026", changes: [
+    "Full-screen layout — board fills the entire viewport with iOS safe-area support",
+    "Glass-effect bottom navigation bar (Board / Scores / Stats / Settings) — iOS 27 style",
+    "Back panel replaced with smooth slide-up sheet; swipe or tap Board to dismiss",
+    "Fixed: Settings tab labels were invisible (white on white); all settings text now dark",
+    "Answers section: always expanded, no expand/collapse; per-word eye toggle to reveal/hide",
+    "Date navigation synced — Scores tab shows answers for the day you're viewing on the board",
+    "Admin panel: long-press version tag to edit CSS variables, fonts, and seed demo data",
+    "Removed 'Joyall' branding from share text and rules copy",
+    "Removed 'Words Found Today' section from Scores tab",
+    "Standardised font-size variables (--fs-xs through --fs-3xl) for accessibility",
+  ]},
   { version: "1.7.4", date: "26 Jun 2026", changes: [
     "New scoring: ≤3 Below Average · 4–5 Average · 6–7 Above Average · 8–9 Master · ≥10 Grandmaster",
     "Day difficulty badge: Standard / Hard ★ / Extra Hard ★★ shown above the board",
@@ -1297,35 +1309,51 @@ function pulseTileSubmitHint() {
 }
 
 // ─── Info panel ───────────────────────────────────────────────────────────────
-function initInfoPanel() {
-  var card = document.getElementById("game-card");
+// ─── Sheet open / close ──────────────────────────────────────────────────────
+function openSheet(tabName) {
+  var sheet   = document.getElementById("game-back");
+  var backdrop = document.getElementById("panel-backdrop");
+  if (sheet)   { sheet.classList.add("open"); }
+  if (backdrop) { backdrop.hidden = false; }
+  if (tabName) switchBackTab(tabName);
+  // Mark bottom nav
+  document.querySelectorAll(".nav-btn").forEach(function(b) {
+    b.classList.toggle("active", b.dataset.panel === tabName);
+  });
+}
 
+function closeSheet() {
+  var sheet   = document.getElementById("game-back");
+  var backdrop = document.getElementById("panel-backdrop");
+  if (sheet)   { sheet.classList.remove("open"); }
+  if (backdrop) { backdrop.hidden = true; }
+  document.querySelectorAll(".nav-btn").forEach(function(b) {
+    b.classList.toggle("active", b.dataset.panel === "board");
+  });
+}
+
+function initInfoPanel() {
   var resetBtn = document.getElementById("reset-btn");
   if (resetBtn) resetBtn.addEventListener("click", clearSelection);
 
+  // Info button → open Rules sheet
   var infoBtn = document.getElementById("info-btn");
-  if (infoBtn && card) {
-    infoBtn.addEventListener("click", function() {
-      card.classList.add("flipped");
-      switchBackTab("rules");
-    });
-  }
+  if (infoBtn) infoBtn.addEventListener("click", function() { openSheet("rules"); });
 
+  // Back / close button → close sheet
   var backBtn = document.getElementById("back-btn");
-  if (backBtn && card) {
-    backBtn.addEventListener("click", function() {
-      card.classList.remove("flipped");
-    });
-  }
+  if (backBtn) backBtn.addEventListener("click", closeSheet);
+
+  // Backdrop tap → close sheet
+  var backdrop = document.getElementById("panel-backdrop");
+  if (backdrop) backdrop.addEventListener("click", closeSheet);
 
   document.querySelectorAll(".locale-btn").forEach(function(btn) {
     btn.addEventListener("click", function() { setLocale(btn.dataset.locale); });
   });
 
   document.querySelectorAll(".back-tab").forEach(function(tab) {
-    tab.addEventListener("click", function() {
-      switchBackTab(tab.dataset.tab);
-    });
+    tab.addEventListener("click", function() { switchBackTab(tab.dataset.tab); });
   });
 
   document.querySelectorAll(".lb-filter-btn").forEach(function(btn) {
@@ -1345,24 +1373,54 @@ function initInfoPanel() {
   var signoutBtn = document.getElementById("signout-btn");
   if (signoutBtn) signoutBtn.addEventListener("click", function() { fbSignOut(); });
 
-  // Leaderboard date navigation
+  // Leaderboard date navigation — synced with board date
   var lbPrevBtn = document.getElementById("lb-date-prev");
   var lbNextBtn = document.getElementById("lb-date-next");
   if (lbPrevBtn) lbPrevBtn.addEventListener("click", function() {
-    if (lbDayOffset > -13) { lbDayOffset--; loadLeaderboard("date"); }
+    if (lbDayOffset > -13) {
+      lbDayOffset--;
+      browseOffset = lbDayOffset;
+      loadBoardForDate(getDateForOffset(browseOffset));
+      loadLeaderboard("date");
+    }
   });
   if (lbNextBtn) lbNextBtn.addEventListener("click", function() {
-    if (lbDayOffset < 0) { lbDayOffset++; loadLeaderboard("date"); }
+    if (lbDayOffset < 0) {
+      lbDayOffset++;
+      browseOffset = lbDayOffset;
+      loadBoardForDate(getDateForOffset(browseOffset));
+      loadLeaderboard("date");
+    }
   });
 
-  // Board date navigation (for browsing past puzzles)
+  // Board date navigation — synced with leaderboard date
   var boardPrevBtn = document.getElementById("board-date-prev");
   var boardNextBtn = document.getElementById("board-date-next");
   if (boardPrevBtn) boardPrevBtn.addEventListener("click", function() {
-    if (browseOffset > -13) { browseOffset--; loadBoardForDate(getDateForOffset(browseOffset)); }
+    if (browseOffset > -13) {
+      browseOffset--;
+      lbDayOffset = browseOffset;
+      loadBoardForDate(getDateForOffset(browseOffset));
+    }
   });
   if (boardNextBtn) boardNextBtn.addEventListener("click", function() {
-    if (browseOffset < 0) { browseOffset++; loadBoardForDate(getDateForOffset(browseOffset)); }
+    if (browseOffset < 0) {
+      browseOffset++;
+      lbDayOffset = browseOffset;
+      loadBoardForDate(getDateForOffset(browseOffset));
+    }
+  });
+
+  // Bottom navigation
+  document.querySelectorAll(".nav-btn").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      var panel = btn.dataset.panel;
+      if (panel === "board") {
+        closeSheet();
+      } else {
+        openSheet(panel);
+      }
+    });
   });
 }
 
@@ -1419,83 +1477,82 @@ function loadBoardForDate(ddmmyy) {
 function populateAnswers(explicitDateStr) {
   var section = document.getElementById("answers-section");
   var list    = document.getElementById("answers-list");
-  var btn     = document.getElementById("answers-reveal-btn");
-  var label   = document.getElementById("answers-reveal-label");
   if (!section || !list) return;
 
   var dateStr = explicitDateStr || browsedDateStr;
-  if (!dateStr) {
-    section.hidden = true;
-    return;
-  }
+  if (!dateStr) { section.hidden = true; return; }
 
   var puz = getPuzzleForDate(dateStr);
   section.hidden = false;
-  if (label) label.textContent = formatDateDisplay(dateStr) + " — Reveal answers";
 
-  // Reset to collapsed whenever date changes
-  list.hidden = true;
+  // Build answer list immediately (no expand/collapse)
   list.innerHTML = "";
-  var chevron = section.querySelector(".reveal-chevron");
-  if (chevron) chevron.textContent = "›";
-  // Remove any stale wiring so the click handler re-runs for new date
-  if (btn) btn._wired = false;
+  if (!puz || !puz.prevAnswers) return;
 
-  if (btn && !btn._wired) {
-    btn._wired = true;
-    btn.addEventListener("click", function() {
-      list.hidden = !list.hidden;
-      if (chevron) chevron.textContent = list.hidden ? "›" : "˅";
-      if (!list.hidden) buildAnswerList();
+  // Section heading
+  var heading = document.createElement("div");
+  heading.className = "wd-section-title";
+  heading.textContent = formatDateDisplay(dateStr) + " — Answers";
+  list.appendChild(heading);
+
+  // Sort longest → shortest
+  var answers = puz.prevAnswers.slice().sort(function(a, b) {
+    return (b.word || "").length - (a.word || "").length;
+  });
+
+  var myWord = bestWord ? bestWord.toUpperCase() : "";
+
+  answers.forEach(function(a, idx) {
+    var word = (a.word || "").toUpperCase();
+    var isTarget = idx === 0;
+    var isMine   = myWord && word === myWord;
+
+    var li = document.createElement("li");
+    li.className = "answer-item" +
+      (isTarget ? " answer-target" : "") +
+      (isMine   ? " answer-mine"   : "");
+
+    // Eye toggle button
+    var eyeBtn = document.createElement("button");
+    eyeBtn.className = "answer-eye-btn";
+    eyeBtn.setAttribute("aria-label", "Show / hide word");
+    eyeBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+
+    // Word span (blurred by default)
+    var wordSpan = document.createElement("span");
+    wordSpan.className = "answer-word answer-blurred";
+    wordSpan.textContent = word;
+
+    eyeBtn.addEventListener("click", function() {
+      var revealed = wordSpan.classList.toggle("answer-blurred") === false;
+      eyeBtn.classList.toggle("revealed", revealed);
+      if (revealed) {
+        eyeBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+      } else {
+        eyeBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+      }
     });
-  }
 
-  function buildAnswerList() {
-    list.innerHTML = "";
-    if (!puz || !puz.prevAnswers) return;
+    // Bar
+    var bar = document.createElement("span");
+    bar.className = "answer-bar";
+    var fill = document.createElement("span");
+    fill.className = "answer-fill";
+    fill.style.width = (a.pct || 0) + "%";
+    bar.appendChild(fill);
 
-    // Sort longest → shortest
-    var answers = puz.prevAnswers.slice().sort(function(a, b) {
-      return (b.word || "").length - (a.word || "").length;
-    });
+    // Pct
+    var pct = document.createElement("span");
+    pct.className = "answer-pct";
+    pct.textContent = (a.pct || 0) + "%";
 
-    var targetWord = answers[0] && answers[0].word ? answers[0].word.toUpperCase() : "";
-    var myWord     = bestWord ? bestWord.toUpperCase() : "";
+    li.appendChild(eyeBtn);
+    li.appendChild(wordSpan);
+    li.appendChild(bar);
+    li.appendChild(pct);
 
-    answers.forEach(function(a, idx) {
-      var word = (a.word || "").toUpperCase();
-      var isTarget = idx === 0;
-      var isMine   = myWord && word === myWord;
-
-      var li = document.createElement("li");
-      li.className = "answer-item" +
-        (isTarget ? " answer-target" : "") +
-        (isMine   ? " answer-mine"   : "");
-
-      // Word span (blurred by default)
-      var wordSpan = document.createElement("span");
-      wordSpan.className = "answer-word answer-blurred";
-      wordSpan.textContent = word;
-
-      // Bar
-      var bar = document.createElement("span");
-      bar.className = "answer-bar";
-      var fill = document.createElement("span");
-      fill.className = "answer-fill";
-      fill.style.width = (a.pct || 0) + "%";
-      bar.appendChild(fill);
-
-      // Pct
-      var pct = document.createElement("span");
-      pct.className = "answer-pct";
-      pct.textContent = (a.pct || 0) + "%";
-
-      li.appendChild(wordSpan);
-      li.appendChild(bar);
-      li.appendChild(pct);
-
-      // Definition button for target word only
-      if (isTarget) {
+    // Definition button for target word only
+    if (isTarget) {
         var defBtn = document.createElement("button");
         defBtn.className = "def-btn";
         defBtn.title = "Show definition";
@@ -1518,30 +1575,7 @@ function populateAnswers(explicitDateStr) {
 
       list.appendChild(li);
 
-      // Blur reveal: swipe/hover over word to reveal, auto-reblur after 3s
-      var reblurTimer = null;
-      function revealWord() {
-        wordSpan.classList.remove("answer-blurred");
-        clearTimeout(reblurTimer);
-        reblurTimer = setTimeout(function() {
-          wordSpan.classList.add("answer-blurred");
-        }, 3000);
-      }
-      wordSpan.addEventListener("pointerenter", revealWord);
-      wordSpan.addEventListener("pointerdown", revealWord);
-    });
-
-    // Wire swipe-reveal: pointermove over list checks elementFromPoint
-    if (!list._revealWired) {
-      list._revealWired = true;
-      list.addEventListener("pointermove", function(e) {
-        var el = document.elementFromPoint(e.clientX, e.clientY);
-        if (el && el.classList.contains("answer-blurred")) {
-          el.dispatchEvent(new Event("pointerenter"));
-        }
-      });
-    }
-  }
+  });
 }
 
 // ─── Word definition lookup ───────────────────────────────────────────────────
@@ -1778,54 +1812,6 @@ async function loadLeaderboard(filter) {
     listEl.innerHTML = "";
 
     if (!docs.length) { listEl.innerHTML = '<div class="lb-empty">No scores yet — be first!</div>'; return; }
-
-    // Word distribution (date view only)
-    if (lbFilter === "date") {
-      var wordMap = {};
-      docs.forEach(function(doc) {
-        var d = doc.data();
-        var key = d.word ? d.word.toUpperCase() : null;
-        var scoreVal = d.score || 0;
-        if (!key) key = scoreVal + "-letter word";
-        if (!wordMap[key]) wordMap[key] = { count: 0, score: scoreVal, level: d.level || getScoreLevel(scoreVal), hasWord: !!d.word };
-        wordMap[key].count++;
-      });
-      var wordList = Object.keys(wordMap).map(function(w) {
-        return { word: w, count: wordMap[w].count, score: wordMap[w].score, level: wordMap[w].level };
-      }).sort(function(a, b) { return b.score - a.score || b.count - a.count; });
-
-      var maxCount = Math.max.apply(null, wordList.map(function(w) { return w.count; }));
-      // Highlight the word with the highest score (top find of the day)
-      var topScore = wordList.length ? wordList[0].score : 0;
-
-      var distDiv = document.createElement("div");
-      distDiv.className = "wd-section";
-
-      var titleDiv = document.createElement("div");
-      titleDiv.className = "wd-section-title";
-      titleDiv.textContent = "Words Found Today";
-      distDiv.appendChild(titleDiv);
-
-      wordList.forEach(function(w) {
-        var pct = Math.max(6, Math.round((w.count / maxCount) * 100));
-        var isTarget = w.score === topScore;
-        var row = document.createElement("div");
-        row.className = "wd-row";
-        row.innerHTML =
-          '<span class="wd-word">' + escHtml(w.word) + '</span>' +
-          '<div class="wd-bar-wrap"><div class="wd-bar' + (isTarget ? " is-target" : "") + '" style="width:' + pct + '%"></div></div>' +
-          '<span class="wd-count">' + w.count + '</span>' +
-          '<span class="wd-level">' + escHtml(w.level || "") + '</span>';
-        distDiv.appendChild(row);
-      });
-      listEl.appendChild(distDiv);
-
-      // Players section header
-      var playersTitle = document.createElement("div");
-      playersTitle.className = "wd-section-title";
-      playersTitle.textContent = "Players";
-      listEl.appendChild(playersTitle);
-    }
 
     // Player rows
     var topDocs = lbFilter === "date" ? docs.slice(0, 25) : docs;
@@ -2131,7 +2117,7 @@ function initShare() {
       var displayLevel = inOneAchieved ? "Grandmaster in One!" : level;
       var dateStr = getDateString();
       var text = "I scored '" + displayLevel + "' with " + bestScore +
-        " letters on Shukuma!\nHow did you do?\nhttps://cranialscratch.github.io/Shukuma/\n#Joyall #Shukuma" + dateStr;
+        " letters on Shukuma!\nHow did you do?\nhttps://cranialscratch.github.io/Shukuma/\n#Shukuma" + dateStr;
       ticketCount++;
       gameCompleted = true;
       saveState();
@@ -2213,6 +2199,17 @@ function initVersionPanel() {
     tag.textContent = "v" + VERSION;
     tag.addEventListener("click", showChangelog);
     tag.addEventListener("keydown", function(e) { if (e.key === "Enter" || e.key === " ") showChangelog(); });
+    // Long-press (≥1.5 s) opens the admin panel
+    var longPressTimer = null;
+    tag.addEventListener("pointerdown", function() {
+      longPressTimer = setTimeout(function() {
+        longPressTimer = null;
+        var adminPanel = document.getElementById("admin-panel");
+        if (adminPanel) { adminPanel.hidden = false; }
+      }, 1500);
+    });
+    tag.addEventListener("pointerup",     function() { clearTimeout(longPressTimer); });
+    tag.addEventListener("pointercancel", function() { clearTimeout(longPressTimer); });
   }
   var closeBtn = document.getElementById("changelog-close");
   var overlay  = document.getElementById("changelog-overlay");
@@ -2563,6 +2560,164 @@ function initSettings() {
   });
 }
 
+// ─── Admin panel ─────────────────────────────────────────────────────────────
+// Map of color input IDs → CSS variable names
+var ADMIN_CSS_MAP = {
+  "ac-brand":         "--brand",
+  "ac-board-bg":      "--board-bg",
+  "ac-tile-neutral":  "--tile-neutral",
+  "ac-tile-selected": "--tile-selected",
+  "ac-tile-valid":    "--tile-valid",
+  "ac-tile-invalid":  "--tile-invalid",
+  "ac-tile-played":   "--tile-played",
+};
+
+function initAdmin() {
+  var panel = document.getElementById("admin-panel");
+  if (!panel) return;
+
+  // Close button (HTML uses id="admin-close")
+  var closeBtn = document.getElementById("admin-close");
+  if (closeBtn) closeBtn.addEventListener("click", function() { panel.hidden = true; });
+
+  // Restore saved overrides first so inputs reflect persisted values
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem("shukuma-admin-css") || "{}"); } catch (e) { /* ignore */ }
+  Object.keys(saved).forEach(function(k) { document.documentElement.style.setProperty(k, saved[k]); });
+
+  var savedFont = localStorage.getItem("shukuma-admin-font");
+  if (savedFont) document.body.style.fontFamily = savedFont;
+
+  var savedScale = localStorage.getItem("shukuma-admin-scale");
+  if (savedScale) document.documentElement.style.fontSize = (parseFloat(savedScale) / 100) + "rem";
+
+  // Wire colour pickers
+  Object.keys(ADMIN_CSS_MAP).forEach(function(inputId) {
+    var cssVar = ADMIN_CSS_MAP[inputId];
+    var input = document.getElementById(inputId);
+    if (!input) return;
+    // Seed with persisted value or computed CSS
+    if (saved[cssVar]) {
+      input.value = saved[cssVar];
+    } else {
+      var computed = getComputedStyle(document.documentElement).getPropertyValue(cssVar).trim();
+      if (computed) input.value = computed;
+    }
+    input.addEventListener("input", function() {
+      document.documentElement.style.setProperty(cssVar, input.value);
+    });
+  });
+
+  // Font selector
+  var fontSelect = document.getElementById("ac-font");
+  if (fontSelect) {
+    if (savedFont) fontSelect.value = savedFont;
+    fontSelect.addEventListener("change", function() {
+      document.body.style.fontFamily = fontSelect.value;
+    });
+  }
+
+  // Font scale (range 85–120 = percentage of base size)
+  var fontScaleRange = document.getElementById("ac-font-scale");
+  if (fontScaleRange) {
+    if (savedScale) fontScaleRange.value = savedScale;
+    fontScaleRange.addEventListener("input", function() {
+      var pct = parseFloat(fontScaleRange.value);
+      document.documentElement.style.fontSize = (pct / 100) + "rem";
+    });
+  }
+
+  // Apply button — persist to localStorage
+  var applyBtn = document.getElementById("admin-apply-btn");
+  if (applyBtn) applyBtn.addEventListener("click", function() {
+    var overrides = {};
+    Object.keys(ADMIN_CSS_MAP).forEach(function(inputId) {
+      var input = document.getElementById(inputId);
+      if (input) overrides[ADMIN_CSS_MAP[inputId]] = input.value;
+    });
+    localStorage.setItem("shukuma-admin-css", JSON.stringify(overrides));
+    if (fontScaleRange) localStorage.setItem("shukuma-admin-scale", fontScaleRange.value);
+    if (fontSelect)     localStorage.setItem("shukuma-admin-font",  fontSelect.value);
+    showToast("Theme saved.");
+  });
+
+  // Reset button — clear saved overrides and reload
+  var resetBtn = document.getElementById("admin-reset-btn");
+  if (resetBtn) resetBtn.addEventListener("click", function() {
+    localStorage.removeItem("shukuma-admin-css");
+    localStorage.removeItem("shukuma-admin-scale");
+    localStorage.removeItem("shukuma-admin-font");
+    window.location.reload();
+  });
+
+  // Clear all local storage
+  var clearBtn = document.getElementById("admin-clear-storage-btn");
+  if (clearBtn) clearBtn.addEventListener("click", function() {
+    if (!confirm("Clear all local storage? This resets your game state.")) return;
+    localStorage.clear();
+    window.location.reload();
+  });
+
+  // Seed demo data
+  var seedBtn = document.getElementById("admin-seed-btn");
+  if (seedBtn) seedBtn.addEventListener("click", function() {
+    seedDemoData().then(function() {
+      showToast("Demo data seeded for matt@cranialscratch.com.");
+    }).catch(function(e) {
+      showToast("Seed failed: " + (e.message || e));
+    });
+  });
+}
+
+async function seedDemoData() {
+  if (!db) throw new Error("Firestore not initialised");
+  if (!fbAuth) throw new Error("Firebase Auth not initialised");
+
+  // Resolve or create the demo user account
+  var user = fbAuth.currentUser;
+  if (!user || user.email !== "matt@cranialscratch.com") {
+    throw new Error("Sign in as matt@cranialscratch.com first.");
+  }
+
+  var uid = user.uid;
+  var today = new Date();
+  // UTC midnight for today
+  today.setUTCHours(0, 0, 0, 0);
+
+  var words = ["THRONE", "SHORE", "STONE", "HONE", "TONE", "HORN", "HERO", "ONES"];
+  var levels = ["Master", "Above Average", "Above Average", "Average", "Average", "Average", "Below Average", "Below Average"];
+  var batch = db.batch();
+
+  for (var i = 1; i <= 7; i++) {
+    var d = new Date(today);
+    d.setUTCDate(d.getUTCDate() - i);
+    var yyyy = d.getUTCFullYear();
+    var mm   = String(d.getUTCMonth() + 1).padStart(2, "0");
+    var dd   = String(d.getUTCDate()).padStart(2, "0");
+    var dateStr = yyyy + "-" + mm + "-" + dd;
+
+    var word  = words[(i - 1) % words.length];
+    var score = word.length;
+    var level = levels[(i - 1) % levels.length];
+
+    var docRef = db.collection("scores").doc(uid + "_" + dateStr);
+    batch.set(docRef, {
+      uid:       uid,
+      email:     user.email,
+      displayName: "Matt (demo)",
+      date:      dateStr,
+      word:      word,
+      score:     score,
+      level:     level,
+      attempts:  Math.ceil(Math.random() * 4) + 1,
+      activeTimeMs: Math.floor(Math.random() * 180000) + 30000,
+      submittedAt: d.toISOString(),
+    });
+  }
+
+  await batch.commit();
+}
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 function init() {
   loadUserSettings();
@@ -2609,6 +2764,7 @@ function init() {
   initIdleHint();
   initSwipeNavigation();
   initSettings();
+  initAdmin();
 
   updateScoreDisplay(null);
   updateTicketDisplay();
