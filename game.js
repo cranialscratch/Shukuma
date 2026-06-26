@@ -151,6 +151,24 @@ const WORDS = new Set([
   "wonder","wonders","plunder","thunder","blunder","hundred","sundry",
 ]);
 
+// ─── Offensive word blocklist ─────────────────────────────────────────────────
+// Matched against the fully-resolved lowercase word before any dictionary check.
+const OFFENSIVE_WORDS = new Set([
+  // Racial/ethnic slurs
+  "nigger","niggers","nigga","niggas","chink","chinks","spic","spics","spick","spicks",
+  "kike","kikes","wetback","wetbacks","gook","gooks","jap","japs","coon","coons",
+  "darkie","darkies","wop","wops","dago","dagos","paki","pakis","raghead","ragheads",
+  // Homophobic/transphobic slurs
+  "faggot","faggots","tranny","trannies","shemale",
+  // Extreme profanity & sexual
+  "cunt","cunts","fucked","fucker","fuckers","fucking",
+  "shitting","shitter","shitters",
+  "asshole","assholes","arsehole","arseholes",
+  // Violent/illegal
+  "rapist","rapists","raping",
+  "pedophile","pedophiles","paedophile","paedophiles",
+]);
+
 // ─── PUZZLES START ───
 const PUZZLES = [
   { id: "p0001", letters: ["J","O","T","D","Y","P","T","P","E","E","N","L","S","M","Y","O","E","G","A","U","H","O"], prevAnswers: [{"word":"DEPLOYMENT","pct":4},{"word":"DEPLOY","pct":15},{"word":"HONEY","pct":30},{"word":"ELSE","pct":35},{"word":"4 or lower","pct":16}] },
@@ -533,7 +551,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "1.7.0";
+const VERSION = "1.7.1";
 
 const CHANGELOG = [
   { version: "1.6.0", date: "26 Jun 2026", changes: [
@@ -700,6 +718,36 @@ let lastTileEntered = null;
 const apiCache = new Map();
 let isChecking = false;
 
+// ─── Dictionary locale ────────────────────────────────────────────────────────
+var selectedLocale = "en_US";
+
+function detectDefaultLocale() {
+  var lang = ((navigator.language || navigator.userLanguage) || "en-US").toLowerCase();
+  var region = (lang.split("-")[1] || "").toLowerCase();
+  // Regions that use British English as standard
+  var gbRegions = ["gb","au","nz","ie","za","in","sg","hk","ng","gh","ke","tz","ug","sc","tt","jm","bb","mt","cy"];
+  return gbRegions.indexOf(region) !== -1 ? "en_GB" : "en_US";
+}
+
+function initLocale() {
+  var saved = localStorage.getItem("shukuma-locale");
+  selectedLocale = saved || detectDefaultLocale();
+  updateLocaleBtns();
+}
+
+function setLocale(locale) {
+  selectedLocale = locale;
+  localStorage.setItem("shukuma-locale", locale);
+  apiCache.clear(); // old locale responses are now stale
+  updateLocaleBtns();
+}
+
+function updateLocaleBtns() {
+  document.querySelectorAll(".locale-btn").forEach(function(btn) {
+    btn.classList.toggle("active", btn.dataset.locale === selectedLocale);
+  });
+}
+
 // Attempt + time tracking
 let attemptCount = 0;
 let activeTimeMs = 0;
@@ -808,16 +856,15 @@ function validateWord(path) {
   return tryBlanks(0, letters.slice());
 }
 
-// ─── Dictionary API fallback (en_US + en_GB) ─────────────────────────────────
+// ─── Dictionary API fallback ──────────────────────────────────────────────────
 async function checkDictionaryAPI(word) {
-  const key = word.toLowerCase();
+  var key = word.toLowerCase();
   if (apiCache.has(key)) return apiCache.get(key);
-  for (const lang of ["en_US", "en_GB"]) {
-    try {
-      const resp = await fetch("https://api.dictionaryapi.dev/api/v2/entries/" + lang + "/" + key);
-      if (resp.ok) { apiCache.set(key, true); return true; }
-    } catch (_) {}
-  }
+  if (OFFENSIVE_WORDS.has(key)) { apiCache.set(key, false); return false; }
+  try {
+    var resp = await fetch("https://api.dictionaryapi.dev/api/v2/entries/" + selectedLocale + "/" + key);
+    if (resp.ok) { apiCache.set(key, true); return true; }
+  } catch (_) {}
   apiCache.set(key, false);
   return false;
 }
@@ -1145,10 +1192,14 @@ async function onPointerUp(e) {
     if (selectedPath.length === 0) return;
     attemptCount++;
     var validWord = validateWord(selectedPath);
-    if (validWord) { lockValidWord(validWord); return; }
+    if (validWord) {
+      if (OFFENSIVE_WORDS.has(validWord.toLowerCase())) { flashInvalid(); return; }
+      lockValidWord(validWord); return;
+    }
     var hasBlanks = selectedPath.some(function(id) { return tiles[id].blank; });
     if (!hasBlanks && selectedPath.length >= 3) {
       var word = selectedPath.map(function(id) { return tiles[id].letter.toLowerCase(); }).join("");
+      if (OFFENSIVE_WORDS.has(word)) { flashInvalid(); return; }
       isChecking = true;
       var answerEl = document.getElementById("answer-text");
       if (answerEl) answerEl.classList.add("checking");
@@ -1253,10 +1304,14 @@ function flashInvalid() {
 
 async function submitTappedWord() {
   var validWord = validateWord(selectedPath);
-  if (validWord) { lockValidWord(validWord); return; }
+  if (validWord) {
+    if (OFFENSIVE_WORDS.has(validWord.toLowerCase())) { flashInvalid(); return; }
+    lockValidWord(validWord); return;
+  }
   var hasBlanks = selectedPath.some(function(id) { return tiles[id].blank; });
   if (!hasBlanks && selectedPath.length >= 3) {
     var word = selectedPath.map(function(id) { return tiles[id].letter.toLowerCase(); }).join("");
+    if (OFFENSIVE_WORDS.has(word)) { flashInvalid(); return; }
     isChecking = true;
     var answerEl = document.getElementById("answer-text");
     if (answerEl) answerEl.classList.add("checking");
@@ -1300,6 +1355,10 @@ function initInfoPanel() {
       card.classList.remove("flipped");
     });
   }
+
+  document.querySelectorAll(".locale-btn").forEach(function(btn) {
+    btn.addEventListener("click", function() { setLocale(btn.dataset.locale); });
+  });
 
   document.querySelectorAll(".back-tab").forEach(function(tab) {
     tab.addEventListener("click", function() {
@@ -2337,6 +2396,7 @@ function init() {
     svg.addEventListener("touchmove", e => e.preventDefault(), { passive: false });
   }
 
+  initLocale();
   initFirebase();
   initAuthModal();
   initInfoPanel();

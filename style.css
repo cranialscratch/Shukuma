@@ -424,6 +424,39 @@ html, body {
 .how-section ul { padding-left: 16px; }
 .how-section li { margin-bottom: 3px; }
 
+/* Dictionary locale toggle */
+#locale-toggle {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.locale-btn {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1.5px solid rgba(0,0,0,0.15);
+  border-radius: 8px;
+  background: rgba(0,0,0,0.04);
+  color: #666;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  font-family: inherit;
+}
+
+.locale-btn.active {
+  background: var(--brand);
+  border-color: var(--brand-dark);
+  color: #fff;
+  font-weight: 600;
+}
+
+.locale-btn:hover:not(.active) {
+  background: rgba(0,0,0,0.09);
+  color: #333;
+}
+
 /* Answers panel */
 #answers-section { margin-top: 18px; }
 

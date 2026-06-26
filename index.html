@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=1.7.0" />
+  <link rel="stylesheet" href="style.css?v=1.7.1" />
 </head>
 <body>
   <div id="app">
@@ -136,6 +136,15 @@
               <div class="how-section">
                 <h3>Sharing</h3>
                 <p>Tap <strong>Share</strong> to post your score and earn a Joyall Ticket. Your word is never revealed!</p>
+              </div>
+
+              <div class="how-section" id="locale-section">
+                <h3>Dictionary</h3>
+                <p>Words are checked against the dictionary for your region. Switch if you're getting unexpected misses.</p>
+                <div id="locale-toggle">
+                  <button class="locale-btn" data-locale="en_US">🇺🇸 US English</button>
+                  <button class="locale-btn" data-locale="en_GB">🇬🇧 UK English</button>
+                </div>
               </div>
 
               <!-- Past day's answers (hidden when viewing today) -->
@@ -273,6 +282,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
-  <script src="game.js?v=1.7.0"></script>
+  <script src="game.js?v=1.7.1"></script>
 </body>
 </html>
