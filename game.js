@@ -278,11 +278,11 @@ function buildAdjacency() {
     const neighbours = [[r, c - 1], [r, c + 1]];
     // Diagonal neighbours
     if (isEvenRow) {
-      // 4-tile rows offset right — diagonals point into 5-tile rows
-      neighbours.push([r - 1, c - 1], [r - 1, c], [r + 1, c - 1], [r + 1, c]);
-    } else {
-      // 5-tile rows — diagonals point into 4-tile rows (which are offset right)
+      // Even rows (4 tiles) offset right: diagonals connect to col c and c+1 in adjacent odd rows
       neighbours.push([r - 1, c], [r - 1, c + 1], [r + 1, c], [r + 1, c + 1]);
+    } else {
+      // Odd rows (5 tiles): diagonals connect to col c-1 and c in adjacent even rows
+      neighbours.push([r - 1, c - 1], [r - 1, c], [r + 1, c - 1], [r + 1, c]);
     }
     neighbours.forEach(function(nr) {
       const key = nr[0] + "," + nr[1];
