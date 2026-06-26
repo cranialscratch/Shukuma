@@ -477,17 +477,85 @@ html, body {
 
 .answer-item {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-size: 0.82rem;
 }
 
 .answer-word {
-  min-width: 120px;
-  font-weight: bold;
+  min-width: 100px;
+  font-weight: 700;
   color: #222;
-  font-size: 0.78rem;
-  letter-spacing: 0.3px;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+  cursor: default;
+  user-select: none;
+  transition: filter 0.25s ease;
+}
+
+.answer-blurred {
+  filter: blur(6px);
+  color: #555;
+}
+.answer-blurred:hover,
+.answer-blurred:active {
+  filter: none;
+}
+
+/* Target word (longest) */
+.answer-target .answer-word {
+  color: var(--brand);
+}
+.answer-target {
+  background: rgba(255,45,85,0.06);
+  border-radius: 6px;
+  padding: 2px 4px;
+  margin: 0 -4px;
+}
+
+/* User's best word */
+.answer-mine .answer-word {
+  color: #2a7a4f;
+  text-decoration: underline dotted;
+}
+.answer-mine {
+  background: rgba(42,122,79,0.07);
+  border-radius: 6px;
+  padding: 2px 4px;
+  margin: 0 -4px;
+}
+
+/* Definition button */
+.def-btn {
+  background: none;
+  border: 1.5px solid rgba(0,0,0,0.25);
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #666;
+  cursor: pointer;
+  padding: 0;
+  line-height: 18px;
+  text-align: center;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+.def-btn:hover { background: var(--brand); color: #fff; border-color: var(--brand); }
+
+/* Definition box */
+.def-box {
+  font-size: 0.75rem;
+  color: #444;
+  margin-top: 5px;
+  padding: 6px 8px;
+  background: rgba(0,0,0,0.05);
+  border-radius: 6px;
+  line-height: 1.4;
+  width: 100%;
+  grid-column: 1 / -1;
 }
 
 .answer-bar {

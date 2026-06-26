@@ -551,7 +551,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "1.7.1";
+const VERSION = "1.7.2";
 
 const CHANGELOG = [
   { version: "1.6.0", date: "26 Jun 2026", changes: [
@@ -623,6 +623,10 @@ const FLOAT_MSGS = {
     "Master":        ["Outstanding!", "Masterful!", "Spectacular!", "Wow!"],
     "Grandmaster":   ["Legendary!", "Incredible!", "Grandmaster!", "Genius!"],
   },
+  target_found: [
+    "You found it! 🏆", "That's the one! 🎉", "The longest word! 👑",
+    "Incredible! 🎯", "Perfect score! ⭐", "Champion! 🥇",
+  ],
 };
 
 // ─── Badge definitions ────────────────────────────────────────────────────────
@@ -750,6 +754,7 @@ function updateLocaleBtns() {
 
 // Attempt + time tracking
 let attemptCount = 0;
+let validAttemptCount = 0;
 let activeTimeMs = 0;
 let timerRunning = false;
 let timerLastStart = 0;
@@ -1043,7 +1048,7 @@ function buildBoard() {
     text.setAttribute("dominant-baseline", "central");
     text.setAttribute("font-size", "22");
     text.setAttribute("font-weight", "700");
-    text.setAttribute("font-family", "'Playfair Display', Georgia, serif");
+    text.setAttribute("font-family", "'Arial Black', 'Arial Bold', Arial, 'Helvetica Neue', sans-serif");
     text.setAttribute("fill", c.text);
     text.setAttribute("pointer-events", "none");
     text.setAttribute("user-select", "none");
@@ -1261,6 +1266,7 @@ async function onPointerUp(e) {
 }
 
 function lockValidWord(word) {
+  validAttemptCount++;
   selectedPath.forEach(id => { tiles[id].state = "valid"; });
   renderAllTiles();
   const len = selectedPath.length;
@@ -1274,10 +1280,24 @@ function lockValidWord(word) {
   updateAnswerArea();
   updateShareBtn();
 
+  // Check if this word matches or beats the intended target length
+  var targetLen = (puzzle && puzzle.prevAnswers && puzzle.prevAnswers[0])
+    ? puzzle.prevAnswers[0].word.length : 0;
+  var foundTarget = targetLen > 0 && len >= targetLen;
+
   var level = getScoreLevel(len);
-  var cheers = (FLOAT_MSGS.valid[level] || FLOAT_MSGS.valid["Average"]);
-  var cheer = cheers[Math.floor(Math.random() * cheers.length)];
-  showFloatAnim({ type: "valid", score: len, level: level, cheer: cheer });
+  if (foundTarget) {
+    var msgs = FLOAT_MSGS.target_found;
+    var cheer = msgs[Math.floor(Math.random() * msgs.length)];
+    showFloatAnim({ type: "valid", score: len, level: level, cheer: cheer });
+    setTimeout(function() {
+      showToast("🏆 You found today's longest word!");
+    }, 1600);
+  } else {
+    var cheers = (FLOAT_MSGS.valid[level] || FLOAT_MSGS.valid["Average"]);
+    var cheer2 = cheers[Math.floor(Math.random() * cheers.length)];
+    showFloatAnim({ type: "valid", score: len, level: level, cheer: cheer2 });
+  }
 
   // After showing green, transition to played (indigo) state
   setTimeout(clearSelection, 1500);
@@ -1414,7 +1434,7 @@ function loadBoardForDate(ddmmyy) {
   // Reset game state for this date
   tiles = []; selectedPath = []; isDragging = false; playedPath = [];
   bestScore = 0; bestWord = ""; ticketCount = 0; gameCompleted = false;
-  attemptCount = 0; activeTimeMs = 0; timerRunning = false; timerLastStart = 0;
+  attemptCount = 0; validAttemptCount = 0; activeTimeMs = 0; timerRunning = false; timerLastStart = 0;
 
   loadState();
 
@@ -1473,24 +1493,135 @@ function populateAnswers() {
   list.innerHTML = "";
   var chevron = section.querySelector(".reveal-chevron");
   if (chevron) chevron.textContent = "›";
+  // Remove any stale wiring so the click handler re-runs for new date
+  if (btn) btn._wired = false;
 
   if (btn && !btn._wired) {
     btn._wired = true;
     btn.addEventListener("click", function() {
       list.hidden = !list.hidden;
       if (chevron) chevron.textContent = list.hidden ? "›" : "˅";
-      if (!list.hidden && list.innerHTML === "") {
-        puzzle.prevAnswers.forEach(function(a) {
-          var li = document.createElement("li");
-          li.className = "answer-item";
-          li.innerHTML =
-            '<span class="answer-word">' + escHtml(a.word) + '</span>' +
-            '<span class="answer-bar"><span class="answer-fill" style="width:' + a.pct + '%"></span></span>' +
-            '<span class="answer-pct">' + a.pct + '%</span>';
-          list.appendChild(li);
-        });
-      }
+      if (!list.hidden) buildAnswerList();
     });
+  }
+
+  function buildAnswerList() {
+    list.innerHTML = "";
+    if (!puzzle || !puzzle.prevAnswers) return;
+
+    // Sort longest → shortest
+    var answers = puzzle.prevAnswers.slice().sort(function(a, b) {
+      return (b.word || "").length - (a.word || "").length;
+    });
+
+    var targetWord = answers[0] && answers[0].word ? answers[0].word.toUpperCase() : "";
+    var myWord     = bestWord ? bestWord.toUpperCase() : "";
+
+    answers.forEach(function(a, idx) {
+      var word = (a.word || "").toUpperCase();
+      var isTarget = idx === 0;
+      var isMine   = myWord && word === myWord;
+
+      var li = document.createElement("li");
+      li.className = "answer-item" +
+        (isTarget ? " answer-target" : "") +
+        (isMine   ? " answer-mine"   : "");
+
+      // Word span (blurred by default)
+      var wordSpan = document.createElement("span");
+      wordSpan.className = "answer-word answer-blurred";
+      wordSpan.textContent = word;
+
+      // Bar
+      var bar = document.createElement("span");
+      bar.className = "answer-bar";
+      var fill = document.createElement("span");
+      fill.className = "answer-fill";
+      fill.style.width = (a.pct || 0) + "%";
+      bar.appendChild(fill);
+
+      // Pct
+      var pct = document.createElement("span");
+      pct.className = "answer-pct";
+      pct.textContent = (a.pct || 0) + "%";
+
+      li.appendChild(wordSpan);
+      li.appendChild(bar);
+      li.appendChild(pct);
+
+      // Definition button for target word only
+      if (isTarget) {
+        var defBtn = document.createElement("button");
+        defBtn.className = "def-btn";
+        defBtn.title = "Show definition";
+        defBtn.setAttribute("aria-label", "Show definition");
+        defBtn.textContent = "?";
+        defBtn.addEventListener("click", function(e) {
+          e.stopPropagation();
+          var box = li.querySelector(".def-box");
+          if (box) { box.remove(); return; }
+          var newBox = document.createElement("div");
+          newBox.className = "def-box";
+          newBox.textContent = "Loading…";
+          li.appendChild(newBox);
+          fetchDefinition(word).then(function(def) {
+            newBox.textContent = def || "No definition found.";
+          });
+        });
+        li.appendChild(defBtn);
+      }
+
+      list.appendChild(li);
+
+      // Blur reveal: swipe/hover over word to reveal, auto-reblur after 3s
+      var reblurTimer = null;
+      function revealWord() {
+        wordSpan.classList.remove("answer-blurred");
+        clearTimeout(reblurTimer);
+        reblurTimer = setTimeout(function() {
+          wordSpan.classList.add("answer-blurred");
+        }, 3000);
+      }
+      wordSpan.addEventListener("pointerenter", revealWord);
+      wordSpan.addEventListener("pointerdown", revealWord);
+    });
+
+    // Wire swipe-reveal: pointermove over list checks elementFromPoint
+    if (!list._revealWired) {
+      list._revealWired = true;
+      list.addEventListener("pointermove", function(e) {
+        var el = document.elementFromPoint(e.clientX, e.clientY);
+        if (el && el.classList.contains("answer-blurred")) {
+          el.dispatchEvent(new Event("pointerenter"));
+        }
+      });
+    }
+  }
+}
+
+// ─── Word definition lookup ───────────────────────────────────────────────────
+var defCache = {};
+
+async function fetchDefinition(word) {
+  var key = word.toLowerCase();
+  if (defCache[key] !== undefined) return defCache[key];
+  try {
+    var locale = (typeof selectedLocale !== "undefined" ? selectedLocale : "en_GB");
+    var resp = await fetch("https://api.dictionaryapi.dev/api/v2/entries/" + locale + "/" + key);
+    if (!resp.ok) { defCache[key] = null; return null; }
+    var data = await resp.json();
+    var meaning = data &&
+      data[0] &&
+      data[0].meanings &&
+      data[0].meanings[0] &&
+      data[0].meanings[0].definitions &&
+      data[0].meanings[0].definitions[0];
+    var def = meaning ? (meaning.definition || null) : null;
+    defCache[key] = def;
+    return def;
+  } catch(_) {
+    defCache[key] = null;
+    return null;
   }
 }
 
@@ -1613,6 +1744,7 @@ async function submitScore() {
       uid: currentUser.uid, username, date: dateStr, puzzleId: puzzle.id,
       score: bestScore, word: bestWord, level,
       attempts: attemptCount,
+      validAttempts: validAttemptCount,
       timeSpent: Math.round(elapsed / 1000),
       submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
@@ -1756,8 +1888,11 @@ async function loadLeaderboard(filter) {
       var name  = d.username || "Player";
       var isMe  = currentUser && (d.uid === currentUser.uid || doc.id === currentUser.uid);
       var rank  = i + 1;
+      var wrongAttempts = lbFilter === "date"
+        ? Math.max(0, (d.attempts || 0) - (d.validAttempts || 0))
+        : 0;
       var meta  = (lbFilter === "date" && (d.attempts || d.timeSpent))
-        ? '<span class="lb-meta">' + (d.attempts || "?") + " attempts · " + formatTime(d.timeSpent || 0) + "</span>"
+        ? '<span class="lb-meta">' + (d.validAttempts || 0) + ' ✓ / ' + wrongAttempts + ' ✗ · ' + formatTime(d.timeSpent || 0) + "</span>"
         : "";
       var row   = document.createElement("div");
       row.className = "lb-row" + (isMe ? " lb-row-me" : "");
@@ -1987,8 +2122,9 @@ async function loadRecentHistory() {
       row.className = "history-row";
       var dt = d.date || "";
       var dateDisplay = dt.slice(0,2) + "/" + dt.slice(2,4) + "/" + dt.slice(4);
+      var wrongAtt = Math.max(0, (d.attempts || 0) - (d.validAttempts || 0));
       var meta = (d.attempts || d.timeSpent)
-        ? '<span class="history-meta">' + (d.attempts || "?") + " tries · " + formatTime(d.timeSpent || 0) + "</span>"
+        ? '<span class="history-meta">' + (d.validAttempts || 0) + ' ✓ / ' + wrongAtt + ' ✗ · ' + formatTime(d.timeSpent || 0) + "</span>"
         : "";
       row.innerHTML =
         '<span class="history-date">' + dateDisplay + "</span>" +
@@ -2095,7 +2231,7 @@ function saveState() {
   const elapsed = timerRunning ? activeTimeMs + (Date.now() - timerLastStart) : activeTimeMs;
   try {
     localStorage.setItem(storageKey(), JSON.stringify({
-      bestWord, bestScore, ticketCount, gameCompleted, attemptCount, activeTimeMs: elapsed, playedPath,
+      bestWord, bestScore, ticketCount, gameCompleted, attemptCount, validAttemptCount, activeTimeMs: elapsed, playedPath,
     }));
   } catch(_) {}
 }
@@ -2105,13 +2241,14 @@ function loadState() {
     const raw = localStorage.getItem(storageKey());
     if (!raw) return;
     const s = JSON.parse(raw);
-    bestWord    = s.bestWord    || "";
-    bestScore   = s.bestScore   || 0;
-    ticketCount = s.ticketCount || 0;
-    gameCompleted = s.gameCompleted || false;
-    attemptCount  = s.attemptCount  || 0;
-    activeTimeMs  = s.activeTimeMs  || 0;
-    playedPath    = Array.isArray(s.playedPath) ? s.playedPath : [];
+    bestWord         = s.bestWord    || "";
+    bestScore        = s.bestScore   || 0;
+    ticketCount      = s.ticketCount || 0;
+    gameCompleted    = s.gameCompleted || false;
+    attemptCount     = s.attemptCount  || 0;
+    validAttemptCount = s.validAttemptCount || 0;
+    activeTimeMs     = s.activeTimeMs  || 0;
+    playedPath       = Array.isArray(s.playedPath) ? s.playedPath : [];
   } catch(_) {}
 }
 
