@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Shukuma — Find Today's Longest Word</title>
   <meta name="description" content="Shukuma Wordsearch Mini Game — find the longest connected word on a hexagonal letter board." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -25,23 +28,19 @@
           <!-- Pull-to-refresh indicator -->
           <div id="ptr-indicator" aria-hidden="true"><div id="ptr-spinner"></div></div>
 
-          <!-- Top bar -->
+          <!-- Top bar: ↺ reset | word/prompt | ℹ info -->
           <div id="game-topbar">
-            <span id="game-prompt">Find today's longest word</span>
-            <div id="topbar-btns">
-              <button id="user-btn" aria-label="My profile">👤</button>
-              <button id="info-btn" aria-label="Info / How to play">ℹ</button>
+            <button id="reset-btn" aria-label="Reset selection" hidden>↺</button>
+            <div id="topbar-word">
+              <span id="game-prompt">Find today's longest word</span>
+              <span id="answer-text" aria-live="polite" hidden></span>
             </div>
+            <button id="info-btn" aria-label="Info / How to play">ℹ</button>
           </div>
 
           <!-- Hex board (built by JS) -->
           <div id="board-container">
             <svg id="hex-board" xmlns="http://www.w3.org/2000/svg"></svg>
-          </div>
-
-          <!-- Answer area -->
-          <div id="answer-area">
-            <span id="answer-text" aria-live="polite"></span>
           </div>
 
           <!-- Level bar -->

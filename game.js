@@ -533,9 +533,25 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "1.4.0";
+const VERSION = "1.6.0";
 
 const CHANGELOG = [
+  { version: "1.6.0", date: "26 Jun 2026", changes: [
+    "Brand design system — cream tiles on dark wine board; indigo ‘played’ word tiles",
+    "Answer word now displays in the top bar (↺ reset | WORD | ℹ info)",
+    "Diagonal stripe hatching on invalid (red) tiles",
+    "Reset button clears selection; best-word tiles stay indigo while exploring",
+    "Share button throbs and says ‘Share to earn Tickets!’ after a valid word",
+    "Idle hint — tiles pulse gently after 8 seconds of no activity",
+    "Full CSS variable theming: swap any brand colour without touching code",
+  ]},
+  { version: "1.5.0", date: "26 Jun 2026", changes: [
+    "Pull-to-refresh: pull down on the board to reload the page",
+    "Word reveal gating on leaderboard — yesterday’s answer revealed after viewing",
+    "Extended word list with more common English words",
+    "Reward float animation on valid word submission",
+    "Leaderboard sorted client-side for reliability",
+  ]},
   { version: "1.4.0", date: "26 Jun 2026", changes: [
     "Browse past 13 days’ puzzles with ‹ › arrows on the board",
     "Leaderboard date navigation — see who scored what on any past day",
@@ -694,6 +710,9 @@ let timerLastStart = 0;
 let browseOffset = 0;
 let browsedDateStr = null; // null = today
 
+// Tile IDs forming the current best-score word (shown in indigo)
+let playedPath = [];
+
 // ─── Firebase / auth state ────────────────────────────────────────────────────
 let db = null, fbAuth = null, currentUser = null, userProfile = null;
 
@@ -800,20 +819,45 @@ async function checkDictionaryAPI(word) {
 }
 
 // ─── Rendering ────────────────────────────────────────────────────────────────
-const COLOURS = {
-  neutral:  { fill: "#d4a96a", stroke: "#b8864a", text: "#2a1a0a" },
-  selected: { fill: "#e8c840", stroke: "#c9a820", text: "#2a1a0a" },
-  valid:    { fill: "#5cb85c", stroke: "#3d8b3d", text: "#ffffff" },
-  invalid:  { fill: "#d9534f", stroke: "#a02020", text: "#ffffff" },
-};
+var COLOURS = {};
+
+function buildColours() {
+  var s = getComputedStyle(document.documentElement);
+  function g(v) { return s.getPropertyValue(v).trim() || null; }
+  COLOURS = {
+    neutral:  { fill: g("--tile-neutral")       || "#e8dfc8", stroke: g("--tile-neutral-stroke")  || "#c8b098", text: g("--tile-text")        || "#1a0a00" },
+    selected: { fill: g("--tile-selected")      || "#e8c840", stroke: g("--tile-selected-stroke") || "#c9a820", text: g("--tile-text")        || "#1a0a00" },
+    valid:    { fill: g("--tile-valid")         || "#5cb85c", stroke: g("--tile-valid-stroke")    || "#3d8b3d", text: g("--tile-text-light")  || "#ffffff" },
+    invalid:  { fill: g("--tile-invalid")       || "#d9534f", stroke: g("--tile-invalid-stroke")  || "#a02020", text: g("--tile-text-light")  || "#ffffff" },
+    played:   { fill: g("--tile-played")        || "#4c5ab8", stroke: g("--tile-played-stroke")   || "#333f8f", text: g("--tile-text-light")  || "#ffffff" },
+    blank:    { fill: g("--tile-blank")         || "#d4c8a8", stroke: g("--tile-neutral-stroke")  || "#c8b098", text: g("--tile-text")        || "#1a0a00" },
+  };
+}
 
 function renderTile(tile) {
   const g = document.getElementById("tile-" + tile.id);
   if (!g) return;
   const c = COLOURS[tile.state] || COLOURS.neutral;
-  const poly = g.querySelector("polygon");
+  const NS = "http://www.w3.org/2000/svg";
+  const poly = g.querySelector("polygon:not(.hatch-overlay)");
   const text = g.querySelector("text");
-  if (poly) { poly.setAttribute("fill", c.fill); poly.setAttribute("stroke", c.stroke); }
+  if (poly) {
+    poly.setAttribute("fill", (tile.state === "neutral" && tile.blank) ? COLOURS.blank.fill : c.fill);
+    poly.setAttribute("stroke", c.stroke);
+  }
+  var hatch = g.querySelector(".hatch-overlay");
+  if (tile.state === "invalid") {
+    if (!hatch && poly) {
+      hatch = document.createElementNS(NS, "polygon");
+      hatch.setAttribute("class", "hatch-overlay");
+      hatch.setAttribute("points", poly.getAttribute("points"));
+      hatch.setAttribute("fill", "url(#invalid-hatch)");
+      hatch.setAttribute("pointer-events", "none");
+      g.insertBefore(hatch, text);
+    }
+  } else {
+    if (hatch) hatch.remove();
+  }
   if (text) {
     text.setAttribute("fill", c.text);
     if (tile.blank) {
@@ -834,20 +878,27 @@ function renderTile(tile) {
 function renderAllTiles() { tiles.forEach(renderTile); }
 
 function updateAnswerArea() {
-  const el = document.getElementById("answer-text");
-  if (!el) return;
+  var ansEl    = document.getElementById("answer-text");
+  var promptEl = document.getElementById("game-prompt");
+  var resetBtn = document.getElementById("reset-btn");
+  if (!ansEl) return;
   if (selectedPath.length === 0) {
-    el.textContent = "";
-    el.className = "";
+    ansEl.hidden = true; ansEl.textContent = "";
+    if (promptEl) promptEl.hidden = false;
+    if (resetBtn) resetBtn.hidden = true;
     return;
   }
-  const display = selectedPath.map(id => {
-    const t = tiles[id];
-    if (t.blank) return t.state === "valid" && t._resolvedLetter ? t._resolvedLetter.toUpperCase() : "_";
+  var display = selectedPath.map(function(id) {
+    var t = tiles[id];
+    if (t.blank) return (t.state === "valid" && t._resolvedLetter) ? t._resolvedLetter.toUpperCase() : "_";
     return t.letter.toUpperCase();
   }).join("");
-  el.textContent = display;
-  el.className = "has-word";
+  var hasInvalid = selectedPath.some(function(id) { return tiles[id].state === "invalid"; });
+  if (hasInvalid) display += "?";
+  ansEl.textContent = display;
+  ansEl.hidden = false;
+  if (promptEl) promptEl.hidden = true;
+  if (resetBtn) resetBtn.hidden = false;
 }
 
 function updateScoreDisplay(validWord) {
@@ -902,6 +953,13 @@ function buildBoard() {
 
   const NS = "http://www.w3.org/2000/svg";
 
+  const defs = document.createElementNS(NS, "defs");
+  defs.innerHTML =
+    '<pattern id="invalid-hatch" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">' +
+    '<line x1="0" y1="0" x2="0" y2="8" stroke="rgba(0,0,0,0.22)" stroke-width="4"/>' +
+    "</pattern>";
+  svg.appendChild(defs);
+
   tiles.forEach(tile => {
     const { x, y } = hexCenter(tile.row, tile.col);
     const c = COLOURS.neutral;
@@ -913,7 +971,7 @@ function buildBoard() {
 
     const poly = document.createElementNS(NS, "polygon");
     poly.setAttribute("points", hexPoints(x, y, HEX_SIZE - 2));
-    poly.setAttribute("fill", tile.blank ? "#c8956a" : c.fill);
+    poly.setAttribute("fill", tile.blank ? COLOURS.blank.fill : c.fill);
     poly.setAttribute("stroke", c.stroke);
     poly.setAttribute("stroke-width", "2");
 
@@ -923,8 +981,8 @@ function buildBoard() {
     text.setAttribute("text-anchor", "middle");
     text.setAttribute("dominant-baseline", "central");
     text.setAttribute("font-size", "20");
-    text.setAttribute("font-weight", "bold");
-    text.setAttribute("font-family", "Georgia, serif");
+    text.setAttribute("font-weight", "700");
+    text.setAttribute("font-family", "'Playfair Display', Georgia, serif");
     text.setAttribute("fill", c.text);
     text.setAttribute("pointer-events", "none");
     text.setAttribute("user-select", "none");
@@ -937,9 +995,26 @@ function buildBoard() {
 }
 
 // ─── Selection logic ──────────────────────────────────────────────────────────
+function restoreTileDefault(t) {
+  t.state = playedPath.includes(t.id) ? "played" : "neutral";
+  t._resolvedLetter = "";
+}
+
+function clearSelection() {
+  tiles.forEach(function(t) {
+    if (t.state !== "played") { t.state = "neutral"; t._resolvedLetter = ""; }
+  });
+  playedPath.forEach(function(id) { if (tiles[id]) tiles[id].state = "played"; });
+  selectedPath = [];
+  renderAllTiles();
+  updateAnswerArea();
+  updateScoreDisplay(null);
+  updateShareBtn();
+}
+
 function processWordState() {
   if (selectedPath.length === 0) {
-    tiles.forEach(t => { t.state = "neutral"; t._resolvedLetter = ""; });
+    tiles.forEach(restoreTileDefault);
     renderAllTiles();
     updateAnswerArea();
     updateScoreDisplay(null);
@@ -962,9 +1037,9 @@ function processWordState() {
       tiles[id].state = "selected";
       tiles[id]._resolvedLetter = "";
     });
-    // Non-selected tiles back to neutral
+    // Non-selected tiles back to default (respects played state)
     tiles.forEach(t => {
-      if (!selectedPath.includes(t.id)) { t.state = "neutral"; t._resolvedLetter = ""; }
+      if (!selectedPath.includes(t.id)) restoreTileDefault(t);
     });
   }
 
@@ -983,7 +1058,7 @@ function enterTile(tileId) {
   if (pathIdx !== -1) {
     // Backtrack: remove from this index onward
     const removed = selectedPath.splice(pathIdx + 1);
-    removed.forEach(id => { tiles[id].state = "neutral"; tiles[id]._resolvedLetter = ""; });
+    removed.forEach(id => restoreTileDefault(tiles[id]));
     processWordState();
     return;
   }
@@ -1029,8 +1104,8 @@ function onPointerDown(e) {
     timerLastStart = Date.now();
   }
 
-  // Clear previous selection
-  tiles.forEach(t => { t.state = "neutral"; t._resolvedLetter = ""; });
+  // Clear previous selection (preserves played tiles)
+  tiles.forEach(restoreTileDefault);
   selectedPath = [];
 
   const tileId = tileIdFromPoint(e.clientX, e.clientY);
@@ -1083,33 +1158,38 @@ function lockValidWord(word) {
   if (len > bestScore) {
     bestScore = len;
     bestWord = word;
+    playedPath = selectedPath.slice();
     saveState();
   }
   updateScoreDisplay(word);
   updateAnswerArea();
-  enableShare();
+  updateShareBtn();
 
   var level = getScoreLevel(len);
   var cheers = (FLOAT_MSGS.valid[level] || FLOAT_MSGS.valid["Average"]);
   var cheer = cheers[Math.floor(Math.random() * cheers.length)];
   showFloatAnim({ type: "valid", score: len, level: level, cheer: cheer });
+
+  // After showing green, transition to played (indigo) state
+  setTimeout(clearSelection, 1500);
 }
 
 function flashInvalid() {
   var pathLen = selectedPath.length;
   selectedPath.forEach(id => { tiles[id].state = "invalid"; });
   renderAllTiles();
+  updateAnswerArea();
+
+  var resetBtn = document.getElementById("reset-btn");
+  if (resetBtn) resetBtn.classList.add("is-throbbing");
 
   var msgs = pathLen < 3 ? FLOAT_MSGS.short : FLOAT_MSGS.wrong;
   var cheer = msgs[Math.floor(Math.random() * msgs.length)];
   showFloatAnim({ type: pathLen < 3 ? "neutral" : "wrong", cheer: cheer });
 
   setTimeout(function() {
-    tiles.forEach(t => { t.state = "neutral"; t._resolvedLetter = ""; });
-    selectedPath = [];
-    renderAllTiles();
-    updateAnswerArea();
-    updateScoreDisplay(null);
+    if (resetBtn) resetBtn.classList.remove("is-throbbing");
+    clearSelection();
   }, 700);
 }
 
@@ -1117,13 +1197,8 @@ function flashInvalid() {
 function initInfoPanel() {
   var card = document.getElementById("game-card");
 
-  var userBtn = document.getElementById("user-btn");
-  if (userBtn && card) {
-    userBtn.addEventListener("click", function() {
-      card.classList.add("flipped");
-      switchBackTab("stats");
-    });
-  }
+  var resetBtn = document.getElementById("reset-btn");
+  if (resetBtn) resetBtn.addEventListener("click", clearSelection);
 
   var infoBtn = document.getElementById("info-btn");
   if (infoBtn && card) {
@@ -1193,7 +1268,7 @@ function loadBoardForDate(ddmmyy) {
   puzzle = isToday ? getTodaysPuzzle() : getPuzzleForDate(ddmmyy);
 
   // Reset game state for this date
-  tiles = []; selectedPath = []; isDragging = false;
+  tiles = []; selectedPath = []; isDragging = false; playedPath = [];
   bestScore = 0; bestWord = ""; ticketCount = 0; gameCompleted = false;
   attemptCount = 0; activeTimeMs = 0; timerRunning = false; timerLastStart = 0;
 
@@ -1210,9 +1285,14 @@ function loadBoardForDate(ddmmyy) {
   adjacency = buildAdjacency();
   buildBoard();
 
+  // Restore played path tiles to indigo
+  playedPath.forEach(function(id) { if (tiles[id]) tiles[id].state = "played"; });
+  if (playedPath.length > 0) renderAllTiles();
+
   updateScoreDisplay(null);
   updateTicketDisplay();
-  if (bestScore > 0 && isToday) enableShare();
+  updateAnswerArea();
+  updateShareBtn();
 
   // Date display
   const dateEl = document.getElementById("puzzle-date");
@@ -1224,11 +1304,9 @@ function loadBoardForDate(ddmmyy) {
   if (prevBtn) prevBtn.disabled = browseOffset <= -13;
   if (nextBtn) nextBtn.disabled = browseOffset >= 0;
 
-  // Past-game banner + share button state
+  // Past-game banner
   const banner = document.getElementById("past-game-banner");
-  const shareBtn = document.getElementById("share-btn");
-  if (banner)   banner.hidden = isToday;
-  if (shareBtn) shareBtn.disabled = !isToday || bestScore === 0;
+  if (banner) banner.hidden = isToday;
 }
 
 function populateAnswers() {
@@ -1389,7 +1467,7 @@ async function submitScore() {
     const batch = db.batch();
     batch.set(scoreRef, {
       uid: currentUser.uid, username, date: dateStr, puzzleId: puzzle.id,
-      score: bestScore, level,
+      score: bestScore, word: bestWord, level,
       attempts: attemptCount,
       timeSpent: Math.round(elapsed / 1000),
       submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -1466,7 +1544,7 @@ async function loadLeaderboard(filter) {
     if (lbFilter === "date") {
       var queryDate = getDateForOffset(lbDayOffset);
       snap = await db.collection("scores").where("date", "==", queryDate).get();
-      docs = snap.docs.slice().sort(function(a, b) { return (b.data().score || 0) - (a.data().score || 0); }).slice(0, 25);
+      docs = snap.docs.slice().sort(function(a, b) { return (b.data().score || 0) - (a.data().score || 0); });
     } else {
       snap = await db.collection("users").get();
       docs = snap.docs.filter(function(d) { return d.data().stats && d.data().stats.bestScore; })
@@ -1474,9 +1552,61 @@ async function loadLeaderboard(filter) {
     }
     loadingEl.hidden = true;
     listEl.hidden = false;
+    listEl.innerHTML = "";
+
     if (!docs.length) { listEl.innerHTML = '<div class="lb-empty">No scores yet — be first!</div>'; return; }
 
-    docs.forEach(function(doc, i) {
+    // Word distribution (date view only)
+    if (lbFilter === "date") {
+      var wordMap = {};
+      docs.forEach(function(doc) {
+        var d = doc.data();
+        var key = d.word ? d.word.toUpperCase() : null;
+        var scoreVal = d.score || 0;
+        if (!key) key = scoreVal + "-letter word";
+        if (!wordMap[key]) wordMap[key] = { count: 0, score: scoreVal, level: d.level || getScoreLevel(scoreVal), hasWord: !!d.word };
+        wordMap[key].count++;
+      });
+      var wordList = Object.keys(wordMap).map(function(w) {
+        return { word: w, count: wordMap[w].count, score: wordMap[w].score, level: wordMap[w].level };
+      }).sort(function(a, b) { return b.score - a.score || b.count - a.count; });
+
+      var maxCount = Math.max.apply(null, wordList.map(function(w) { return w.count; }));
+      // Highlight the word with the highest score (top find of the day)
+      var topScore = wordList.length ? wordList[0].score : 0;
+
+      var distDiv = document.createElement("div");
+      distDiv.className = "wd-section";
+
+      var titleDiv = document.createElement("div");
+      titleDiv.className = "wd-section-title";
+      titleDiv.textContent = "Words Found Today";
+      distDiv.appendChild(titleDiv);
+
+      wordList.forEach(function(w) {
+        var pct = Math.max(6, Math.round((w.count / maxCount) * 100));
+        var isTarget = w.score === topScore;
+        var row = document.createElement("div");
+        row.className = "wd-row";
+        row.innerHTML =
+          '<span class="wd-word">' + escHtml(w.word) + '</span>' +
+          '<div class="wd-bar-wrap"><div class="wd-bar' + (isTarget ? " is-target" : "") + '" style="width:' + pct + '%"></div></div>' +
+          '<span class="wd-count">' + w.count + '</span>' +
+          '<span class="wd-level">' + escHtml(w.level || "") + '</span>';
+        distDiv.appendChild(row);
+      });
+      listEl.appendChild(distDiv);
+
+      // Players section header
+      var playersTitle = document.createElement("div");
+      playersTitle.className = "wd-section-title";
+      playersTitle.textContent = "Players";
+      listEl.appendChild(playersTitle);
+    }
+
+    // Player rows
+    var topDocs = lbFilter === "date" ? docs.slice(0, 25) : docs;
+    topDocs.forEach(function(doc, i) {
       var d     = doc.data();
       var score = lbFilter === "date" ? d.score : ((d.stats && d.stats.bestScore) || 0);
       var name  = d.username || "Player";
@@ -1742,10 +1872,25 @@ function switchBackTab(tabName) {
 }
 
 // ─── Share ────────────────────────────────────────────────────────────────────
-function enableShare() {
-  const btn = document.getElementById("share-btn");
-  if (btn) btn.disabled = false;
+function updateShareBtn() {
+  var btn = document.getElementById("share-btn");
+  if (!btn) return;
+  if (gameCompleted) {
+    btn.disabled = true;
+    btn.textContent = "Reward added ✓";
+    btn.classList.remove("is-throbbing");
+  } else if (bestScore > 0 && browsedDateStr === null) {
+    btn.disabled = false;
+    btn.textContent = "Share to earn Tickets! ↗";
+    btn.classList.add("is-throbbing");
+  } else {
+    btn.disabled = true;
+    btn.textContent = "Share ↗";
+    btn.classList.remove("is-throbbing");
+  }
 }
+
+function enableShare() { updateShareBtn(); }
 
 function initShare() {
   var btn = document.getElementById("share-btn");
@@ -1762,6 +1907,7 @@ function initShare() {
       gameCompleted = true;
       saveState();
       updateTicketDisplay();
+      updateShareBtn();
       if (currentUser) submitScore().catch(function() {});
       if (navigator.share) {
         navigator.share({ title: "Shukuma", text: text }).catch(function() {
@@ -1805,7 +1951,7 @@ function saveState() {
   const elapsed = timerRunning ? activeTimeMs + (Date.now() - timerLastStart) : activeTimeMs;
   try {
     localStorage.setItem(storageKey(), JSON.stringify({
-      bestWord, bestScore, ticketCount, gameCompleted, attemptCount, activeTimeMs: elapsed,
+      bestWord, bestScore, ticketCount, gameCompleted, attemptCount, activeTimeMs: elapsed, playedPath,
     }));
   } catch(_) {}
 }
@@ -1821,6 +1967,7 @@ function loadState() {
     gameCompleted = s.gameCompleted || false;
     attemptCount  = s.attemptCount  || 0;
     activeTimeMs  = s.activeTimeMs  || 0;
+    playedPath    = Array.isArray(s.playedPath) ? s.playedPath : [];
   } catch(_) {}
 }
 
@@ -1953,8 +2100,29 @@ function initPullToRefresh() {
   }, { passive: true });
 }
 
+// ─── Idle hint ────────────────────────────────────────────────────────────────
+function initIdleHint() {
+  var lastInteraction = Date.now();
+  function resetTimer() { lastInteraction = Date.now(); }
+  document.addEventListener("pointerdown", resetTimer, { passive: true });
+  document.addEventListener("touchstart",  resetTimer, { passive: true });
+  setInterval(function() {
+    if (gameCompleted) return;
+    if (selectedPath.length > 0) return;
+    if (Date.now() - lastInteraction < 7000) return;
+    tiles.forEach(function(tile) {
+      if (tile.state !== "neutral") return;
+      var g = document.getElementById("tile-" + tile.id);
+      if (!g) return;
+      g.classList.add("tile-hint");
+      setTimeout(function() { g.classList.remove("tile-hint"); }, 1200);
+    });
+  }, 8000);
+}
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 function init() {
+  buildColours();
   puzzle = getTodaysPuzzle();
   loadState();
 
@@ -1970,6 +2138,10 @@ function init() {
 
   adjacency = buildAdjacency();
   buildBoard();
+
+  // Restore played path tiles to indigo after board is built
+  playedPath.forEach(function(id) { if (tiles[id]) tiles[id].state = "played"; });
+  if (playedPath.length > 0) renderAllTiles();
 
   const svg = document.getElementById("hex-board");
   if (svg) {
@@ -1989,10 +2161,12 @@ function init() {
   initShare();
   initVersionPanel();
   initPullToRefresh();
+  initIdleHint();
 
   updateScoreDisplay(null);
   updateTicketDisplay();
-  if (bestScore > 0) enableShare();
+  updateAnswerArea();
+  updateShareBtn();
 
   const dateEl = document.getElementById("puzzle-date");
   if (dateEl) dateEl.textContent = formatDateDisplay(getDateString());
