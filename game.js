@@ -572,6 +572,25 @@ const CHANGELOG = [
   ]},
 ];
 
+// ─── Float animation messages ─────────────────────────────────────────────────
+const FLOAT_MSGS = {
+  short: [
+    "Keep Trying!", "Almost there…", "Build it up!", "Keep going!",
+    "Add more letters!", "You can do it!", "Don't stop now!",
+  ],
+  wrong: [
+    "Try Again!", "Not a word!", "Keep hunting!", "Almost!",
+    "Give it another go!", "So close!", "Not this time!",
+  ],
+  valid: {
+    "Below Average": ["Nice start!", "Good try!", "Getting there!", "Keep it up!"],
+    "Average":       ["Solid!", "Good word!", "Nice one!", "Well done!"],
+    "Above Average": ["Great word!", "Impressive!", "Excellent!", "Brilliant!"],
+    "Master":        ["Outstanding!", "Masterful!", "Spectacular!", "Wow!"],
+    "Grandmaster":   ["Legendary!", "Incredible!", "Grandmaster!", "Genius!"],
+  },
+};
+
 // ─── Badge definitions ────────────────────────────────────────────────────────
 const BADGES = {
   first_word:    { icon: "🌱", name: "First Word",    desc: "Complete your first puzzle" },
@@ -1069,11 +1088,22 @@ function lockValidWord(word) {
   updateScoreDisplay(word);
   updateAnswerArea();
   enableShare();
+
+  var level = getScoreLevel(len);
+  var cheers = (FLOAT_MSGS.valid[level] || FLOAT_MSGS.valid["Average"]);
+  var cheer = cheers[Math.floor(Math.random() * cheers.length)];
+  showFloatAnim({ type: "valid", score: len, level: level, cheer: cheer });
 }
 
 function flashInvalid() {
+  var pathLen = selectedPath.length;
   selectedPath.forEach(id => { tiles[id].state = "invalid"; });
   renderAllTiles();
+
+  var msgs = pathLen < 3 ? FLOAT_MSGS.short : FLOAT_MSGS.wrong;
+  var cheer = msgs[Math.floor(Math.random() * msgs.length)];
+  showFloatAnim({ type: pathLen < 3 ? "neutral" : "wrong", cheer: cheer });
+
   setTimeout(function() {
     tiles.forEach(t => { t.state = "neutral"; t._resolvedLetter = ""; });
     selectedPath = [];
@@ -1814,6 +1844,37 @@ function showChangelog() {
 function hideChangelog() {
   var modal = document.getElementById("changelog-modal");
   if (modal) modal.hidden = true;
+}
+
+// ─── Float animation ──────────────────────────────────────────────────────────
+function showFloatAnim(opts) {
+  var container = document.getElementById("board-container");
+  if (!container) return;
+
+  // Remove any existing animation that hasn't finished
+  var old = container.querySelector(".float-anim-wrapper");
+  if (old) old.remove();
+
+  var wrapper = document.createElement("div");
+  wrapper.className = "float-anim-wrapper";
+
+  var inner = document.createElement("div");
+  inner.className = "float-anim-inner float-type-" + (opts.type || "neutral");
+
+  if (opts.type === "valid") {
+    inner.innerHTML =
+      '<span class="float-score">' + escHtml(String(opts.score)) + '</span>' +
+      '<span class="float-level">' + escHtml(opts.level) + '</span>' +
+      '<span class="float-cheer">' + escHtml(opts.cheer) + '</span>';
+  } else {
+    inner.innerHTML = '<span class="float-cheer">' + escHtml(opts.cheer) + '</span>';
+  }
+
+  wrapper.appendChild(inner);
+  container.appendChild(wrapper);
+
+  // Remove element after animation completes
+  inner.addEventListener("animationend", function() { wrapper.remove(); }, { once: true });
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
