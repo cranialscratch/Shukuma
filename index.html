@@ -25,7 +25,10 @@
           <!-- Top bar -->
           <div id="game-topbar">
             <span id="game-prompt">Find today's longest word</span>
-            <button id="info-btn" aria-label="Info / How to play">ℹ</button>
+            <div id="topbar-btns">
+              <button id="user-btn" aria-label="My profile">👤</button>
+              <button id="info-btn" aria-label="Info / How to play">ℹ</button>
+            </div>
           </div>
 
           <!-- Hex board (built by JS) -->
@@ -69,62 +72,129 @@
 
         </div><!-- /game-front -->
 
-        <!-- ── Back: info / answers ───────────────────────────────── -->
+        <!-- ── Back: tabbed panel ─────────────────────────────────── -->
         <div class="card-face back" id="game-back">
 
           <div id="back-header">
-            <h2>How to play</h2>
+            <nav id="back-tabs" role="tablist">
+              <button class="back-tab active" data-tab="rules" role="tab" aria-selected="true">Rules</button>
+              <button class="back-tab" data-tab="stats" role="tab" aria-selected="false">My Stats</button>
+              <button class="back-tab" data-tab="scores" role="tab" aria-selected="false">Scores</button>
+            </nav>
             <button id="back-btn" aria-label="Back to game">✕</button>
           </div>
 
           <div id="back-content">
 
-            <div class="how-section">
-              <h3>Goal</h3>
-              <p>Find the longest word you can using the letters on the board. Letters must be <strong>connected</strong> — each letter must touch the next.</p>
-            </div>
+            <!-- ── Tab: Rules ───────────────────────────────────────── -->
+            <div id="tab-rules" class="tab-panel" role="tabpanel">
 
-            <div class="how-section">
-              <h3>How to play</h3>
-              <ul>
-                <li>Tap or drag across letters to build a word.</li>
-                <li>You can only use each letter <strong>once</strong>.</li>
-                <li>Letters must be <strong>adjacent</strong> (touching).</li>
-                <li>Tap a selected letter to deselect it and everything after.</li>
-                <li>A <strong>blank tile</strong> counts as any letter.</li>
-              </ul>
-            </div>
+              <div class="how-section">
+                <h3>Goal</h3>
+                <p>Find the longest word you can using the letters on the board. Letters must be <strong>connected</strong> — each letter must touch the next.</p>
+              </div>
 
-            <div class="how-section">
-              <h3>Tile colours</h3>
-              <ul>
-                <li><strong style="color:#e8c840">Yellow</strong> — word in progress</li>
-                <li><strong style="color:#5cb85c">Green</strong> — valid word found!</li>
-                <li><strong style="color:#d9534f">Red</strong> — not a valid word</li>
-              </ul>
-            </div>
+              <div class="how-section">
+                <h3>How to play</h3>
+                <ul>
+                  <li>Tap or drag across letters to build a word.</li>
+                  <li>You can only use each letter <strong>once</strong>.</li>
+                  <li>Letters must be <strong>adjacent</strong> (touching).</li>
+                  <li>Tap a selected letter to deselect it and everything after.</li>
+                  <li>A <strong>blank tile</strong> counts as any letter.</li>
+                </ul>
+              </div>
 
-            <div class="how-section">
-              <h3>Score levels</h3>
-              <ul>
-                <li>≤ 4 letters — Below Average</li>
-                <li>5–6 letters — Average</li>
-                <li>7–10 letters — Above Average</li>
-                <li>11–14 letters — Master</li>
-                <li>≥ 15 letters — Grandmaster</li>
-              </ul>
-            </div>
+              <div class="how-section">
+                <h3>Tile colours</h3>
+                <ul>
+                  <li><strong style="color:#e8c840">Yellow</strong> — word in progress</li>
+                  <li><strong style="color:#5cb85c">Green</strong> — valid word found!</li>
+                  <li><strong style="color:#d9534f">Red</strong> — not a valid word</li>
+                </ul>
+              </div>
 
-            <div class="how-section">
-              <h3>Sharing</h3>
-              <p>Tap <strong>Share</strong> to post your score and earn a Joyall Ticket. Your word is never revealed!</p>
-            </div>
+              <div class="how-section">
+                <h3>Score levels</h3>
+                <ul>
+                  <li>≤ 4 letters — Below Average</li>
+                  <li>5–6 letters — Average</li>
+                  <li>7–10 letters — Above Average</li>
+                  <li>11–14 letters — Master</li>
+                  <li>≥ 15 letters — Grandmaster</li>
+                </ul>
+              </div>
 
-            <!-- Previous day's answers -->
-            <div id="answers-section">
-              <h3>Yesterday's answers</h3>
-              <ul id="answers-list"></ul>
-            </div>
+              <div class="how-section">
+                <h3>Sharing</h3>
+                <p>Tap <strong>Share</strong> to post your score and earn a Joyall Ticket. Your word is never revealed!</p>
+              </div>
+
+              <!-- Previous day's answers -->
+              <div id="answers-section">
+                <h3>Yesterday's answers</h3>
+                <ul id="answers-list"></ul>
+              </div>
+
+            </div><!-- /tab-rules -->
+
+            <!-- ── Tab: My Stats ────────────────────────────────────── -->
+            <div id="tab-stats" class="tab-panel" role="tabpanel" hidden>
+
+              <!-- Logged-out state -->
+              <div id="stats-logged-out">
+                <div class="stats-cta-icon">🏆</div>
+                <p class="stats-cta-text">Sign in to track your progress, earn badges, and compete with friends.</p>
+                <button id="stats-signin-btn" class="brand-btn">Sign In / Create Account</button>
+              </div>
+
+              <!-- Logged-in state -->
+              <div id="stats-logged-in" hidden>
+
+                <div id="user-profile-row">
+                  <div id="user-avatar"></div>
+                  <div id="user-info-col">
+                    <div id="user-display-name"></div>
+                    <div id="user-email-text"></div>
+                  </div>
+                  <button id="signout-btn">Sign out</button>
+                </div>
+
+                <div id="stats-grid">
+                  <div class="stat-box"><div class="stat-val" id="stat-games">—</div><div class="stat-lbl">Games</div></div>
+                  <div class="stat-box"><div class="stat-val" id="stat-best">—</div><div class="stat-lbl">Best</div></div>
+                  <div class="stat-box"><div class="stat-val" id="stat-streak">—</div><div class="stat-lbl">Streak</div></div>
+                  <div class="stat-box"><div class="stat-val" id="stat-avg">—</div><div class="stat-lbl">Average</div></div>
+                </div>
+
+                <div class="section-label">Badges</div>
+                <div id="badges-grid"></div>
+
+                <div class="section-label" style="margin-top:14px">Recent Games</div>
+                <div id="history-list"></div>
+
+              </div><!-- /stats-logged-in -->
+
+            </div><!-- /tab-stats -->
+
+            <!-- ── Tab: Scores ──────────────────────────────────────── -->
+            <div id="tab-scores" class="tab-panel" role="tabpanel" hidden>
+
+              <div id="lb-filter-row">
+                <button class="lb-filter-btn active" data-filter="today">Today</button>
+                <button class="lb-filter-btn" data-filter="alltime">All Time</button>
+              </div>
+
+              <div id="lb-loading" hidden>Loading scores…</div>
+
+              <div id="lb-noauth">
+                <p>Sign in to view the leaderboard.</p>
+                <button id="lb-signin-btn" class="brand-btn">Sign In</button>
+              </div>
+
+              <div id="lb-list" hidden></div>
+
+            </div><!-- /tab-scores -->
 
           </div><!-- /back-content -->
 
@@ -134,6 +204,42 @@
     </div><!-- /card-scene -->
 
   </div><!-- /app -->
+
+  <!-- Toast (created by JS, kept here for reference) -->
+  <div id="toast"></div>
+
+  <!-- ── Auth Modal ──────────────────────────────────────────────────────── -->
+  <div id="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title" hidden>
+    <div id="auth-overlay"></div>
+    <div id="auth-card">
+      <button id="auth-close" aria-label="Close">✕</button>
+      <div id="auth-icon">🎯</div>
+      <h2 id="auth-title">Save Your Score</h2>
+      <p id="auth-subtitle">Create an account to track your progress and compete with friends.</p>
+      <div id="auth-error" hidden></div>
+      <input id="auth-username" type="text" placeholder="Choose a username" autocomplete="username" maxlength="20" />
+      <input id="auth-email" type="email" placeholder="Email address" autocomplete="email" />
+      <input id="auth-password" type="password" placeholder="Password (min 6 chars)" autocomplete="new-password" />
+      <button id="auth-submit" class="auth-primary-btn">Create Account</button>
+      <div class="auth-or"><span>or</span></div>
+      <button id="auth-google" class="auth-google-btn">
+        <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+          <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
+          <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" fill="#34A853"/>
+          <path d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71s.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+          <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+        </svg>
+        Continue with Google
+      </button>
+      <button id="auth-guest">Continue without saving</button>
+      <p class="auth-switch-row">Already have an account? <button id="auth-switch-mode" class="auth-link-btn">Sign in instead</button></p>
+    </div>
+  </div>
+
+  <!-- Firebase SDKs (compat mode — exposes global `firebase` object) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
   <script src="game.js"></script>
 </body>
