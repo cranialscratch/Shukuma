@@ -409,9 +409,15 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "1.9.8";
+const VERSION = "1.9.9";
 
 const CHANGELOG = [
+  { version: "1.9.9", date: "27 Jun 2026", changes: [
+    "Admin now controls light AND dark mode palettes independently",
+    "All colour groups exposed: brand, backgrounds, text, icons, tiles, strokes, leaderboard",
+    "CSS custom properties cover every coloured element; dark mode uses --dk-* counterparts",
+    "Saved palettes store the complete light + dark colour set",
+  ]},
   { version: "1.9.8", date: "27 Jun 2026", changes: [
     "Admin colour palettes now saved to Firestore and applied to all users in real time",
     "Admin panel only visible to admin user (matt@uservox.com) — accessible on any signed-in device",
@@ -2361,6 +2367,8 @@ function initPlayerModals() {
 // ─── Admin theme helpers ───────────────────────────────────────────────────────
 function applyThemeData(data) {
   if (!data) return;
+  // css contains ALL vars — both --xxx (light) and --dk-xxx (dark counterparts).
+  // Both live on :root, so a single loop handles them all.
   if (data.css) {
     Object.keys(data.css).forEach(function(k) {
       document.documentElement.style.setProperty(k, data.css[k]);
@@ -3206,15 +3214,67 @@ function initSettings() {
 
 // ─── Admin panel ─────────────────────────────────────────────────────────────
 // Map of color input IDs → CSS variable names
-var ADMIN_CSS_MAP = {
-  "ac-brand":         "--brand",
-  "ac-board-bg":      "--board-bg",
-  "ac-tile-neutral":  "--tile-neutral",
-  "ac-tile-selected": "--tile-selected",
-  "ac-tile-valid":    "--tile-valid",
-  "ac-tile-invalid":  "--tile-invalid",
-  "ac-tile-played":   "--tile-played",
+// Maps input id → CSS variable name.
+// Light-mode pickers set the main var directly on :root.
+// Dark-mode pickers set --dk-* vars on :root (html[data-theme="dark"] reads them via var()).
+var ADMIN_LIGHT_MAP = {
+  "ac-brand":                "--brand",
+  "ac-brand-dark":           "--brand-dark",
+  "ac-board-bg":             "--board-bg",
+  "ac-card-bg":              "--card-bg",
+  "ac-sheet-bg":             "--sheet-bg",
+  "ac-word-box-bg":          "--word-box-bg",
+  "ac-stat-box-bg":          "--stat-box-bg",
+  "ac-text-primary":         "--text-primary",
+  "ac-text-secondary":       "--text-secondary",
+  "ac-text-muted":           "--text-muted",
+  "ac-prompt-color":         "--prompt-color",
+  "ac-icon-color":           "--icon-color",
+  "ac-lb-row-border":        "--lb-row-border",
+  "ac-tile-neutral":         "--tile-neutral",
+  "ac-tile-neutral-stroke":  "--tile-neutral-stroke",
+  "ac-tile-blank":           "--tile-blank",
+  "ac-tile-text":            "--tile-text",
+  "ac-tile-text-light":      "--tile-text-light",
+  "ac-tile-selected":        "--tile-selected",
+  "ac-tile-selected-stroke": "--tile-selected-stroke",
+  "ac-tile-valid":           "--tile-valid",
+  "ac-tile-valid-stroke":    "--tile-valid-stroke",
+  "ac-tile-invalid":         "--tile-invalid",
+  "ac-tile-invalid-stroke":  "--tile-invalid-stroke",
+  "ac-tile-played":          "--tile-played",
+  "ac-tile-played-stroke":   "--tile-played-stroke",
 };
+var ADMIN_DARK_MAP = {
+  "dk-brand":                "--dk-brand",
+  "dk-brand-dark":           "--dk-brand-dark",
+  "dk-board-bg":             "--dk-board-bg",
+  "dk-card-bg":              "--dk-card-bg",
+  "dk-sheet-bg":             "--dk-sheet-bg",
+  "dk-word-box-bg":          "--dk-word-box-bg",
+  "dk-stat-box-bg":          "--dk-stat-box-bg",
+  "dk-text-primary":         "--dk-text-primary",
+  "dk-text-secondary":       "--dk-text-secondary",
+  "dk-text-muted":           "--dk-text-muted",
+  "dk-prompt-color":         "--dk-prompt-color",
+  "dk-icon-color":           "--dk-icon-color",
+  "dk-lb-row-border":        "--dk-lb-row-border",
+  "dk-tile-neutral":         "--dk-tile-neutral",
+  "dk-tile-neutral-stroke":  "--dk-tile-neutral-stroke",
+  "dk-tile-blank":           "--dk-tile-blank",
+  "dk-tile-text":            "--dk-tile-text",
+  "dk-tile-text-light":      "--dk-tile-text-light",
+  "dk-tile-selected":        "--dk-tile-selected",
+  "dk-tile-selected-stroke": "--dk-tile-selected-stroke",
+  "dk-tile-valid":           "--dk-tile-valid",
+  "dk-tile-valid-stroke":    "--dk-tile-valid-stroke",
+  "dk-tile-invalid":         "--dk-tile-invalid",
+  "dk-tile-invalid-stroke":  "--dk-tile-invalid-stroke",
+  "dk-tile-played":          "--dk-tile-played",
+  "dk-tile-played-stroke":   "--dk-tile-played-stroke",
+};
+// Combined for backward-compatible palette saves (all vars in one css object)
+var ADMIN_CSS_MAP = Object.assign({}, ADMIN_LIGHT_MAP, ADMIN_DARK_MAP);
 
 function initAdmin() {
   var panel = document.getElementById("admin-panel");
@@ -3239,8 +3299,19 @@ function initAdmin() {
   var closeBtn = document.getElementById("admin-close");
   if (closeBtn) closeBtn.addEventListener("click", function() { panel.hidden = true; });
 
-  // Seed inputs from current CSS vars (server theme already applied via onSnapshot)
-  // Wire colour pickers
+  // Mode tab switcher (Light / Dark)
+  var modeTabs = panel.querySelectorAll(".admin-mode-tab");
+  modeTabs.forEach(function(tab) {
+    tab.addEventListener("click", function() {
+      modeTabs.forEach(function(t) { t.classList.remove("active"); });
+      tab.classList.add("active");
+      var mode = tab.getAttribute("data-mode");
+      panel.querySelector("#admin-pane-light").hidden = (mode !== "light");
+      panel.querySelector("#admin-pane-dark").hidden  = (mode !== "dark");
+    });
+  });
+
+  // Wire ALL colour pickers (light + dark) from current CSS vars
   Object.keys(ADMIN_CSS_MAP).forEach(function(inputId) {
     var cssVar = ADMIN_CSS_MAP[inputId];
     var input = document.getElementById(inputId);
@@ -3275,7 +3346,7 @@ function initAdmin() {
     });
   }
 
-  // Apply button — save to server (propagates to all users)
+  // Apply button — snapshot all pickers (light + dark) and save to server
   var applyBtn = document.getElementById("admin-apply-btn");
   if (applyBtn) applyBtn.addEventListener("click", function() {
     var overrides = {};
@@ -3340,7 +3411,7 @@ function initAdmin() {
         String(now.getMinutes()).padStart(2, "0");
       var palName = (paletteNameInput && paletteNameInput.value.trim()) || defaultName;
 
-      // Snapshot current CSS vars
+      // Snapshot all current CSS vars (light + dark pickers)
       var cssState = {};
       Object.keys(ADMIN_CSS_MAP).forEach(function(inputId) {
         var inp = document.getElementById(inputId);
