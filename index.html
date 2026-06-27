@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=1.9.9" />
+  <link rel="stylesheet" href="style.css?v=2.0.0" />
 </head>
 <body>
   <div id="app">
@@ -210,13 +210,6 @@
                 <p>Tap <strong>Share</strong> to post your score. First share each day earns a Ticket. Your word is never revealed!</p>
               </div>
 
-              <div class="how-section">
-                <div id="locale-toggle">
-                  <button class="locale-btn" data-locale="en_US">🇺🇸 US English</button>
-                  <button class="locale-btn" data-locale="en_GB">🇬🇧 UK English</button>
-                </div>
-              </div>
-
             </div><!-- /tab-rules -->
 
             <!-- ── Tab: My Stats ──────────────────────────────────────── -->
@@ -346,7 +339,16 @@
               </div>
 
               <div class="settings-section">
-                <button id="settings-admin-btn" class="settings-action-btn">Developer / Admin Tools</button>
+                <h3 class="settings-section-title">Dictionary</h3>
+                <p class="settings-sub">Word list used to validate your answers.</p>
+                <div id="locale-toggle">
+                  <button class="locale-btn" data-locale="en_US">🇺🇸 US English</button>
+                  <button class="locale-btn" data-locale="en_GB">🇬🇧 UK English</button>
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <button id="settings-admin-btn" class="settings-action-btn" hidden>Developer / Admin Tools</button>
               </div>
 
               <div class="settings-footer">
@@ -696,6 +698,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
-  <script src="game.js?v=1.9.9"></script>
+  <script src="game.js?v=2.0.0"></script>
 </body>
 </html>

@@ -2071,6 +2071,11 @@ html, body {
   cursor: pointer;
   min-height: 44px;
 }
+.settings-sub {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
 .settings-label {
   font-size: var(--fs-base);
   color: var(--text-primary);

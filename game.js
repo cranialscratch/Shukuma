@@ -409,9 +409,14 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "1.9.9";
+const VERSION = "2.0.0";
 
 const CHANGELOG = [
+  { version: "2.0.0", date: "27 Jun 2026", changes: [
+    "Dictionary (US/UK English) moved from Rules to Settings tab",
+    "Admin button now appears as soon as admin signs in — no longer pre-hidden before auth",
+    "Admin button starts hidden in HTML and is revealed only on confirmed admin sign-in",
+  ]},
   { version: "1.9.9", date: "27 Jun 2026", changes: [
     "Admin now controls light AND dark mode palettes independently",
     "All colour groups exposed: brand, backgrounds, text, icons, tiles, strokes, leaderboard",
@@ -3280,10 +3285,9 @@ function initAdmin() {
   var panel = document.getElementById("admin-panel");
   if (!panel) return;
 
-  // Settings tab admin trigger button — only visible to admin user
+  // Settings tab admin trigger button — shown/hidden by updateAdminAccess() on auth change
   var settingsAdminBtn = document.getElementById("settings-admin-btn");
   if (settingsAdminBtn) {
-    settingsAdminBtn.hidden = !isAdmin(); // initial state; updateAdminAccess() re-checks on auth change
     settingsAdminBtn.addEventListener("click", function() {
       // Refresh palette list from server each time panel opens
       loadServerPalettes().then(function(palettes) { renderPaletteList(palettes); });
