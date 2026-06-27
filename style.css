@@ -936,7 +936,7 @@ html, body {
 
 /* ── Scratchcard answers (v1.9.4) ────────────────────────────────────── */
 #answers-scratchcard {
-  touch-action: pan-y;
+  touch-action: none;
   user-select: none;
   -webkit-user-select: none;
   margin-bottom: 12px;
@@ -1029,6 +1029,58 @@ html, body {
 .sc-target .sc-word { color: var(--brand); }
 .sc-mine .sc-word { color: #22c55e; }
 .sc-empty { text-align: center; color: #bbb; font-size: 1.0625rem; padding: 14px 0; }
+
+/* ── Scratchcard: today view ─────────────────────────────────────────── */
+.sc-tomorrow-msg {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 1.0625rem;
+  font-weight: 500;
+  line-height: 1.45;
+  padding: 16px 12px 8px;
+}
+.sc-my-words-header {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 4px 8px;
+}
+.sc-my-word-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 4px;
+  border-top: 1px solid rgba(0,0,0,0.06);
+}
+.sc-my-word-text {
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--brand);
+}
+.sc-my-word-len {
+  font-size: 1.0625rem;
+  color: var(--text-muted);
+}
+.sc-no-word-msg {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 1.0625rem;
+  padding: 12px 0;
+  font-style: italic;
+}
+
+/* ── Scratchcard: past-date rub-to-reveal ────────────────────────────── */
+.sc-rub-hint {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 1.0625rem;
+  padding: 10px 12px 6px;
+  font-style: italic;
+}
 
 /* ── Hint confirmation modal ─────────────────────────────────────────── */
 #hint-modal {

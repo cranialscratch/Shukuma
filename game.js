@@ -409,9 +409,17 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.2";
+const VERSION = "2.0.3";
 
 const CHANGELOG = [
+  { version: "2.0.3", date: "27 Jun 2026", changes: [
+    "Scores panel date nav now visible — swipe through past days directly in the scores sheet",
+    "Scores panel syncs to the board's current date when opened",
+    "Today: shows 'Come back tomorrow' + your best word in the scratchcard area",
+    "Past dates: shows word list blurred, rub finger to reveal each word",
+    "Leaderboard queries the correct date's Firestore scores (not always today)",
+    "Scratchcard rub-to-reveal now fully wired up (was defined but never called)",
+  ]},
   { version: "2.0.2", date: "27 Jun 2026", changes: [
     "Minimum font size raised to 17px everywhere — legibility across all text",
     "Badge icons now displayed inside a hexagon (same shape as game tiles)",
@@ -2101,12 +2109,16 @@ async function loadLeaderboard(filter) {
   var noauthEl  = document.getElementById("lb-noauth");
   if (!listEl) return;
 
-  // Always render scratchcard for today's answers (even without auth)
-  var todayDate = getDateForOffset(0);
-  var todayPuz  = getPuzzleForDate(todayDate);
+  var displayDate = getDateForOffset(lbDayOffset);
+  var displayPuz  = getPuzzleForDate(displayDate);
+  var isToday     = lbDayOffset === 0;
+
+  updateLbDateNav();
+
+  // Always render scratchcard (even without auth)
+  buildScratchAnswers(displayPuz ? displayPuz.prevAnswers : [], {}, isToday);
 
   if (!db) {
-    if (todayPuz) buildScratchAnswers(todayPuz.prevAnswers, {});
     if (noauthEl) noauthEl.hidden = false;
     listEl.hidden = true;
     if (loadingEl) loadingEl.hidden = true;
@@ -2121,20 +2133,21 @@ async function loadLeaderboard(filter) {
     var snap;
     var docs;
     if (lbFilter === "date") {
-      snap = await db.collection("scores").where("date", "==", todayDate).get();
+      snap = await db.collection("scores").where("date", "==", displayDate).get();
       docs = snap.docs.slice().sort(function(a, b) { return (b.data().score || 0) - (a.data().score || 0); });
 
-      // Group players by word for scratchcard avatars
-      var playersByWord = {};
-      snap.docs.forEach(function(doc) {
-        var d = doc.data();
-        var w = (d.word || "").toUpperCase();
-        if (!playersByWord[w]) playersByWord[w] = [];
-        playersByWord[w].push(d);
-      });
-      if (todayPuz) buildScratchAnswers(todayPuz.prevAnswers, playersByWord);
+      // For today: rebuild scratchcard with live player avatar data
+      if (isToday) {
+        var playersByWord = {};
+        snap.docs.forEach(function(doc) {
+          var d = doc.data();
+          var w = (d.word || "").toUpperCase();
+          if (!playersByWord[w]) playersByWord[w] = [];
+          playersByWord[w].push(d);
+        });
+        if (displayPuz) buildScratchAnswers(displayPuz.prevAnswers, playersByWord, isToday);
+      }
     } else {
-      if (todayPuz) buildScratchAnswers(todayPuz.prevAnswers, {});
       snap = await db.collection("users").get();
       docs = snap.docs.filter(function(d) { return d.data().stats && d.data().stats.bestScore; })
         .slice().sort(function(a, b) { return (b.data().stats.bestScore || 0) - (a.data().stats.bestScore || 0); }).slice(0, 25);
@@ -2145,7 +2158,6 @@ async function loadLeaderboard(filter) {
 
     if (!docs.length) { listEl.innerHTML = '<div class="lb-empty">No scores yet — be first!</div>'; return; }
 
-    // Player rows
     var topDocs = lbFilter === "date" ? docs.slice(0, 25) : docs;
     topDocs.forEach(function(doc, i) {
       var d     = doc.data();
@@ -2163,7 +2175,7 @@ async function loadLeaderboard(filter) {
       row.className = "lb-row" + (isMe ? " lb-row-me" : "");
       row.innerHTML =
         '<span class="lb-rank' + (rank <= 3 ? " top3" : "") + '">' + rank + "</span>" +
-        '<span class="lb-name">' + escHtml(name) + (isMe ? ' <span style="color:var(--brand);font-size:0.65rem">(you)</span>' : "") + "</span>" +
+        '<span class="lb-name">' + escHtml(name) + (isMe ? ' <span style="color:var(--brand)">(you)</span>' : "") + "</span>" +
         '<span class="lb-score">' + score + "</span>" +
         '<span class="lb-level">' + getScoreLevel(score) + "</span>" + meta;
       listEl.appendChild(row);
@@ -2183,40 +2195,87 @@ function escHtml(s) {
 // ─── Scratchcard answers (v1.9.4) ─────────────────────────────────────────────
 var AVATAR_COLORS = ["#7c4dff","#ef4444","#22c55e","#f97316","#3b82f6","#ec4899","#0ea5e9","#a855f7"];
 
-function buildScratchAnswers(answers, playersByWord) {
+function buildScratchAnswers(answers, playersByWord, isToday) {
   var container = document.getElementById("scratchcard-list");
   if (!container) return;
   container.innerHTML = "";
 
-  // Today's view: don't reveal the puzzle answers; show user's own progress
-  var msg = document.createElement("div");
-  msg.className = "sc-tomorrow-msg";
-  msg.textContent = "Come back tomorrow to compare your score!";
-  container.appendChild(msg);
+  if (isToday) {
+    // Today: hide puzzle answers; show user's own progress
+    var msg = document.createElement("div");
+    msg.className = "sc-tomorrow-msg";
+    msg.textContent = "Come back tomorrow to compare your score!";
+    container.appendChild(msg);
 
-  if (bestWord && bestWord.length > 0) {
-    var hdr = document.createElement("div");
-    hdr.className = "sc-my-words-header";
-    hdr.textContent = "Your best word:";
-    container.appendChild(hdr);
+    if (bestWord && bestWord.length > 0) {
+      var hdr = document.createElement("div");
+      hdr.className = "sc-my-words-header";
+      hdr.textContent = "Your best word:";
+      container.appendChild(hdr);
 
-    var wordRow = document.createElement("div");
-    wordRow.className = "sc-my-word-row";
-    var wordText = document.createElement("span");
-    wordText.className = "sc-my-word-text";
-    wordText.textContent = bestWord.toUpperCase();
-    var wordLen = document.createElement("span");
-    wordLen.className = "sc-my-word-len";
-    wordLen.textContent = bestWord.length + " letters";
-    wordRow.appendChild(wordText);
-    wordRow.appendChild(wordLen);
-    container.appendChild(wordRow);
-  } else {
-    var noWord = document.createElement("div");
-    noWord.className = "sc-no-word-msg";
-    noWord.textContent = "No word found yet — keep playing!";
-    container.appendChild(noWord);
+      var wordRow = document.createElement("div");
+      wordRow.className = "sc-my-word-row";
+      var wordText = document.createElement("span");
+      wordText.className = "sc-my-word-text";
+      wordText.textContent = bestWord.toUpperCase();
+      var wordLen = document.createElement("span");
+      wordLen.className = "sc-my-word-len";
+      wordLen.textContent = bestWord.length + " letters";
+      wordRow.appendChild(wordText);
+      wordRow.appendChild(wordLen);
+      container.appendChild(wordRow);
+    } else {
+      var noWord = document.createElement("div");
+      noWord.className = "sc-no-word-msg";
+      noWord.textContent = "No word found yet — keep playing!";
+      container.appendChild(noWord);
+    }
+    return;
   }
+
+  // Past date: blurred word list with rub-to-reveal
+  if (!answers || !answers.length) {
+    var empty = document.createElement("div");
+    empty.className = "sc-empty";
+    empty.textContent = "No answers available for this date.";
+    container.appendChild(empty);
+    return;
+  }
+
+  var hint = document.createElement("div");
+  hint.className = "sc-rub-hint";
+  hint.textContent = "Rub your finger over the words to reveal them";
+  container.appendChild(hint);
+
+  var sorted = answers.slice().sort(function(a, b) {
+    return (b.word || "").length - (a.word || "").length;
+  });
+
+  sorted.forEach(function(a) {
+    var word = (a.word || "").toUpperCase();
+    var row = document.createElement("div");
+    row.className = "sc-row";
+
+    var wordSpan = document.createElement("span");
+    wordSpan.className = "sc-word sc-blurred";
+    wordSpan.textContent = word;
+
+    var bar = document.createElement("div");
+    bar.className = "answer-bar";
+    var fill = document.createElement("span");
+    fill.className = "answer-fill";
+    fill.style.width = (a.pct || 0) + "%";
+    bar.appendChild(fill);
+
+    var pct = document.createElement("span");
+    pct.className = "sc-pct";
+    pct.textContent = (a.pct || 0) + "%";
+
+    row.appendChild(wordSpan);
+    row.appendChild(bar);
+    row.appendChild(pct);
+    container.appendChild(row);
+  });
 }
 
 function initScratchReveal(container) {
@@ -2673,7 +2732,7 @@ function switchBackTab(tabName) {
   });
   var titleEl = document.getElementById("back-panel-title");
   if (titleEl) titleEl.textContent = PANEL_TITLES[tabName] || tabName;
-  if (tabName === "scores")   { lbDayOffset = 0; loadLeaderboard(lbFilter || "date"); }
+  if (tabName === "scores")   { lbDayOffset = browseOffset; loadLeaderboard(lbFilter || "date"); }
   if (tabName === "stats")    renderStatsPanel();
   if (tabName === "settings") renderSettingsPanel();
 }
@@ -3701,6 +3760,8 @@ function init() {
   initCalendar();
   initBackPanelDrag();
   initBlurReveal();
+  var scratchEl = document.getElementById("answers-scratchcard");
+  if (scratchEl) initScratchReveal(scratchEl);
 
   updateScoreDisplay(null);
   updateTicketDisplay();
