@@ -409,9 +409,14 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "1.9.7";
+const VERSION = "1.9.8";
 
 const CHANGELOG = [
+  { version: "1.9.8", date: "27 Jun 2026", changes: [
+    "Admin colour palettes now saved to Firestore and applied to all users in real time",
+    "Admin panel only visible to admin user (matt@uservox.com) — accessible on any signed-in device",
+    "Server theme propagates via Firestore onSnapshot — no page reload required for players",
+  ]},
   { version: "1.9.7", date: "27 Jun 2026", changes: [
     "Clear now stays clear — board remains fully neutral for the rest of the session",
     "Played (indigo) best-word tiles only restore on page reload or date change",
@@ -766,6 +771,9 @@ var tapHintShown = false;
 
 // ─── Firebase / auth state ────────────────────────────────────────────────────
 let db = null, fbAuth = null, currentUser = null, userProfile = null;
+
+const ADMIN_EMAIL = "matt@uservox.com";
+function isAdmin() { return !!(currentUser && currentUser.email === ADMIN_EMAIL); }
 
 // ─── Tile factory ─────────────────────────────────────────────────────────────
 function makeTile(id, row, col, letter) {
@@ -1875,6 +1883,10 @@ function initFirebase() {
     db = firebase.firestore();
     fbAuth = firebase.auth();
     fbAuth.onAuthStateChanged(handleAuthChange);
+    // Apply server theme for all users — real-time so admin changes propagate live
+    db.collection("config").doc("theme").onSnapshot(function(doc) {
+      if (doc.exists) applyThemeData(doc.data());
+    }, function() {}); // ignore permission errors for unauthenticated users
   } catch (e) {
     console.warn("Firebase init failed:", e.message);
   }
@@ -1883,11 +1895,21 @@ function initFirebase() {
 function handleAuthChange(user) {
   currentUser = user;
   updateUserBtn();
+  updateAdminAccess();
   if (user) {
     loadUserData(user);
   } else {
     userProfile = null;
     renderStatsPanel();
+  }
+}
+
+function updateAdminAccess() {
+  var btn = document.getElementById("settings-admin-btn");
+  if (btn) btn.hidden = !isAdmin();
+  // Refresh palette list when admin signs in
+  if (isAdmin()) {
+    loadServerPalettes().then(function(palettes) { renderPaletteList(palettes); });
   }
 }
 
@@ -2336,13 +2358,43 @@ function initPlayerModals() {
   if (ppmBack)    ppmBack.addEventListener("click", backToPlayers);
 }
 
-// ─── Admin palette helpers ─────────────────────────────────────────────────────
-function loadPalettes() {
-  try { return JSON.parse(localStorage.getItem("shukuma-palettes") || "[]"); } catch (e) { return []; }
+// ─── Admin theme helpers ───────────────────────────────────────────────────────
+function applyThemeData(data) {
+  if (!data) return;
+  if (data.css) {
+    Object.keys(data.css).forEach(function(k) {
+      document.documentElement.style.setProperty(k, data.css[k]);
+    });
+  }
+  if (data.font) document.body.style.fontFamily = data.font;
+  if (data.scale) document.documentElement.style.fontSize = (parseFloat(data.scale) / 100) + "rem";
+  buildColours();
+  renderAllTiles();
 }
 
-function savePalettes(palettes) {
-  localStorage.setItem("shukuma-palettes", JSON.stringify(palettes));
+async function saveServerTheme(data) {
+  if (!db || !isAdmin()) return;
+  try {
+    await db.collection("config").doc("theme").set(Object.assign({}, data, {
+      appliedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      appliedBy: currentUser.uid,
+    }));
+  } catch (e) { console.warn("saveServerTheme:", e.message); }
+}
+
+async function loadServerPalettes() {
+  if (!db) return [];
+  try {
+    var doc = await db.collection("config").doc("palettes").get();
+    return (doc.exists && Array.isArray(doc.data().list)) ? doc.data().list : [];
+  } catch (e) { return []; }
+}
+
+async function saveServerPalettes(palettes) {
+  if (!db || !isAdmin()) return;
+  try {
+    await db.collection("config").doc("palettes").set({ list: palettes });
+  } catch (e) { console.warn("saveServerPalettes:", e.message); }
 }
 
 function renderPaletteList(palettes) {
@@ -2372,24 +2424,17 @@ function renderPaletteList(palettes) {
     nameInput.className = "admin-palette-name-input";
     nameInput.value = pal.name || "Unnamed";
     nameInput.addEventListener("change", function() {
-      var all = loadPalettes();
-      var found = all.find(function(p) { return p.id === pal.id; });
-      if (found) { found.name = nameInput.value; savePalettes(all); }
+      loadServerPalettes().then(function(all) {
+        var found = all.find(function(p) { return p.id === pal.id; });
+        if (found) { found.name = nameInput.value; saveServerPalettes(all); }
+      });
     });
 
     var applyBtn = document.createElement("button");
     applyBtn.className = "admin-palette-apply-btn";
     applyBtn.textContent = "Use";
     applyBtn.addEventListener("click", function() {
-      if (pal.css) {
-        Object.keys(pal.css).forEach(function(k) {
-          document.documentElement.style.setProperty(k, pal.css[k]);
-        });
-      }
-      if (pal.font)  document.body.style.fontFamily = pal.font;
-      if (pal.scale) document.documentElement.style.fontSize = (parseFloat(pal.scale) / 100) + "rem";
-      buildColours();
-      renderAllTiles();
+      applyThemeData(pal);
       // Sync colour picker inputs
       if (typeof ADMIN_CSS_MAP !== "undefined") {
         Object.keys(ADMIN_CSS_MAP).forEach(function(inputId) {
@@ -2398,7 +2443,9 @@ function renderPaletteList(palettes) {
           if (inp && pal.css && pal.css[cssVar]) inp.value = pal.css[cssVar];
         });
       }
-      showToast('"' + pal.name + '" applied.');
+      // Save as active theme for all users
+      saveServerTheme({ css: pal.css, font: pal.font, scale: pal.scale, name: pal.name });
+      showToast('"' + pal.name + '" applied for all users.');
     });
 
     var deleteBtn = document.createElement("button");
@@ -2406,9 +2453,11 @@ function renderPaletteList(palettes) {
     deleteBtn.textContent = "×";
     deleteBtn.title = "Delete palette";
     deleteBtn.addEventListener("click", function() {
-      var all = loadPalettes().filter(function(p) { return p.id !== pal.id; });
-      savePalettes(all);
-      renderPaletteList(all);
+      loadServerPalettes().then(function(all) {
+        var updated = all.filter(function(p) { return p.id !== pal.id; });
+        saveServerPalettes(updated);
+        renderPaletteList(updated);
+      });
     });
 
     item.appendChild(swatches);
@@ -3171,9 +3220,16 @@ function initAdmin() {
   var panel = document.getElementById("admin-panel");
   if (!panel) return;
 
-  // Settings tab admin trigger button
+  // Settings tab admin trigger button — only visible to admin user
   var settingsAdminBtn = document.getElementById("settings-admin-btn");
-  if (settingsAdminBtn) settingsAdminBtn.addEventListener("click", function() { panel.hidden = false; });
+  if (settingsAdminBtn) {
+    settingsAdminBtn.hidden = !isAdmin(); // initial state; updateAdminAccess() re-checks on auth change
+    settingsAdminBtn.addEventListener("click", function() {
+      // Refresh palette list from server each time panel opens
+      loadServerPalettes().then(function(palettes) { renderPaletteList(palettes); });
+      panel.hidden = false;
+    });
+  }
 
   // Settings version label
   var versionLabel = document.getElementById("settings-version-label");
@@ -3183,29 +3239,14 @@ function initAdmin() {
   var closeBtn = document.getElementById("admin-close");
   if (closeBtn) closeBtn.addEventListener("click", function() { panel.hidden = true; });
 
-  // Restore saved overrides first so inputs reflect persisted values
-  var saved = {};
-  try { saved = JSON.parse(localStorage.getItem("shukuma-admin-css") || "{}"); } catch (e) { /* ignore */ }
-  Object.keys(saved).forEach(function(k) { document.documentElement.style.setProperty(k, saved[k]); });
-
-  var savedFont = localStorage.getItem("shukuma-admin-font");
-  if (savedFont) document.body.style.fontFamily = savedFont;
-
-  var savedScale = localStorage.getItem("shukuma-admin-scale");
-  if (savedScale) document.documentElement.style.fontSize = (parseFloat(savedScale) / 100) + "rem";
-
+  // Seed inputs from current CSS vars (server theme already applied via onSnapshot)
   // Wire colour pickers
   Object.keys(ADMIN_CSS_MAP).forEach(function(inputId) {
     var cssVar = ADMIN_CSS_MAP[inputId];
     var input = document.getElementById(inputId);
     if (!input) return;
-    // Seed with persisted value or computed CSS
-    if (saved[cssVar]) {
-      input.value = saved[cssVar];
-    } else {
-      var computed = getComputedStyle(document.documentElement).getPropertyValue(cssVar).trim();
-      if (computed) input.value = computed;
-    }
+    var computed = getComputedStyle(document.documentElement).getPropertyValue(cssVar).trim();
+    if (computed) input.value = computed;
     input.addEventListener("input", function() {
       document.documentElement.style.setProperty(cssVar, input.value);
       buildColours();
@@ -3213,26 +3254,28 @@ function initAdmin() {
     });
   });
 
-  // Font selector
+  // Font selector — seed from current applied font
   var fontSelect = document.getElementById("ac-font");
   if (fontSelect) {
-    if (savedFont) fontSelect.value = savedFont;
+    var currentFont = document.body.style.fontFamily;
+    if (currentFont) fontSelect.value = currentFont;
     fontSelect.addEventListener("change", function() {
       document.body.style.fontFamily = fontSelect.value;
     });
   }
 
-  // Font scale (range 85–120 = percentage of base size)
+  // Font scale (range 85–120 = percentage of base size) — seed from current applied scale
   var fontScaleRange = document.getElementById("ac-font-scale");
   if (fontScaleRange) {
-    if (savedScale) fontScaleRange.value = savedScale;
+    var currentScale = document.documentElement.style.fontSize;
+    if (currentScale) fontScaleRange.value = String(Math.round(parseFloat(currentScale) * 100));
     fontScaleRange.addEventListener("input", function() {
       var pct = parseFloat(fontScaleRange.value);
       document.documentElement.style.fontSize = (pct / 100) + "rem";
     });
   }
 
-  // Apply button — persist to localStorage
+  // Apply button — save to server (propagates to all users)
   var applyBtn = document.getElementById("admin-apply-btn");
   if (applyBtn) applyBtn.addEventListener("click", function() {
     var overrides = {};
@@ -3240,21 +3283,25 @@ function initAdmin() {
       var input = document.getElementById(inputId);
       if (input) overrides[ADMIN_CSS_MAP[inputId]] = input.value;
     });
-    localStorage.setItem("shukuma-admin-css", JSON.stringify(overrides));
-    if (fontScaleRange) localStorage.setItem("shukuma-admin-scale", fontScaleRange.value);
-    if (fontSelect)     localStorage.setItem("shukuma-admin-font",  fontSelect.value);
-    buildColours();
-    renderAllTiles();
-    showToast("Theme saved.");
+    var themeData = {
+      css:   overrides,
+      font:  fontSelect   ? fontSelect.value   : null,
+      scale: fontScaleRange ? fontScaleRange.value : null,
+      name:  "Custom",
+    };
+    applyThemeData(themeData);
+    saveServerTheme(themeData).then(function() {
+      showToast("Theme saved and applied for all users.");
+    });
   });
 
-  // Reset button — clear saved overrides and reload to CSS defaults
+  // Reset button — delete server theme so all clients revert to CSS defaults
   var resetBtn = document.getElementById("admin-reset-btn");
   if (resetBtn) resetBtn.addEventListener("click", function() {
-    if (!confirm("Reset to CSS defaults? This removes saved theme overrides (palettes are kept).")) return;
-    localStorage.removeItem("shukuma-admin-css");
-    localStorage.removeItem("shukuma-admin-scale");
-    localStorage.removeItem("shukuma-admin-font");
+    if (!confirm("Reset to CSS defaults for all users? Palettes are kept.")) return;
+    if (db && isAdmin()) {
+      db.collection("config").doc("theme").delete().catch(function() {});
+    }
     window.location.reload();
   });
 
@@ -3277,7 +3324,7 @@ function initAdmin() {
   });
 
   // ── Palette management ──────────────────────────────────────────────
-  renderPaletteList(loadPalettes());
+  loadServerPalettes().then(renderPaletteList);
 
   var paletteNameInput = document.getElementById("admin-palette-name");
   var savePaletteBtn   = document.getElementById("admin-save-palette-btn");
@@ -3308,12 +3355,13 @@ function initAdmin() {
         scale: fontScaleRange ? fontScaleRange.value : null,
       };
 
-      var all = loadPalettes();
-      all.push(pal);
-      savePalettes(all);
-      renderPaletteList(all);
-      if (paletteNameInput) paletteNameInput.value = "";
-      showToast('"' + palName + '" saved.');
+      loadServerPalettes().then(function(all) {
+        all.push(pal);
+        saveServerPalettes(all);
+        renderPaletteList(all);
+        if (paletteNameInput) paletteNameInput.value = "";
+        showToast('"' + palName + '" saved.');
+      });
     });
   }
 }
