@@ -409,7 +409,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "1.9.5";
+const VERSION = "1.9.6";
 
 const CHANGELOG = [
   { version: "1.9.4", date: "27 Jun 2026", changes: [
@@ -1383,6 +1383,83 @@ function undoLastTile() {
   processWordState();
 }
 
+function clearBoard() {
+  tiles.forEach(function(t) {
+    t.state = "neutral";
+    t._resolvedLetter = "";
+  });
+  selectedPath = [];
+  renderAllTiles();
+  updateAnswerArea();
+  updateScoreDisplay(null);
+}
+
+// Find the path of tile IDs that spells `word` on the current board via adjacency DFS
+function findWordPath(word) {
+  var letters = word.toUpperCase().split("");
+  function dfs(depth, prevId, used) {
+    if (depth === letters.length) return [];
+    var L = letters[depth];
+    var candidates = (depth === 0)
+      ? tiles
+      : Array.from(adjacency[prevId] || []).map(function(id) { return tiles[id]; });
+    for (var i = 0; i < candidates.length; i++) {
+      var t = candidates[i];
+      if (!t || used[t.id] || t.letter.toUpperCase() !== L) continue;
+      used[t.id] = true;
+      var sub = dfs(depth + 1, t.id, used);
+      if (sub !== null) return [t.id].concat(sub);
+      delete used[t.id];
+    }
+    return null;
+  }
+  return dfs(0, -1, {});
+}
+
+function doHint() {
+  var targetWord = puzzle && puzzle.prevAnswers && puzzle.prevAnswers[0]
+    ? puzzle.prevAnswers[0].word : "";
+  if (!targetWord) { showToast("No hint available for this puzzle"); return; }
+
+  var path = findWordPath(targetWord);
+  if (!path || !path.length) { showToast("No hint available"); return; }
+
+  // Pick first tile in path that's neutral and not already selected
+  var selectedSet = new Set(selectedPath);
+  var candidate = null;
+  for (var i = 0; i < path.length; i++) {
+    if (!selectedSet.has(path[i]) && tiles[path[i]] && tiles[path[i]].state === "neutral") {
+      candidate = path[i];
+      break;
+    }
+  }
+  if (candidate === null) { showToast("All hint tiles already selected!"); return; }
+
+  ticketCount = Math.max(0, ticketCount - 1);
+  saveState();
+  updateTicketDisplay();
+
+  var g = document.getElementById("tile-" + candidate);
+  if (g) {
+    g.classList.add("tile-hint");
+    setTimeout(function() { g.classList.remove("tile-hint"); }, 2000);
+  }
+  showToast("Hint used (-1 ticket)");
+}
+
+function showHintModal() {
+  var modal = document.getElementById("hint-modal");
+  if (!modal) { doHint(); return; }
+  var countEl = document.getElementById("hint-modal-ticket-count");
+  var confirmBtn = document.getElementById("hint-confirm-btn");
+  if (countEl) countEl.textContent = ticketCount;
+  if (confirmBtn) {
+    confirmBtn.disabled = ticketCount < 1;
+    confirmBtn.textContent = ticketCount < 1 ? "Not enough tickets" : "Use 1 Ticket";
+  }
+  modal.hidden = false;
+}
+
 function triggerHint() {
   var neutralTiles = tiles.filter(function(t) { return t.state === "neutral"; });
   if (neutralTiles.length < 2) return;
@@ -1495,12 +1572,28 @@ function initInfoPanel() {
   if (undoBtn) undoBtn.addEventListener("click", undoLastTile);
 
   var clearBtn = document.getElementById("clear-btn");
-  if (clearBtn) clearBtn.addEventListener("click", clearSelection);
+  if (clearBtn) clearBtn.addEventListener("click", clearBoard);
 
   var hintBtn = document.getElementById("hint-btn");
   if (hintBtn) hintBtn.addEventListener("click", function() {
-    if (gameCompleted || selectedPath.length > 0) return;
-    triggerHint();
+    if (gameCompleted) return;
+    showHintModal();
+  });
+
+  // Hint modal buttons
+  var hintModal = document.getElementById("hint-modal");
+  var hintConfirmBtn = document.getElementById("hint-confirm-btn");
+  var hintCancelBtn = document.getElementById("hint-cancel-btn");
+  if (hintConfirmBtn) hintConfirmBtn.addEventListener("click", function() {
+    if (hintModal) hintModal.hidden = true;
+    doHint();
+  });
+  if (hintCancelBtn) hintCancelBtn.addEventListener("click", function() {
+    if (hintModal) hintModal.hidden = true;
+  });
+  var hintOverlay = document.getElementById("hint-modal-overlay");
+  if (hintOverlay) hintOverlay.addEventListener("click", function() {
+    if (hintModal) hintModal.hidden = true;
   });
 
   // Back / close button → close sheet
@@ -2795,6 +2888,41 @@ function initPullToRefresh() {
   }, { passive: true });
 }
 
+// ─── Shake-to-undo ───────────────────────────────────────────────────────────
+function initShakeDetect() {
+  var lastMag = 0, lastShake = 0;
+  var THRESHOLD = 12, COOLDOWN = 1000;
+
+  function onMotion(e) {
+    var a = e.accelerationIncludingGravity;
+    if (!a) return;
+    var mag = Math.abs(a.x || 0) + Math.abs(a.y || 0) + Math.abs(a.z || 0);
+    var delta = Math.abs(mag - lastMag);
+    lastMag = mag;
+    if (delta > THRESHOLD && Date.now() - lastShake > COOLDOWN) {
+      if (selectedPath.length > 0) {
+        lastShake = Date.now();
+        undoLastTile();
+        showToast("Shaken — last letter undone");
+      }
+    }
+  }
+
+  if (typeof DeviceMotionEvent !== "undefined") {
+    if (typeof DeviceMotionEvent.requestPermission === "function") {
+      // iOS 13+ — request on the first user tap to avoid a cold popup
+      document.addEventListener("touchend", function requestOnce() {
+        DeviceMotionEvent.requestPermission()
+          .then(function(r) { if (r === "granted") window.addEventListener("devicemotion", onMotion, { passive: true }); })
+          .catch(function() {});
+        document.removeEventListener("touchend", requestOnce);
+      }, { once: true });
+    } else {
+      window.addEventListener("devicemotion", onMotion, { passive: true });
+    }
+  }
+}
+
 // ─── Idle hint ────────────────────────────────────────────────────────────────
 function initIdleHint() {
   var lastInteraction = Date.now();
@@ -3269,6 +3397,7 @@ function init() {
   initVersionPanel();
   initPullToRefresh();
   initIdleHint();
+  initShakeDetect();
   initSwipeNavigation();
   initSettings();
   initAdmin();

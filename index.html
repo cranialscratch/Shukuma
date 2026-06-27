@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=1.9.5" />
+  <link rel="stylesheet" href="style.css?v=1.9.6" />
 </head>
 <body>
   <div id="app">
@@ -406,6 +406,30 @@
 
   <div id="toast"></div>
 
+  <!-- Hint confirmation modal -->
+  <div id="hint-modal" hidden>
+    <div id="hint-modal-overlay"></div>
+    <div id="hint-modal-card">
+      <div id="hint-modal-title">Use a Hint?</div>
+      <div id="hint-modal-body">
+        <div id="hint-modal-ticket-row">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/>
+          </svg>
+          <strong id="hint-modal-ticket-count">0</strong>
+          <span>ticket(s) available</span>
+        </div>
+        <p>A hint will flash one letter from today's target word on the board.</p>
+        <p class="hint-modal-cost">Cost: <strong>1 ticket</strong></p>
+      </div>
+      <div id="hint-modal-actions">
+        <button id="hint-confirm-btn" class="brand-btn">Use 1 Ticket</button>
+        <button id="hint-buy-btn" class="hint-buy-btn" disabled>Buy Tickets <span class="coming-soon-tag">coming soon</span></button>
+        <button id="hint-cancel-btn" class="hint-cancel-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Auth Modal ─────────────────────────────────────────────────────── -->
   <div id="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title" hidden>
     <div id="auth-overlay"></div>
@@ -530,6 +554,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
-  <script src="game.js?v=1.9.5"></script>
+  <script src="game.js?v=1.9.6"></script>
 </body>
 </html>

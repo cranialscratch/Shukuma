@@ -989,6 +989,100 @@ html, body {
 .sc-mine .sc-word { color: #22c55e; }
 .sc-empty { text-align: center; color: #bbb; font-size: 0.82rem; padding: 14px 0; }
 
+/* ── Hint confirmation modal ─────────────────────────────────────────── */
+#hint-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 700;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+#hint-modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+}
+
+#hint-modal-card {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  padding: 24px 20px 32px;
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.15);
+}
+
+#hint-modal-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 16px;
+  color: var(--tile-text);
+}
+
+#hint-modal-ticket-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--brand);
+  margin-bottom: 12px;
+}
+#hint-modal-ticket-row svg { flex-shrink: 0; stroke: var(--brand); }
+
+#hint-modal-body p {
+  text-align: center;
+  color: rgba(0,0,0,0.55);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  margin-bottom: 6px;
+}
+.hint-modal-cost { font-size: 0.82rem !important; }
+.hint-modal-cost strong { color: var(--tile-text); }
+
+#hint-modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.hint-buy-btn {
+  background: none;
+  border: 1.5px solid rgba(0,0,0,0.12);
+  border-radius: 12px;
+  padding: 11px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: rgba(0,0,0,0.35);
+  cursor: not-allowed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.coming-soon-tag {
+  font-size: 0.72rem;
+  background: rgba(0,0,0,0.08);
+  border-radius: 6px;
+  padding: 2px 6px;
+}
+
+.hint-cancel-btn {
+  background: none;
+  border: none;
+  font-size: 0.9rem;
+  color: rgba(0,0,0,0.4);
+  padding: 8px;
+  cursor: pointer;
+  text-align: center;
+}
+
 /* ── Player list modal ───────────────────────────────────────────────── */
 #player-modal,
 #player-profile-modal {
