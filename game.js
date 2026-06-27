@@ -409,7 +409,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.0";
+const VERSION = "2.0.1";
 
 const CHANGELOG = [
   { version: "2.0.0", date: "27 Jun 2026", changes: [
@@ -1475,7 +1475,7 @@ function doHint() {
   if (candidate === null) { showToast("All hint tiles already selected!"); return; }
 
   ticketCount = Math.max(0, ticketCount - 1);
-  saveState();
+  saveTickets();
   updateTicketDisplay();
 
   var g = document.getElementById("tile-" + candidate);
@@ -1565,10 +1565,7 @@ function closeSheet() {
   var sheet = document.getElementById("game-back");
   if (sheet) {
     sheet.classList.remove("open");
-    // Reset top position after slide-down animation completes
-    setTimeout(function() {
-      if (!sheet.classList.contains("open")) sheet.style.top = "";
-    }, 450);
+    sheet.classList.remove("full-screen");
   }
   document.querySelectorAll(".nav-btn").forEach(function(b) {
     b.classList.toggle("active", b.dataset.panel === "play");
@@ -1712,7 +1709,7 @@ function loadBoardForDate(ddmmyy) {
 
   // Reset game state for this date
   tiles = []; selectedPath = []; isDragging = false; playedPath = []; playedPathVisible = true;
-  bestScore = 0; bestWord = ""; ticketCount = 0; gameCompleted = false;
+  bestScore = 0; bestWord = ""; gameCompleted = false;
   attemptCount = 0; validAttemptCount = 0; activeTimeMs = 0; timerRunning = false; timerLastStart = 0;
   inOneAchieved = false;
 
@@ -1745,7 +1742,7 @@ function loadBoardForDate(ddmmyy) {
 
   // Header label — "ARCHIVED PUZZLE" for past dates
   const labelEl = document.getElementById("header-label");
-  if (labelEl) labelEl.textContent = isToday ? "TODAY'S PUZZLE" : "ARCHIVED PUZZLE";
+  if (labelEl) labelEl.textContent = "TODAY'S PUZZLE";
 
   // Prev/next arrows
   const prevBtn = document.getElementById("board-date-prev");
@@ -1938,8 +1935,8 @@ async function fbSignUp(username, email, password) {
   });
   // Welcome bonus — 10 tickets for new registrations
   ticketCount += 10;
+  saveTickets();
   updateTicketDisplay();
-  saveState();
   return cred.user;
 }
 
@@ -1963,8 +1960,8 @@ async function fbSignInGoogle() {
       tickets: 10,
     });
     ticketCount += 10;
+    saveTickets();
     updateTicketDisplay();
-    saveState();
   }
   return cred.user;
 }
@@ -2761,6 +2758,7 @@ function initShare() {
       if (shareCount < 5) {
         ticketCount++;
         localStorage.setItem(todayKey, String(shareCount + 1));
+        saveTickets();
         updateTicketDisplay();
         showToast("Ticket earned! " + (shareCount + 1) + "/5 🎟");
       }
@@ -2815,7 +2813,7 @@ function saveState() {
   const elapsed = timerRunning ? activeTimeMs + (Date.now() - timerLastStart) : activeTimeMs;
   try {
     localStorage.setItem(storageKey(), JSON.stringify({
-      bestWord, bestScore, ticketCount, gameCompleted, attemptCount, validAttemptCount, activeTimeMs: elapsed, playedPath, inOneAchieved,
+      bestWord, bestScore, gameCompleted, attemptCount, validAttemptCount, activeTimeMs: elapsed, playedPath, inOneAchieved,
     }));
   } catch(_) {}
 }
@@ -2827,7 +2825,6 @@ function loadState() {
     const s = JSON.parse(raw);
     bestWord         = s.bestWord    || "";
     bestScore        = s.bestScore   || 0;
-    ticketCount      = s.ticketCount || 0;
     gameCompleted    = s.gameCompleted || false;
     attemptCount     = s.attemptCount  || 0;
     validAttemptCount = s.validAttemptCount || 0;
@@ -2835,6 +2832,26 @@ function loadState() {
     playedPath       = Array.isArray(s.playedPath) ? s.playedPath : [];
     inOneAchieved    = s.inOneAchieved || false;
   } catch(_) {}
+}
+
+// ─── Ticket persistence ────────────────────────────────────────────────────────
+function saveTickets() {
+  try { localStorage.setItem("shukuma-tickets", String(ticketCount)); } catch(_) {}
+}
+
+function loadTickets() {
+  var v = localStorage.getItem("shukuma-tickets");
+  if (v !== null) { ticketCount = parseInt(v) || 0; return; }
+  // Migration: seed from current date's saved state on first upgrade
+  try {
+    var raw = localStorage.getItem("shukuma-" + getDateString());
+    if (raw) {
+      var s = JSON.parse(raw);
+      if (s.ticketCount) { ticketCount = s.ticketCount; saveTickets(); return; }
+    }
+  } catch(_) {}
+  ticketCount = 0;
+  saveTickets();
 }
 
 // ─── Version / changelog ──────────────────────────────────────────────────────
@@ -3492,8 +3509,172 @@ async function seedDemoData() {
   // Give Matt 100 tickets
   await db.collection("users").doc(uid).set({ tickets: 100 }, { merge: true });
   ticketCount = 100;
+  saveTickets();
   updateTicketDisplay();
-  saveState();
+}
+
+// ─── Calendar date picker ──────────────────────────────────────────────────────
+function initCalendar() {
+  var dateEl = document.getElementById("puzzle-date");
+  if (!dateEl) return;
+
+  var modal   = document.getElementById("calendar-modal");
+  var overlay = document.getElementById("calendar-overlay");
+  var cancelBtn = document.getElementById("cal-cancel");
+  var prevBtn = document.getElementById("cal-prev");
+  var nextBtn = document.getElementById("cal-next");
+  if (!modal) return;
+
+  var calViewYear = 0, calViewMonth = 0;
+
+  dateEl.addEventListener("click", openCalendar);
+  if (overlay)   overlay.addEventListener("click",   closeCalendar);
+  if (cancelBtn) cancelBtn.addEventListener("click", closeCalendar);
+
+  if (prevBtn) prevBtn.addEventListener("click", function() {
+    calViewMonth--;
+    if (calViewMonth < 0) { calViewMonth = 11; calViewYear--; }
+    renderCalendar(calViewYear, calViewMonth);
+  });
+  if (nextBtn) nextBtn.addEventListener("click", function() {
+    calViewMonth++;
+    if (calViewMonth > 11) { calViewMonth = 0; calViewYear++; }
+    renderCalendar(calViewYear, calViewMonth);
+  });
+
+  function openCalendar() {
+    var now = new Date();
+    calViewYear  = now.getFullYear();
+    calViewMonth = now.getMonth();
+    renderCalendar(calViewYear, calViewMonth);
+    modal.hidden = false;
+  }
+
+  function closeCalendar() { modal.hidden = true; }
+
+  function renderCalendar(year, month) {
+    var today = new Date(); today.setHours(0,0,0,0);
+    var minDate = new Date(today); minDate.setDate(minDate.getDate() - 13);
+
+    var MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+    var label = document.getElementById("cal-month-label");
+    if (label) label.textContent = MONTHS[month] + " " + year;
+
+    var prevMonthFirst = new Date(year, month - 1, 1);
+    var nextMonthFirst = new Date(year, month + 1, 1);
+    var minMonthFirst  = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+    var maxMonthFirst  = new Date(today.getFullYear(), today.getMonth(), 1);
+
+    if (prevBtn) prevBtn.disabled = prevMonthFirst < minMonthFirst;
+    if (nextBtn) nextBtn.disabled = nextMonthFirst > maxMonthFirst;
+
+    var grid = document.getElementById("cal-grid");
+    if (!grid) return;
+    grid.innerHTML = "";
+
+    ["Su","Mo","Tu","We","Th","Fr","Sa"].forEach(function(d) {
+      var h = document.createElement("div");
+      h.className = "cal-day-header";
+      h.textContent = d;
+      grid.appendChild(h);
+    });
+
+    var firstDow  = new Date(year, month, 1).getDay();
+    var daysInMo  = new Date(year, month + 1, 0).getDate();
+
+    for (var i = 0; i < firstDow; i++) {
+      var blank = document.createElement("div");
+      blank.className = "cal-day";
+      grid.appendChild(blank);
+    }
+
+    for (var d = 1; d <= daysInMo; d++) {
+      var dayDate = new Date(year, month, d); dayDate.setHours(0,0,0,0);
+      var btn = document.createElement("button");
+      btn.className = "cal-day";
+      btn.textContent = d;
+
+      var isToday = dayDate.getTime() === today.getTime();
+      var selectable = dayDate >= minDate && dayDate <= today;
+
+      if (isToday) btn.classList.add("cal-today");
+      if (selectable && !isToday) btn.classList.add("cal-past");
+      if (!selectable) { btn.disabled = true; }
+      else {
+        btn.addEventListener("click", (function(dt) {
+          return function() {
+            var dd  = String(dt.getDate()).padStart(2, "0");
+            var mm  = String(dt.getMonth() + 1).padStart(2, "0");
+            var yy  = String(dt.getFullYear()).slice(-2);
+            var ddmmyy = dd + mm + yy;
+            var todayMs = today.getTime();
+            browseOffset = Math.round((dt.getTime() - todayMs) / 86400000);
+            lbDayOffset  = browseOffset;
+            closeCalendar();
+            loadBoardForDate(ddmmyy);
+          };
+        })(dayDate));
+      }
+      grid.appendChild(btn);
+    }
+  }
+}
+
+// ─── Back panel swipe-up to full screen ──────────────────────────────────────
+function initBackPanelDrag() {
+  var backEl   = document.getElementById("game-back");
+  var headerEl = document.getElementById("back-header");
+  if (!backEl || !headerEl) return;
+
+  var startY = 0, movedY = 0;
+
+  headerEl.addEventListener("touchstart", function(e) {
+    startY = e.touches[0].clientY;
+    movedY = 0;
+  }, { passive: true });
+
+  headerEl.addEventListener("touchmove", function(e) {
+    movedY = e.touches[0].clientY - startY;
+  }, { passive: true });
+
+  headerEl.addEventListener("touchend", function() {
+    if (movedY < -40) {
+      backEl.classList.add("full-screen");
+    } else if (movedY > 40 && backEl.classList.contains("full-screen")) {
+      backEl.classList.remove("full-screen");
+    }
+    startY = 0; movedY = 0;
+  });
+}
+
+// ─── Blur-reveal touch fix ────────────────────────────────────────────────────
+function initBlurReveal() {
+  var backContent = document.getElementById("back-content");
+  if (!backContent) return;
+
+  var isDown = false;
+
+  function revealAt(x, y) {
+    var el = document.elementFromPoint(x, y);
+    while (el && el !== backContent) {
+      if (el.classList && el.classList.contains("answer-blurred")) {
+        el.classList.remove("answer-blurred");
+        break;
+      }
+      el = el.parentElement;
+    }
+  }
+
+  backContent.addEventListener("pointerdown", function(e) {
+    isDown = true;
+    revealAt(e.clientX, e.clientY);
+  });
+  backContent.addEventListener("pointerup",     function() { isDown = false; });
+  backContent.addEventListener("pointercancel", function() { isDown = false; });
+  backContent.addEventListener("pointermove", function(e) {
+    if (!isDown) return;
+    revealAt(e.clientX, e.clientY);
+  }, { passive: true });
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
@@ -3502,6 +3683,7 @@ function init() {
   buildColours();
   puzzle = getTodaysPuzzle();
   loadState();
+  loadTickets();
 
   // Build tiles
   let tileIndex = 0;
@@ -3545,6 +3727,9 @@ function init() {
   initSettings();
   initAdmin();
   initPlayerModals();
+  initCalendar();
+  initBackPanelDrag();
+  initBlurReveal();
 
   updateScoreDisplay(null);
   updateTicketDisplay();

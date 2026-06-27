@@ -170,7 +170,7 @@ html, body {
 }
 
 #header-label {
-  font-size: 0.6rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -183,7 +183,9 @@ html, body {
   color: var(--tile-text);
   line-height: 1.1;
   letter-spacing: -0.3px;
+  cursor: pointer;
 }
+#puzzle-date:hover { opacity: 0.75; }
 
 #info-btn {
   background: var(--card-bg);
@@ -473,30 +475,24 @@ html, body {
 #action-bar {
   display: flex;
   align-items: center;
-  justify-content: space-around;
-  padding: 4px 16px 4px;
+  justify-content: center;
+  gap: 28px;
+  padding: 3px 16px 2px;
   flex-shrink: 0;
 }
 
 .action-btn {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 3px;
+  justify-content: center;
   background: none;
   border: none;
   cursor: pointer;
-  padding: 8px 20px;
+  padding: 8px;
   border-radius: 12px;
   color: var(--icon-color);
-  font-family: inherit;
-  font-size: 0.6rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
   transition: color 0.15s, background 0.15s;
   -webkit-tap-highlight-color: transparent;
-  min-width: 70px;
 }
 .action-btn:hover { color: var(--brand); background: rgba(124,77,255,0.06); }
 .action-btn:active { color: var(--brand); }
@@ -664,20 +660,25 @@ html, body {
 #game-back {
   position: fixed;
   left: 0; right: 0;
-  top: 0;
+  top: 40%;
   bottom: 0;
   background: var(--sheet-bg);
-  border-radius: 0;
+  border-radius: 20px 20px 0 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   z-index: 150;
   transform: translateY(105%);
-  transition: transform 0.42s cubic-bezier(0.4, 0, 0.2, 1), top 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.42s cubic-bezier(0.4, 0, 0.2, 1), top 0.32s cubic-bezier(0.4, 0, 0.2, 1), border-radius 0.32s;
 }
 
 #game-back.open {
   transform: translateY(0);
+}
+
+#game-back.full-screen {
+  top: 0;
+  border-radius: 0;
 }
 
 #panel-backdrop {
@@ -1500,18 +1501,18 @@ html, body {
 #user-profile-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 0 10px;
+  gap: 14px;
+  padding: 14px 0 12px;
   border-bottom: 1px solid #eee;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 #user-avatar {
-  width: 40px;
-  height: 40px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   background: var(--brand);
   color: white;
-  font-size: 1.1rem;
+  font-size: 1.5rem;
   font-weight: bold;
   display: flex;
   align-items: center;
@@ -1521,14 +1522,14 @@ html, body {
 #user-info-col { flex: 1; min-width: 0; }
 #user-display-name {
   font-weight: bold;
-  font-size: 0.9rem;
+  font-size: 1.1rem;
   color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 #user-email-text {
-  font-size: 0.72rem;
+  font-size: 0.88rem;
   color: #888;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1538,8 +1539,8 @@ html, body {
   background: none;
   border: 1px solid #ddd;
   border-radius: 14px;
-  padding: 5px 10px;
-  font-size: 0.72rem;
+  padding: 6px 12px;
+  font-size: 0.85rem;
   color: #666;
   cursor: pointer;
   font-family: inherit;
@@ -1550,27 +1551,27 @@ html, body {
 #stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  margin-bottom: 4px;
+  gap: 8px;
+  margin-bottom: 6px;
 }
 .stat-box {
   background: var(--stat-box-bg);
-  border-radius: 10px;
-  padding: 10px 4px 8px;
+  border-radius: 12px;
+  padding: 14px 4px 10px;
   text-align: center;
 }
 .stat-val {
-  font-size: 1.4rem;
+  font-size: 1.9rem;
   font-weight: bold;
   color: var(--brand);
   line-height: 1;
 }
 .stat-lbl {
-  font-size: 0.65rem;
+  font-size: 0.82rem;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  margin-top: 4px;
+  margin-top: 5px;
 }
 
 /* ── Badges ──────────────────────────────────────────────────────────── */
@@ -1600,7 +1601,7 @@ html, body {
 .badge-item.earned .badge-icon { background: #ede7f6; }
 .badge-item.locked .badge-icon { filter: grayscale(1); opacity: 0.4; }
 .badge-name {
-  font-size: 0.6rem;
+  font-size: 0.75rem;
   color: #666;
   text-align: center;
   line-height: 1.2;
@@ -1617,9 +1618,9 @@ html, body {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.78rem;
+  font-size: 0.9rem;
   color: #444;
-  padding: 5px 0;
+  padding: 8px 0;
   border-bottom: 1px solid #f0f0ec;
   flex-wrap: wrap;
   row-gap: 0;
@@ -1629,7 +1630,7 @@ html, body {
 .history-level { flex: 1; }
 .history-meta {
   flex-basis: 100%;
-  font-size: 0.65rem;
+  font-size: 0.78rem;
   color: #aaa;
   padding-bottom: 2px;
 }
@@ -1732,22 +1733,22 @@ html, body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 7px 0;
+  padding: 10px 0;
   border-bottom: 1px solid var(--lb-row-border);
-  font-size: 0.8rem;
+  font-size: 0.95rem;
 }
-.lb-row-me { background: rgba(124,77,255,0.06); border-radius: 6px; padding: 7px 6px; }
+.lb-row-me { background: rgba(124,77,255,0.06); border-radius: 6px; padding: 10px 6px; }
 .lb-rank { min-width: 22px; font-weight: bold; color: #aaa; text-align: center; }
 .lb-rank.top3 { color: #d4a96a; }
 .lb-name { flex: 1; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lb-score { font-weight: bold; color: var(--brand); min-width: 24px; text-align: right; }
-.lb-level { color: #888; font-size: 0.7rem; min-width: 80px; text-align: right; }
-.lb-empty { text-align: center; color: #aaa; padding: 20px 0; font-size: 0.82rem; }
+.lb-level { color: #888; font-size: 0.82rem; min-width: 80px; text-align: right; }
+.lb-empty { text-align: center; color: #aaa; padding: 20px 0; font-size: 0.9rem; }
 
 /* ── Word distribution ───────────────────────────────────────────────── */
 .wd-section { margin-bottom: 18px; }
 .wd-section-title {
-  font-size: 0.65rem;
+  font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -2351,9 +2352,101 @@ html[data-colour="highcontrast"] {
 /* ── Responsive ─────────────────────────────────────────────────────── */
 @media (max-width: 360px) {
   #answer-text { font-size: var(--fs-xl); }
-  .action-btn { padding: 8px 12px; min-width: 56px; }
+  .action-btn { padding: 8px; }
   .stat-card-value { font-size: 2rem; }
 }
+
+/* ── Calendar date picker modal ──────────────────────────────────────── */
+#calendar-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#calendar-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+}
+#calendar-card {
+  position: relative;
+  background: var(--card-bg);
+  border-radius: 20px;
+  padding: 20px;
+  width: min(340px, 90vw);
+  z-index: 1;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+}
+#cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+#cal-month-label {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--text-primary);
+}
+#cal-prev, #cal-next {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--icon-color);
+  padding: 6px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+#cal-prev:disabled, #cal-next:disabled { opacity: 0.3; cursor: default; }
+#cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+  margin-bottom: 14px;
+}
+.cal-day-header {
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  padding: 4px 0 6px;
+}
+.cal-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 0.95rem;
+  cursor: pointer;
+  color: var(--text-primary);
+  border: none;
+  background: none;
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+.cal-day:disabled { color: var(--text-muted); cursor: default; opacity: 0.35; }
+.cal-day.cal-today { background: var(--brand); color: white; font-weight: bold; }
+.cal-day.cal-past:hover { background: var(--brand-light); }
+#cal-cancel {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  background: none;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+#cal-cancel:hover { border-color: var(--brand); color: var(--brand); }
 
 /* ── Dark mode ───────────────────────────────────────────────────────── */
 /* Semantic vars flip to their --dk-* counterparts; elements that use vars need no override */
