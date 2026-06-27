@@ -180,7 +180,7 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 44px 0 16px;
+  padding: 0 44px;
   position: relative;
   flex-shrink: 0;
   overflow: hidden;
@@ -350,37 +350,35 @@ html, body {
 /* ── Share button (full-width CTA) ─────────────────────────────────── */
 #share-btn {
   margin: 0 14px 8px;
-  padding: 14px 16px;
+  padding: 14px 20px;
   background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
   border: none;
   border-radius: 16px;
   color: white;
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
+  gap: 10px;
   cursor: pointer;
   flex-shrink: 0;
   transition: opacity 0.2s, transform 0.15s;
   -webkit-tap-highlight-color: transparent;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
 }
 #share-btn:hover { opacity: 0.92; }
 #share-btn:active { transform: scale(0.98); }
 
-#share-text-col {
-  flex: 1;
-  text-align: left;
-}
-
-#share-headline {
+#share-ticket-badge {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(255,255,255,0.22);
+  border-radius: 20px;
+  padding: 2px 8px 2px 6px;
   font-size: 0.82rem;
-  font-weight: 800;
-  letter-spacing: 0.03em;
-}
-
-#share-subline {
-  font-size: 0.68rem;
-  opacity: 0.85;
-  margin-top: 1px;
+  font-weight: 700;
 }
 
 /* ── Bottom nav pill ────────────────────────────────────────────────── */

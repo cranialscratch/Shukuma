@@ -409,7 +409,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "1.9.4";
+const VERSION = "1.9.5";
 
 const CHANGELOG = [
   { version: "1.9.4", date: "27 Jun 2026", changes: [
@@ -1611,6 +1611,10 @@ function loadBoardForDate(ddmmyy) {
   const dateEl = document.getElementById("puzzle-date");
   if (dateEl) dateEl.textContent = formatDateDisplay(ddmmyy);
 
+  // Header label — "ARCHIVED PUZZLE" for past dates
+  const labelEl = document.getElementById("header-label");
+  if (labelEl) labelEl.textContent = isToday ? "TODAY'S PUZZLE" : "ARCHIVED PUZZLE";
+
   // Prev/next arrows
   const prevBtn = document.getElementById("board-date-prev");
   const nextBtn = document.getElementById("board-date-next");
@@ -2545,18 +2549,16 @@ function updateShareBtn() {
   var btn = document.getElementById("share-btn");
   if (!btn) return;
   btn.classList.remove("is-throbbing");
-  var headline = document.getElementById("share-headline");
-  var subline  = document.getElementById("share-subline");
+  var labelEl  = document.getElementById("share-label");
+  var badgeEl  = document.getElementById("share-ticket-badge");
   var todayKey = "sharedToday-" + getDateString();
   var shareCount = parseInt(localStorage.getItem(todayKey) || "0", 10);
   if (bestScore > 0) {
-    if (headline) headline.textContent = "SHARE YOUR SCORE!";
-    if (subline) subline.textContent = shareCount >= 5
-      ? "5 tickets earned today ✓"
-      : "Earn a Ticket per share (up to 5/day)";
+    if (labelEl) labelEl.textContent = "Share your score";
+    if (badgeEl) badgeEl.style.display = shareCount >= 5 ? "none" : "";
   } else {
-    if (headline) headline.textContent = "SHARE THIS PUZZLE";
-    if (subline)  subline.textContent  = "Challenge your friends!";
+    if (labelEl) labelEl.textContent = "Share";
+    if (badgeEl) badgeEl.style.display = "";
   }
 }
 
