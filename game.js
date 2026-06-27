@@ -409,7 +409,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "1.9.6";
+const VERSION = "1.9.7";
 
 const CHANGELOG = [
   { version: "1.9.4", date: "27 Jun 2026", changes: [
@@ -741,6 +741,7 @@ let browsedDateStr = null; // null = today
 
 // Tile IDs forming the current best-score word (shown in indigo)
 let playedPath = [];
+let playedPathVisible = true; // false after clearBoard(); resets only on page load
 let inOneAchieved = false;
 
 var pointerDownX = 0, pointerDownY = 0;
@@ -1073,7 +1074,7 @@ function buildBoard() {
 
 // ─── Selection logic ──────────────────────────────────────────────────────────
 function restoreTileDefault(t) {
-  t.state = playedPath.includes(t.id) ? "played" : "neutral";
+  t.state = (playedPathVisible && playedPath.includes(t.id)) ? "played" : "neutral";
   t._resolvedLetter = "";
 }
 
@@ -1081,7 +1082,9 @@ function clearSelection() {
   tiles.forEach(function(t) {
     if (t.state !== "played") { t.state = "neutral"; t._resolvedLetter = ""; }
   });
-  playedPath.forEach(function(id) { if (tiles[id]) tiles[id].state = "played"; });
+  if (playedPathVisible) {
+    playedPath.forEach(function(id) { if (tiles[id]) tiles[id].state = "played"; });
+  }
   selectedPath = [];
   renderAllTiles();
   updateAnswerArea();
@@ -1384,6 +1387,7 @@ function undoLastTile() {
 }
 
 function clearBoard() {
+  playedPathVisible = false;
   tiles.forEach(function(t) {
     t.state = "neutral";
     t._resolvedLetter = "";
@@ -1672,7 +1676,7 @@ function loadBoardForDate(ddmmyy) {
   puzzle = isToday ? getTodaysPuzzle() : getPuzzleForDate(ddmmyy);
 
   // Reset game state for this date
-  tiles = []; selectedPath = []; isDragging = false; playedPath = [];
+  tiles = []; selectedPath = []; isDragging = false; playedPath = []; playedPathVisible = true;
   bestScore = 0; bestWord = ""; ticketCount = 0; gameCompleted = false;
   attemptCount = 0; validAttemptCount = 0; activeTimeMs = 0; timerRunning = false; timerLastStart = 0;
   inOneAchieved = false;
