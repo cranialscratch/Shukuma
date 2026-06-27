@@ -409,9 +409,20 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.1";
+const VERSION = "2.0.2";
 
 const CHANGELOG = [
+  { version: "2.0.2", date: "27 Jun 2026", changes: [
+    "Minimum font size raised to 17px everywhere — legibility across all text",
+    "Badge icons now displayed inside a hexagon (same shape as game tiles)",
+    "Share button simplified to compact pill — ticket icon + '+1'",
+    "Action icons tightened closer to the game board",
+    "Today's puzzle label only; past-date header is blank",
+    "Scores sheet opens to partial view; Profile/Settings always open full screen",
+    "Blur/scratchcard reveal now works with any finger movement direction on iOS",
+    "Today's scores tab shows 'Come back tomorrow' + your best word",
+    "Admin: 1,000 test tickets; manual ticket-count control in admin panel",
+  ]},
   { version: "2.0.0", date: "27 Jun 2026", changes: [
     "Dictionary (US/UK English) moved from Rules to Settings tab",
     "Admin button now appears as soon as admin signs in — no longer pre-hidden before auth",
@@ -1536,17 +1547,19 @@ function openSheet(tabName) {
   var sheet = document.getElementById("game-back");
   if (sheet) {
     if (tabName === "scores") {
-      // Partial sheet: top sits 30px below the board
+      // Partial sheet: top sits 8px below the board, swipe up to expand
       var boardEl = document.getElementById("board-container");
       if (boardEl) {
         var rect = boardEl.getBoundingClientRect();
-        sheet.style.top = (rect.bottom + 30) + "px";
+        sheet.style.top = (rect.bottom + 8) + "px";
       } else {
-        sheet.style.top = "50%";
+        sheet.style.top = "55%";
       }
+      sheet.classList.remove("full-screen");
     } else {
-      // Full-screen sheet for other panels
-      sheet.style.top = "";
+      // Profile / Settings / Rules: always full screen
+      sheet.style.top = "0px";
+      sheet.classList.add("full-screen");
     }
     sheet.classList.add("open");
   }
@@ -1740,9 +1753,9 @@ function loadBoardForDate(ddmmyy) {
   const dateEl = document.getElementById("puzzle-date");
   if (dateEl) dateEl.textContent = formatDateDisplay(ddmmyy);
 
-  // Header label — "ARCHIVED PUZZLE" for past dates
+  // Header label — "TODAY'S PUZZLE" for today, empty for past dates
   const labelEl = document.getElementById("header-label");
-  if (labelEl) labelEl.textContent = "TODAY'S PUZZLE";
+  if (labelEl) labelEl.textContent = isToday ? "TODAY'S PUZZLE" : "";
 
   // Prev/next arrows
   const prevBtn = document.getElementById("board-date-prev");
@@ -2174,80 +2187,39 @@ function buildScratchAnswers(answers, playersByWord) {
   var container = document.getElementById("scratchcard-list");
   if (!container) return;
   container.innerHTML = "";
-  if (!answers || !answers.length) {
-    container.innerHTML = '<div class="sc-empty">No answers data available.</div>';
-    return;
+
+  // Today's view: don't reveal the puzzle answers; show user's own progress
+  var msg = document.createElement("div");
+  msg.className = "sc-tomorrow-msg";
+  msg.textContent = "Come back tomorrow to compare your score!";
+  container.appendChild(msg);
+
+  if (bestWord && bestWord.length > 0) {
+    var hdr = document.createElement("div");
+    hdr.className = "sc-my-words-header";
+    hdr.textContent = "Your best word:";
+    container.appendChild(hdr);
+
+    var wordRow = document.createElement("div");
+    wordRow.className = "sc-my-word-row";
+    var wordText = document.createElement("span");
+    wordText.className = "sc-my-word-text";
+    wordText.textContent = bestWord.toUpperCase();
+    var wordLen = document.createElement("span");
+    wordLen.className = "sc-my-word-len";
+    wordLen.textContent = bestWord.length + " letters";
+    wordRow.appendChild(wordText);
+    wordRow.appendChild(wordLen);
+    container.appendChild(wordRow);
+  } else {
+    var noWord = document.createElement("div");
+    noWord.className = "sc-no-word-msg";
+    noWord.textContent = "No word found yet — keep playing!";
+    container.appendChild(noWord);
   }
-
-  var myWord = bestWord ? bestWord.toUpperCase() : "";
-  var sorted = answers.slice().sort(function(a, b) {
-    return (b.word || "").length - (a.word || "").length;
-  });
-
-  sorted.forEach(function(a, idx) {
-    var word    = (a.word || "").toUpperCase();
-    var isTop   = idx === 0;
-    var isMine  = myWord && word === myWord;
-    var players = (playersByWord && playersByWord[word]) || [];
-
-    var row = document.createElement("div");
-    row.className = "sc-row" + (isTop ? " sc-target" : "") + (isMine ? " sc-mine" : "");
-
-    // Avatar stack
-    var avatarStack = document.createElement("div");
-    avatarStack.className = "sc-avatars";
-    var maxShow = 3;
-    var shown   = players.slice(0, maxShow);
-    shown.forEach(function(p, i) {
-      var circle = document.createElement("div");
-      circle.className = "sc-avatar";
-      circle.style.background = AVATAR_COLORS[i % AVATAR_COLORS.length];
-      circle.textContent = (p.username || "?").charAt(0).toUpperCase();
-      avatarStack.appendChild(circle);
-    });
-    if (players.length > maxShow) {
-      var overflow = document.createElement("div");
-      overflow.className = "sc-avatar-overflow";
-      overflow.textContent = "+" + (players.length - maxShow);
-      avatarStack.appendChild(overflow);
-    }
-    if (players.length === 0) {
-      var ph = document.createElement("div");
-      ph.className = "sc-avatar-placeholder";
-      avatarStack.appendChild(ph);
-    }
-    if (players.length > 0) {
-      avatarStack.dataset.tappable = "true";
-      avatarStack.addEventListener("click", function(e) {
-        e.stopPropagation();
-        openPlayerModal(players, word);
-      });
-    }
-
-    // Word (blurred until rubbed)
-    var wordSpan = document.createElement("span");
-    wordSpan.className = "sc-word sc-blurred";
-    wordSpan.textContent = word;
-
-    // Percentage
-    var pctSpan = document.createElement("span");
-    pctSpan.className = "sc-pct";
-    pctSpan.textContent = (a.pct || 0) + "%";
-
-    row.appendChild(avatarStack);
-    row.appendChild(wordSpan);
-    row.appendChild(pctSpan);
-    container.appendChild(row);
-  });
-
-  initScratchReveal(container);
 }
 
 function initScratchReveal(container) {
-  var dragging  = false;
-  var startX    = 0, startY = 0;
-  var lockH     = null; // null = undecided, true = horizontal, false = vertical
-
   function revealAt(x, y) {
     var el = document.elementFromPoint(x, y);
     if (!el) return;
@@ -2255,29 +2227,15 @@ function initScratchReveal(container) {
     if (wordEl) wordEl.classList.remove("sc-blurred");
   }
 
-  container.addEventListener("pointerdown", function(e) {
-    dragging = true;
-    startX   = e.clientX;
-    startY   = e.clientY;
-    lockH    = null;
-    try { container.setPointerCapture(e.pointerId); } catch (_) {}
-  });
+  container.addEventListener("touchstart", function(e) {
+    if (e.touches.length !== 1) return;
+    revealAt(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: true });
 
-  container.addEventListener("pointermove", function(e) {
-    if (!dragging) return;
-    var dx = Math.abs(e.clientX - startX);
-    var dy = Math.abs(e.clientY - startY);
-    if (lockH === null && (dx > 8 || dy > 8)) {
-      lockH = dx > dy;
-    }
-    if (lockH) {
-      e.preventDefault();
-      revealAt(e.clientX, e.clientY);
-    }
-  }, { passive: false });
-
-  container.addEventListener("pointerup",     function() { dragging = false; lockH = null; });
-  container.addEventListener("pointercancel", function() { dragging = false; lockH = null; });
+  container.addEventListener("touchmove", function(e) {
+    if (e.touches.length !== 1) return;
+    revealAt(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: true });
 }
 
 function openPlayerModal(players, wordTitle) {
@@ -2666,7 +2624,11 @@ function renderBadges(earned) {
     var item = document.createElement("div");
     item.className = "badge-item " + (isEarned ? "earned" : "locked");
     item.title = b.name + ": " + b.desc;
-    item.innerHTML = '<div class="badge-icon">' + b.icon + '</div><div class="badge-name">' + b.name + "</div>";
+    item.innerHTML =
+      '<div class="badge-hex">' +
+        '<span class="badge-emoji">' + b.icon + '</span>' +
+      '</div>' +
+      '<div class="badge-name">' + b.name + '</div>';
     grid.appendChild(item);
   });
 }
@@ -2721,17 +2683,10 @@ function updateShareBtn() {
   var btn = document.getElementById("share-btn");
   if (!btn) return;
   btn.classList.remove("is-throbbing");
-  var labelEl  = document.getElementById("share-label");
   var badgeEl  = document.getElementById("share-ticket-badge");
   var todayKey = "sharedToday-" + getDateString();
   var shareCount = parseInt(localStorage.getItem(todayKey) || "0", 10);
-  if (bestScore > 0) {
-    if (labelEl) labelEl.textContent = "Share your score";
-    if (badgeEl) badgeEl.style.display = shareCount >= 5 ? "none" : "";
-  } else {
-    if (labelEl) labelEl.textContent = "Share";
-    if (badgeEl) badgeEl.style.display = "";
-  }
+  if (badgeEl) badgeEl.style.display = shareCount >= 5 ? "none" : "";
 }
 
 function enableShare() { updateShareBtn(); }
@@ -3308,6 +3263,9 @@ function initAdmin() {
     settingsAdminBtn.addEventListener("click", function() {
       // Refresh palette list from server each time panel opens
       loadServerPalettes().then(function(palettes) { renderPaletteList(palettes); });
+      // Populate ticket input with current count
+      var ticketInput = document.getElementById("admin-ticket-input");
+      if (ticketInput) ticketInput.value = ticketCount;
       panel.hidden = false;
     });
   }
@@ -3403,6 +3361,22 @@ function initAdmin() {
     if (!confirm("Clear all local storage? This resets your game state.")) return;
     localStorage.clear();
     window.location.reload();
+  });
+
+  // Set ticket count manually
+  var setTicketsBtn = document.getElementById("admin-set-tickets-btn");
+  if (setTicketsBtn) setTicketsBtn.addEventListener("click", async function() {
+    var input = document.getElementById("admin-ticket-input");
+    if (!input) return;
+    var newCount = parseInt(input.value, 10);
+    if (isNaN(newCount) || newCount < 0) { showToast("Invalid ticket count."); return; }
+    ticketCount = newCount;
+    saveTickets();
+    updateTicketDisplay();
+    if (db && currentUser) {
+      try { await db.collection("users").doc(currentUser.uid).set({ tickets: newCount }, { merge: true }); } catch(_) {}
+    }
+    showToast("Tickets set to " + newCount + ".");
   });
 
   // Seed demo data
@@ -3506,9 +3480,9 @@ async function seedDemoData() {
 
   await batch.commit();
 
-  // Give Matt 100 tickets
-  await db.collection("users").doc(uid).set({ tickets: 100 }, { merge: true });
-  ticketCount = 100;
+  // Give admin 1000 tickets for testing
+  await db.collection("users").doc(uid).set({ tickets: 1000 }, { merge: true });
+  ticketCount = 1000;
   saveTickets();
   updateTicketDisplay();
 }
@@ -3652,8 +3626,6 @@ function initBlurReveal() {
   var backContent = document.getElementById("back-content");
   if (!backContent) return;
 
-  var isDown = false;
-
   function revealAt(x, y) {
     var el = document.elementFromPoint(x, y);
     while (el && el !== backContent) {
@@ -3665,15 +3637,14 @@ function initBlurReveal() {
     }
   }
 
-  backContent.addEventListener("pointerdown", function(e) {
-    isDown = true;
-    revealAt(e.clientX, e.clientY);
-  });
-  backContent.addEventListener("pointerup",     function() { isDown = false; });
-  backContent.addEventListener("pointercancel", function() { isDown = false; });
-  backContent.addEventListener("pointermove", function(e) {
-    if (!isDown) return;
-    revealAt(e.clientX, e.clientY);
+  backContent.addEventListener("touchstart", function(e) {
+    if (e.touches.length !== 1) return;
+    revealAt(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: true });
+
+  backContent.addEventListener("touchmove", function(e) {
+    if (e.touches.length !== 1) return;
+    revealAt(e.touches[0].clientX, e.touches[0].clientY);
   }, { passive: true });
 }
 

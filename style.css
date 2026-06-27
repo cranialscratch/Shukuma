@@ -95,10 +95,10 @@ html, body {
 
 /* ── Font scale ────────────────────────────────────────────────────── */
 :root {
-  --fs-xs:   0.72rem;
-  --fs-sm:   0.82rem;
-  --fs-base: 0.94rem;
-  --fs-md:   1rem;
+  --fs-xs:   1.0625rem;
+  --fs-sm:   1.0625rem;
+  --fs-base: 1.0625rem;
+  --fs-md:   1.0625rem;
   --fs-lg:   1.1rem;
   --fs-xl:   1.25rem;
   --fs-2xl:  1.5rem;
@@ -170,7 +170,7 @@ html, body {
 }
 
 #header-label {
-  font-size: 0.72rem;
+  font-size: 1.0625rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -212,7 +212,7 @@ html, body {
   gap: 4px;
   min-width: 38px;
   justify-content: flex-end;
-  font-size: 0.9rem;
+  font-size: 1.0625rem;
   font-weight: 800;
   color: var(--brand);
   letter-spacing: -0.2px;
@@ -357,7 +357,7 @@ html, body {
 }
 
 .stat-card-label {
-  font-size: 0.55rem;
+  font-size: 1.0625rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -379,14 +379,14 @@ html, body {
 .stat-card-value.invalid { color: #ef4444; }
 
 .stat-card-sub {
-  font-size: 0.58rem;
+  font-size: 1.0625rem;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 #score-level {
-  font-size: 0.62rem;
+  font-size: 1.0625rem;
   color: var(--brand);
   font-weight: 600;
   letter-spacing: 0.03em;
@@ -394,38 +394,33 @@ html, body {
   line-height: 1.3;
 }
 
-/* ── Share button (full-width CTA) ─────────────────────────────────── */
+/* ── Share button (compact pill) ────────────────────────────────────── */
 #share-btn {
-  margin: 0 14px 8px;
-  padding: 14px 20px;
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-  border: none;
-  border-radius: 16px;
-  color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
+  align-self: center;
+  margin: 0 auto 8px;
+  padding: 11px 28px;
+  background: #22c55e;
+  border: none;
+  border-radius: 28px;
+  color: white;
   cursor: pointer;
+  font-size: 1.0625rem;
+  font-weight: 800;
   flex-shrink: 0;
+  width: auto;
   transition: opacity 0.2s, transform 0.15s;
   -webkit-tap-highlight-color: transparent;
-  font-size: 0.95rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
 }
 #share-btn:hover { opacity: 0.92; }
 #share-btn:active { transform: scale(0.98); }
 
 #share-ticket-badge {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  background: rgba(255,255,255,0.22);
-  border-radius: 20px;
-  padding: 2px 8px 2px 6px;
-  font-size: 0.82rem;
-  font-weight: 700;
+  font-size: 1.0625rem;
+  font-weight: 800;
 }
 
 /* ── Bottom nav pill ────────────────────────────────────────────────── */
@@ -476,8 +471,8 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 28px;
-  padding: 3px 16px 2px;
+  gap: 16px;
+  padding: 2px 16px 4px;
   flex-shrink: 0;
 }
 
@@ -536,7 +531,7 @@ html, body {
 }
 
 .float-level {
-  font-size: 0.78rem;
+  font-size: 1.0625rem;
   font-weight: 700;
   color: rgba(0,0,0,0.5);
   text-transform: uppercase;
@@ -544,7 +539,7 @@ html, body {
 }
 
 .float-cheer {
-  font-size: 1rem;
+  font-size: 1.0625rem;
   font-weight: 500;
   color: rgba(0,0,0,0.6);
 }
@@ -580,7 +575,7 @@ html, body {
   background: rgba(124,77,255,0.08);
   color: var(--brand);
   text-align: center;
-  font-size: 0.72rem;
+  font-size: 1.0625rem;
   font-weight: 600;
   padding: 5px 10px;
   border-radius: 8px;
@@ -591,7 +586,7 @@ html, body {
 /* ── Version tag ────────────────────────────────────────────────────── */
 #version-tag {
   text-align: center;
-  font-size: 0.62rem;
+  font-size: 1.0625rem;
   color: rgba(0,0,0,0.2);
   padding: 2px 0 4px;
   cursor: pointer;
@@ -614,7 +609,7 @@ html, body {
   color: #fff;
   padding: 13px 20px;
   border-radius: 16px;
-  font-size: 0.9rem;
+  font-size: 1.0625rem;
   font-weight: 500;
   line-height: 1.35;
   letter-spacing: 0.01em;
@@ -712,7 +707,7 @@ html, body {
 }
 
 #back-panel-title {
-  font-size: 0.95rem;
+  font-size: 1.0625rem;
   font-weight: 700;
   letter-spacing: 0.3px;
   color: white;
@@ -749,7 +744,7 @@ html, body {
   border: none;
   border-radius: 20px 20px 0 0;
   padding: 6px 14px;
-  font-size: 0.72rem;
+  font-size: 1.0625rem;
   font-weight: 600;
   font-family: inherit;
   color: rgba(255,255,255,0.7);
@@ -778,7 +773,7 @@ html, body {
 /* ── How to play ────────────────────────────────────────────────────── */
 .how-section { margin-bottom: 16px; }
 .how-section h3 {
-  font-size: 0.82rem;
+  font-size: 1.0625rem;
   color: var(--brand);
   margin-bottom: 6px;
   text-transform: uppercase;
@@ -786,7 +781,7 @@ html, body {
   font-weight: 700;
 }
 .how-section p, .how-section ul {
-  font-size: 0.83rem;
+  font-size: 1.0625rem;
   line-height: 1.55;
   color: #444;
 }
@@ -806,7 +801,7 @@ html, body {
   border-radius: 8px;
   background: rgba(0,0,0,0.04);
   color: #666;
-  font-size: 0.8rem;
+  font-size: 1.0625rem;
   font-weight: 500;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
@@ -854,14 +849,14 @@ html, body {
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  font-size: 0.82rem;
+  font-size: 1.0625rem;
 }
 
 .answer-word {
   min-width: 100px;
   font-weight: 700;
   color: var(--text-primary);
-  font-size: 0.85rem;
+  font-size: 1.0625rem;
   letter-spacing: 0.5px;
   cursor: default;
   user-select: none;
@@ -894,7 +889,7 @@ html, body {
   border-radius: 50%;
   width: 20px;
   height: 20px;
-  font-size: 0.65rem;
+  font-size: 1.0625rem;
   font-weight: 700;
   color: #666;
   cursor: pointer;
@@ -907,7 +902,7 @@ html, body {
 .def-btn:hover { background: var(--brand); color: #fff; border-color: var(--brand); }
 
 .def-box {
-  font-size: 0.75rem;
+  font-size: 1.0625rem;
   color: #444;
   margin-top: 5px;
   padding: 6px 8px;
@@ -936,7 +931,7 @@ html, body {
   min-width: 36px;
   text-align: right;
   color: #666;
-  font-size: 0.78rem;
+  font-size: 1.0625rem;
 }
 
 /* ── Scratchcard answers (v1.9.4) ────────────────────────────────────── */
@@ -971,7 +966,7 @@ html, body {
   height: 28px;
   border-radius: 50%;
   color: #fff;
-  font-size: 0.62rem;
+  font-size: 1.0625rem;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -989,7 +984,7 @@ html, body {
   border-radius: 50%;
   background: #e0e0e0;
   color: #666;
-  font-size: 0.58rem;
+  font-size: 1.0625rem;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -1012,7 +1007,7 @@ html, body {
 .sc-word {
   flex: 1;
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 1.0625rem;
   letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--tile-text);
@@ -1023,7 +1018,7 @@ html, body {
 .sc-blurred { filter: blur(5px); }
 
 .sc-pct {
-  font-size: 0.7rem;
+  font-size: 1.0625rem;
   color: #bbb;
   flex-shrink: 0;
   min-width: 30px;
@@ -1033,7 +1028,7 @@ html, body {
 
 .sc-target .sc-word { color: var(--brand); }
 .sc-mine .sc-word { color: #22c55e; }
-.sc-empty { text-align: center; color: #bbb; font-size: 0.82rem; padding: 14px 0; }
+.sc-empty { text-align: center; color: #bbb; font-size: 1.0625rem; padding: 14px 0; }
 
 /* ── Hint confirmation modal ─────────────────────────────────────────── */
 #hint-modal {
@@ -1074,7 +1069,7 @@ html, body {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  font-size: 1.05rem;
+  font-size: 1.0625rem;
   font-weight: 700;
   color: var(--brand);
   margin-bottom: 12px;
@@ -1084,11 +1079,11 @@ html, body {
 #hint-modal-body p {
   text-align: center;
   color: rgba(0,0,0,0.55);
-  font-size: 0.85rem;
+  font-size: 1.0625rem;
   line-height: 1.4;
   margin-bottom: 6px;
 }
-.hint-modal-cost { font-size: 0.82rem !important; }
+.hint-modal-cost { font-size: 1.0625rem !important; }
 .hint-modal-cost strong { color: var(--tile-text); }
 
 #hint-modal-actions {
@@ -1103,7 +1098,7 @@ html, body {
   border: 1.5px solid rgba(0,0,0,0.12);
   border-radius: 12px;
   padding: 11px;
-  font-size: 0.88rem;
+  font-size: 1.0625rem;
   font-weight: 600;
   color: rgba(0,0,0,0.35);
   cursor: not-allowed;
@@ -1113,7 +1108,7 @@ html, body {
   gap: 8px;
 }
 .coming-soon-tag {
-  font-size: 0.72rem;
+  font-size: 1.0625rem;
   background: rgba(0,0,0,0.08);
   border-radius: 6px;
   padding: 2px 6px;
@@ -1122,7 +1117,7 @@ html, body {
 .hint-cancel-btn {
   background: none;
   border: none;
-  font-size: 0.9rem;
+  font-size: 1.0625rem;
   color: rgba(0,0,0,0.4);
   padding: 8px;
   cursor: pointer;
@@ -1174,7 +1169,7 @@ html, body {
 
 #player-modal-word,
 #ppm-title {
-  font-size: 1rem;
+  font-size: 1.0625rem;
   font-weight: 700;
   color: var(--tile-text);
   letter-spacing: 0.04em;
@@ -1228,7 +1223,7 @@ html, body {
 
 .pm-rank {
   font-weight: 700;
-  font-size: 0.76rem;
+  font-size: 1.0625rem;
   color: #aaa;
   min-width: 22px;
   text-align: center;
@@ -1242,7 +1237,7 @@ html, body {
   height: 36px;
   border-radius: 50%;
   color: #fff;
-  font-size: 0.82rem;
+  font-size: 1.0625rem;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -1254,7 +1249,7 @@ html, body {
 
 .pm-name {
   font-weight: 600;
-  font-size: 0.88rem;
+  font-size: 1.0625rem;
   color: #222;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1262,14 +1257,14 @@ html, body {
 }
 
 .pm-meta {
-  font-size: 0.7rem;
+  font-size: 1.0625rem;
   color: #999;
   margin-top: 1px;
 }
 
 .pm-word {
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 1.0625rem;
   color: var(--brand);
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1292,7 +1287,7 @@ html, body {
 
 .ppm-name {
   text-align: center;
-  font-size: 1.05rem;
+  font-size: 1.0625rem;
   font-weight: 700;
   color: #1a1a1a;
   margin-bottom: 16px;
@@ -1320,7 +1315,7 @@ html, body {
 }
 
 .ppm-stat-lbl {
-  font-size: 0.67rem;
+  font-size: 1.0625rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.4px;
@@ -1366,7 +1361,7 @@ html, body {
   flex: 1;
   background: transparent;
   border: none;
-  font-size: 0.82rem;
+  font-size: 1.0625rem;
   color: #333;
   font-family: inherit;
   min-width: 0;
@@ -1384,7 +1379,7 @@ html, body {
   border: none;
   border-radius: 6px;
   padding: 5px 11px;
-  font-size: 0.72rem;
+  font-size: 1.0625rem;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
@@ -1398,7 +1393,7 @@ html, body {
   border: none;
   color: #ccc;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 1.0625rem;
   padding: 4px;
   line-height: 1;
   flex-shrink: 0;
@@ -1419,7 +1414,7 @@ html, body {
   border: 1px solid rgba(0,0,0,0.18);
   border-radius: 8px;
   padding: 8px 10px;
-  font-size: 0.8rem;
+  font-size: 1.0625rem;
   font-family: inherit;
   background: #f8f8f8;
   min-width: 0;
@@ -1430,14 +1425,14 @@ html, body {
 #admin-save-palette-btn {
   flex-shrink: 0;
   padding: 9px 14px;
-  font-size: 0.82rem;
+  font-size: 1.0625rem;
   min-height: 38px;
 }
 
 /* ── Difficulty badge ────────────────────────────────────────────────── */
 #difficulty-badge {
   text-align: center;
-  font-size: 0.68rem;
+  font-size: 1.0625rem;
   font-weight: 700;
   letter-spacing: 0.5px;
   text-transform: uppercase;
@@ -1463,7 +1458,7 @@ html, body {
 
 /* ── Shared section label ────────────────────────────────────────────── */
 .section-label {
-  font-size: 0.78rem;
+  font-size: 1.0625rem;
   color: var(--brand);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -1478,7 +1473,7 @@ html, body {
 }
 .stats-cta-icon { font-size: 2.5rem; margin-bottom: 10px; }
 .stats-cta-text {
-  font-size: 0.85rem;
+  font-size: 1.0625rem;
   color: #555;
   line-height: 1.5;
   margin-bottom: 16px;
@@ -1490,7 +1485,7 @@ html, body {
   border: none;
   border-radius: 22px;
   padding: 10px 24px;
-  font-size: 0.9rem;
+  font-size: 1.0625rem;
   font-weight: bold;
   font-family: inherit;
   cursor: pointer;
@@ -1529,7 +1524,7 @@ html, body {
   white-space: nowrap;
 }
 #user-email-text {
-  font-size: 0.88rem;
+  font-size: 1.0625rem;
   color: #888;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1540,7 +1535,7 @@ html, body {
   border: 1px solid #ddd;
   border-radius: 14px;
   padding: 6px 12px;
-  font-size: 0.85rem;
+  font-size: 1.0625rem;
   color: #666;
   cursor: pointer;
   font-family: inherit;
@@ -1567,7 +1562,7 @@ html, body {
   line-height: 1;
 }
 .stat-lbl {
-  font-size: 0.82rem;
+  font-size: 1.0625rem;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.3px;
@@ -1584,24 +1579,28 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  width: 58px;
+  gap: 6px;
+  width: 68px;
 }
-.badge-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
+.badge-hex {
+  width: 52px;
+  height: 60px;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
   background: #f0f0ec;
-  font-size: 1.4rem;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: background 0.2s;
 }
-.badge-item.earned .badge-icon { background: #ede7f6; }
-.badge-item.locked .badge-icon { filter: grayscale(1); opacity: 0.4; }
+.badge-emoji {
+  font-size: 1.6rem;
+  line-height: 1;
+  display: block;
+}
+.badge-item.earned .badge-hex { background: #ede7f6; }
+.badge-item.locked .badge-hex { filter: grayscale(1); opacity: 0.4; }
 .badge-name {
-  font-size: 0.75rem;
+  font-size: 1.0625rem;
   color: #666;
   text-align: center;
   line-height: 1.2;
@@ -1618,7 +1617,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.9rem;
+  font-size: 1.0625rem;
   color: #444;
   padding: 8px 0;
   border-bottom: 1px solid #f0f0ec;
@@ -1630,7 +1629,7 @@ html, body {
 .history-level { flex: 1; }
 .history-meta {
   flex-basis: 100%;
-  font-size: 0.78rem;
+  font-size: 1.0625rem;
   color: #aaa;
   padding-bottom: 2px;
 }
@@ -1650,7 +1649,7 @@ html, body {
   border-radius: 50%;
   width: 30px;
   height: 30px;
-  font-size: 1rem;
+  font-size: 1.0625rem;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1666,7 +1665,7 @@ html, body {
   flex: 1;
   text-align: center;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 1.0625rem;
   color: #333;
 }
 #lb-word-reveal {
@@ -1675,15 +1674,15 @@ html, body {
   border-radius: 8px;
   margin: 0 14px 8px;
   padding: 8px 12px;
-  font-size: 0.82rem;
+  font-size: 1.0625rem;
   color: #666;
   text-align: center;
 }
 .lb-word-label { color: #888; margin-right: 4px; }
-.lb-word-value { color: #3a3a3a; font-size: 1rem; letter-spacing: 0.08em; }
+.lb-word-value { color: #3a3a3a; font-size: 1.0625rem; letter-spacing: 0.08em; }
 .lb-meta {
   display: block;
-  font-size: 0.65rem;
+  font-size: 1.0625rem;
   color: #aaa;
   margin-top: 1px;
   grid-column: 1 / -1;
@@ -1699,7 +1698,7 @@ html, body {
   border: none;
   border-radius: 16px;
   padding: 5px 14px;
-  font-size: 0.78rem;
+  font-size: 1.0625rem;
   font-family: inherit;
   font-weight: bold;
   color: #666;
@@ -1714,14 +1713,14 @@ html, body {
 #lb-loading {
   text-align: center;
   color: #aaa;
-  font-size: 0.82rem;
+  font-size: 1.0625rem;
   padding: 20px 0;
 }
 #lb-noauth {
   text-align: center;
   padding: 20px 16px;
   color: #666;
-  font-size: 0.85rem;
+  font-size: 1.0625rem;
 }
 #lb-noauth p { margin-bottom: 12px; }
 #lb-list {
@@ -1735,20 +1734,20 @@ html, body {
   gap: 8px;
   padding: 10px 0;
   border-bottom: 1px solid var(--lb-row-border);
-  font-size: 0.95rem;
+  font-size: 1.0625rem;
 }
 .lb-row-me { background: rgba(124,77,255,0.06); border-radius: 6px; padding: 10px 6px; }
 .lb-rank { min-width: 22px; font-weight: bold; color: #aaa; text-align: center; }
 .lb-rank.top3 { color: #d4a96a; }
 .lb-name { flex: 1; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lb-score { font-weight: bold; color: var(--brand); min-width: 24px; text-align: right; }
-.lb-level { color: #888; font-size: 0.82rem; min-width: 80px; text-align: right; }
-.lb-empty { text-align: center; color: #aaa; padding: 20px 0; font-size: 0.9rem; }
+.lb-level { color: #888; font-size: 1.0625rem; min-width: 80px; text-align: right; }
+.lb-empty { text-align: center; color: #aaa; padding: 20px 0; font-size: 1.0625rem; }
 
 /* ── Word distribution ───────────────────────────────────────────────── */
 .wd-section { margin-bottom: 18px; }
 .wd-section-title {
-  font-size: 0.78rem;
+  font-size: 1.0625rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -1762,11 +1761,11 @@ html, body {
   gap: 8px;
   padding: 5px 0;
   border-bottom: 1px solid #f0f0ec;
-  font-size: 0.82rem;
+  font-size: 1.0625rem;
 }
 .wd-word {
   font-weight: 700;
-  font-size: 0.78rem;
+  font-size: 1.0625rem;
   letter-spacing: 0.06em;
   color: #1f2937;
   min-width: 90px;
@@ -1792,11 +1791,11 @@ html, body {
   color: var(--brand);
   min-width: 20px;
   text-align: right;
-  font-size: 0.78rem;
+  font-size: 1.0625rem;
 }
 .wd-level {
   color: #999;
-  font-size: 0.65rem;
+  font-size: 1.0625rem;
   min-width: 62px;
   text-align: right;
 }
@@ -1840,7 +1839,7 @@ html, body {
   border-radius: 50%;
   width: 28px;
   height: 28px;
-  font-size: 0.8rem;
+  font-size: 1.0625rem;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1856,7 +1855,7 @@ html, body {
   margin: 0;
 }
 #auth-subtitle {
-  font-size: 0.82rem;
+  font-size: 1.0625rem;
   color: #888;
   text-align: center;
   line-height: 1.45;
@@ -1867,14 +1866,14 @@ html, body {
   border: 1px solid #ffcccc;
   border-radius: 8px;
   padding: 8px 12px;
-  font-size: 0.8rem;
+  font-size: 1.0625rem;
   color: #c00;
 }
 #auth-card input {
   border: 1.5px solid #e0e0e0;
   border-radius: 10px;
   padding: 12px 14px;
-  font-size: 0.9rem;
+  font-size: 1.0625rem;
   font-family: inherit;
   outline: none;
   transition: border-color 0.15s;
@@ -1887,7 +1886,7 @@ html, body {
   border: none;
   border-radius: 12px;
   padding: 13px;
-  font-size: 0.95rem;
+  font-size: 1.0625rem;
   font-weight: bold;
   font-family: inherit;
   cursor: pointer;
@@ -1900,7 +1899,7 @@ html, body {
   align-items: center;
   gap: 10px;
   color: #ccc;
-  font-size: 0.78rem;
+  font-size: 1.0625rem;
 }
 .auth-or::before, .auth-or::after {
   content: '';
@@ -1917,7 +1916,7 @@ html, body {
   border: 1.5px solid #e0e0e0;
   border-radius: 12px;
   padding: 12px;
-  font-size: 0.88rem;
+  font-size: 1.0625rem;
   font-family: inherit;
   font-weight: bold;
   color: #444;
@@ -1929,7 +1928,7 @@ html, body {
   background: none;
   border: none;
   color: #aaa;
-  font-size: 0.78rem;
+  font-size: 1.0625rem;
   cursor: pointer;
   font-family: inherit;
   text-align: center;
@@ -1938,7 +1937,7 @@ html, body {
 }
 .auth-switch-row {
   text-align: center;
-  font-size: 0.78rem;
+  font-size: 1.0625rem;
   color: #888;
   margin: 0;
 }
@@ -1988,7 +1987,7 @@ html, body {
   border-bottom: 1px solid #eee;
   flex-shrink: 0;
 }
-#changelog-header h2 { margin: 0; font-size: 1.05rem; color: #222; }
+#changelog-header h2 { margin: 0; font-size: 1.0625rem; color: #222; }
 #changelog-close {
   background: none;
   border: none;
@@ -2004,7 +2003,7 @@ html, body {
   background: #f5f5f5;
   border: 1px solid #e0e0e0;
   border-radius: 10px;
-  font-size: 0.82rem;
+  font-size: 1.0625rem;
   color: #555;
   cursor: pointer;
   font-family: inherit;
@@ -2029,21 +2028,21 @@ html, body {
   gap: 8px;
   margin-bottom: 6px;
 }
-.cl-version { font-weight: 700; font-size: 0.9rem; color: #222; }
+.cl-version { font-weight: 700; font-size: 1.0625rem; color: #222; }
 .cl-badge {
   background: var(--brand);
   color: #fff;
-  font-size: 0.6rem;
+  font-size: 1.0625rem;
   font-weight: 700;
   padding: 2px 6px;
   border-radius: 20px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
-.cl-date { margin-left: auto; font-size: 0.75rem; color: #aaa; }
+.cl-date { margin-left: auto; font-size: 1.0625rem; color: #aaa; }
 .cl-changes { margin: 0; padding-left: 18px; }
 .cl-changes li {
-  font-size: 0.8rem;
+  font-size: 1.0625rem;
   color: #555;
   line-height: 1.5;
   margin-bottom: 2px;
@@ -2206,7 +2205,7 @@ html, body {
   border-radius: 50%;
   width: 32px; height: 32px;
   color: white;
-  font-size: 1rem;
+  font-size: 1.0625rem;
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
 }
@@ -2228,7 +2227,7 @@ html, body {
   flex: 1;
   border: none;
   background: none;
-  font-size: 0.8rem;
+  font-size: 1.0625rem;
   font-weight: 600;
   font-family: inherit;
   padding: 8px 0;
@@ -2243,7 +2242,7 @@ html, body {
   box-shadow: 0 1px 4px rgba(0,0,0,0.12);
 }
 .admin-mode-note {
-  font-size: 0.75rem;
+  font-size: 1.0625rem;
   color: rgba(0,0,0,0.45);
   padding: 4px 2px;
   margin-bottom: -8px;
@@ -2387,7 +2386,7 @@ html[data-colour="highcontrast"] {
 }
 #cal-month-label {
   font-weight: 700;
-  font-size: 1.05rem;
+  font-size: 1.0625rem;
   color: var(--text-primary);
 }
 #cal-prev, #cal-next {
@@ -2411,7 +2410,7 @@ html[data-colour="highcontrast"] {
 }
 .cal-day-header {
   text-align: center;
-  font-size: 0.72rem;
+  font-size: 1.0625rem;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -2423,7 +2422,7 @@ html[data-colour="highcontrast"] {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  font-size: 0.95rem;
+  font-size: 1.0625rem;
   cursor: pointer;
   color: var(--text-primary);
   border: none;
@@ -2441,7 +2440,7 @@ html[data-colour="highcontrast"] {
   border-radius: 12px;
   background: none;
   font-family: inherit;
-  font-size: 0.95rem;
+  font-size: 1.0625rem;
   color: var(--text-secondary);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
