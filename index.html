@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=1.9.3" />
+  <link rel="stylesheet" href="style.css?v=1.9.4" />
 </head>
 <body>
   <div id="app">
@@ -259,21 +259,13 @@
             <!-- ── Tab: Scores ────────────────────────────────────────── -->
             <div id="tab-scores" class="tab-panel" role="tabpanel" hidden>
 
-              <div id="lb-date-nav">
-                <button id="lb-date-prev" aria-label="Previous day">‹</button>
-                <span id="lb-date-label">Today</span>
-                <button id="lb-date-next" disabled aria-label="Next day">›</button>
-              </div>
-
-              <div id="lb-word-reveal" hidden></div>
-
-              <div id="answers-section" hidden>
-                <button id="answers-reveal-btn" hidden></button>
-                <ul id="answers-list"></ul>
+              <!-- Scratchcard: rub to reveal today's puzzle answers -->
+              <div id="answers-scratchcard">
+                <div id="scratchcard-list"></div>
               </div>
 
               <div id="lb-filter-row">
-                <button class="lb-filter-btn active" data-filter="date">Scores</button>
+                <button class="lb-filter-btn active" data-filter="date">Today</button>
                 <button class="lb-filter-btn" data-filter="alltime">All Time</button>
               </div>
 
@@ -285,6 +277,15 @@
               </div>
 
               <div id="lb-list" hidden></div>
+
+              <!-- Hidden stubs for JS compatibility -->
+              <div id="lb-date-nav" hidden>
+                <button id="lb-date-prev"></button>
+                <span id="lb-date-label"></span>
+                <button id="lb-date-next" disabled></button>
+              </div>
+              <div id="lb-word-reveal" hidden></div>
+              <div id="answers-section" hidden><ul id="answers-list"></ul></div>
 
             </div><!-- /tab-scores -->
 
@@ -365,6 +366,43 @@
     <div id="panel-backdrop" hidden></div>
 
   </div><!-- /app -->
+
+  <!-- Player list modal (tap avatar stack → see who scored this word) -->
+  <div id="player-modal" hidden>
+    <div id="player-modal-overlay"></div>
+    <div id="player-modal-card">
+      <div id="player-modal-header">
+        <span id="player-modal-word"></span>
+        <button id="player-modal-close" aria-label="Close">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div id="player-modal-body"></div>
+    </div>
+  </div>
+
+  <!-- Player profile modal (tap a player row in the player modal) -->
+  <div id="player-profile-modal" hidden>
+    <div id="ppm-overlay"></div>
+    <div id="ppm-card">
+      <div id="ppm-header">
+        <button id="ppm-back" aria-label="Back">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M15 18l-6-6 6-6"/>
+          </svg>
+        </button>
+        <span id="ppm-title">Profile</span>
+        <button id="ppm-close" aria-label="Close">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div id="ppm-body"></div>
+    </div>
+  </div>
 
   <div id="toast"></div>
 
@@ -467,11 +505,20 @@
         </div>
       </div>
       <div class="admin-section">
+        <h3>Saved Palettes</h3>
+        <div id="admin-palette-list"><div style="color:#bbb;font-size:0.78rem;padding:2px 0">No saved palettes yet.</div></div>
+        <div class="admin-palette-save-row">
+          <input type="text" id="admin-palette-name" placeholder="Palette name (leave blank for auto)" />
+          <button class="admin-btn" id="admin-save-palette-btn">Save Current</button>
+        </div>
+      </div>
+
+      <div class="admin-section">
         <h3>Data Tools</h3>
         <div class="admin-actions">
           <button class="admin-btn" id="admin-seed-btn">Seed demo scores (past 7 days)</button>
           <button class="admin-btn admin-btn-secondary" id="admin-apply-btn">Apply &amp; save theme</button>
-          <button class="admin-btn admin-btn-secondary" id="admin-reset-btn">Reset to defaults</button>
+          <button class="admin-btn admin-btn-secondary" id="admin-reset-btn">Reset to CSS defaults</button>
           <button class="admin-btn admin-btn-danger" id="admin-clear-storage-btn">Clear all local data</button>
         </div>
       </div>
@@ -483,6 +530,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
-  <script src="game.js?v=1.9.3"></script>
+  <script src="game.js?v=1.9.4"></script>
 </body>
 </html>

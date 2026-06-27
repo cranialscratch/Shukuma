@@ -409,9 +409,22 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "1.9.2";
+const VERSION = "1.9.4";
 
 const CHANGELOG = [
+  { version: "1.9.4", date: "27 Jun 2026", changes: [
+    "Scores tab redesigned: partial sheet sits 30px below the game board",
+    "Today's answers shown as a scratchcard — rub left/right to reveal words",
+    "Stacked player avatars per word show who scored it as their best",
+    "Tap avatar stack to see full player list (rank, word, tries, time)",
+    "Tap a player to view their profile",
+    "Admin palette system: save, rename, apply, and delete named colour palettes",
+  ]},
+  { version: "1.9.3", date: "27 Jun 2026", changes: [
+    "Toast moved to top of screen with frosted-glass push-notification style",
+    "Word display area is fixed height — no background box",
+    "Tile outlines removed across all colour themes",
+  ]},
   { version: "1.9.2", date: "27 Jun 2026", changes: [
     "Ticket count moved to top-right corner of header",
     "Removed score/current/ticket cards below the board — cleaner layout",
@@ -1405,7 +1418,22 @@ var PANEL_TITLES = { rules: "How to Play", scores: "Scores", stats: "Profile", s
 
 function openSheet(tabName) {
   var sheet = document.getElementById("game-back");
-  if (sheet) { sheet.classList.add("open"); }
+  if (sheet) {
+    if (tabName === "scores") {
+      // Partial sheet: top sits 30px below the board
+      var boardEl = document.getElementById("board-container");
+      if (boardEl) {
+        var rect = boardEl.getBoundingClientRect();
+        sheet.style.top = (rect.bottom + 30) + "px";
+      } else {
+        sheet.style.top = "50%";
+      }
+    } else {
+      // Full-screen sheet for other panels
+      sheet.style.top = "";
+    }
+    sheet.classList.add("open");
+  }
   if (tabName) switchBackTab(tabName);
   // Update nav active state (rules tab stays on "play")
   var tabToNav = { scores: "scores", stats: "profile", settings: "settings" };
@@ -1418,8 +1446,14 @@ function openSheet(tabName) {
 }
 
 function closeSheet() {
-  var sheet   = document.getElementById("game-back");
-  if (sheet)   { sheet.classList.remove("open"); }
+  var sheet = document.getElementById("game-back");
+  if (sheet) {
+    sheet.classList.remove("open");
+    // Reset top position after slide-down animation completes
+    setTimeout(function() {
+      if (!sheet.classList.contains("open")) sheet.style.top = "";
+    }, 450);
+  }
   document.querySelectorAll(".nav-btn").forEach(function(b) {
     b.classList.toggle("active", b.dataset.panel === "play");
   });
@@ -1902,15 +1936,24 @@ function updateLbDateNav() {
 
 async function loadLeaderboard(filter) {
   lbFilter = filter || "date";
-  updateLbDateNav();
   var listEl    = document.getElementById("lb-list");
   var loadingEl = document.getElementById("lb-loading");
   var noauthEl  = document.getElementById("lb-noauth");
   if (!listEl) return;
 
-  if (!db) { noauthEl.hidden = false; listEl.hidden = true; if (loadingEl) loadingEl.hidden = true; return; }
-  noauthEl.hidden = true;
-  loadingEl.hidden = false;
+  // Always render scratchcard for today's answers (even without auth)
+  var todayDate = getDateForOffset(0);
+  var todayPuz  = getPuzzleForDate(todayDate);
+
+  if (!db) {
+    if (todayPuz) buildScratchAnswers(todayPuz.prevAnswers, {});
+    if (noauthEl) noauthEl.hidden = false;
+    listEl.hidden = true;
+    if (loadingEl) loadingEl.hidden = true;
+    return;
+  }
+  if (noauthEl) noauthEl.hidden = true;
+  if (loadingEl) loadingEl.hidden = false;
   listEl.hidden = true;
   listEl.innerHTML = "";
 
@@ -1918,17 +1961,25 @@ async function loadLeaderboard(filter) {
     var snap;
     var docs;
     if (lbFilter === "date") {
-      var queryDate = getDateForOffset(lbDayOffset);
-      if (lbDayOffset < 0) populateAnswers(queryDate);
-      else { var answersSection = document.getElementById("answers-section"); if (answersSection) answersSection.hidden = true; }
-      snap = await db.collection("scores").where("date", "==", queryDate).get();
+      snap = await db.collection("scores").where("date", "==", todayDate).get();
       docs = snap.docs.slice().sort(function(a, b) { return (b.data().score || 0) - (a.data().score || 0); });
+
+      // Group players by word for scratchcard avatars
+      var playersByWord = {};
+      snap.docs.forEach(function(doc) {
+        var d = doc.data();
+        var w = (d.word || "").toUpperCase();
+        if (!playersByWord[w]) playersByWord[w] = [];
+        playersByWord[w].push(d);
+      });
+      if (todayPuz) buildScratchAnswers(todayPuz.prevAnswers, playersByWord);
     } else {
+      if (todayPuz) buildScratchAnswers(todayPuz.prevAnswers, {});
       snap = await db.collection("users").get();
       docs = snap.docs.filter(function(d) { return d.data().stats && d.data().stats.bestScore; })
         .slice().sort(function(a, b) { return (b.data().stats.bestScore || 0) - (a.data().stats.bestScore || 0); }).slice(0, 25);
     }
-    loadingEl.hidden = true;
+    if (loadingEl) loadingEl.hidden = true;
     listEl.hidden = false;
     listEl.innerHTML = "";
 
@@ -1958,7 +2009,7 @@ async function loadLeaderboard(filter) {
       listEl.appendChild(row);
     });
   } catch (e) {
-    loadingEl.hidden = true;
+    if (loadingEl) loadingEl.hidden = true;
     listEl.hidden = false;
     listEl.innerHTML = '<div class="lb-empty">Could not load scores.</div>';
     console.warn("loadLeaderboard:", e.message);
@@ -1967,6 +2018,288 @@ async function loadLeaderboard(filter) {
 
 function escHtml(s) {
   return String(s).replace(/[&<>"']/g, function(c) { return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; });
+}
+
+// ─── Scratchcard answers (v1.9.4) ─────────────────────────────────────────────
+var AVATAR_COLORS = ["#7c4dff","#ef4444","#22c55e","#f97316","#3b82f6","#ec4899","#0ea5e9","#a855f7"];
+
+function buildScratchAnswers(answers, playersByWord) {
+  var container = document.getElementById("scratchcard-list");
+  if (!container) return;
+  container.innerHTML = "";
+  if (!answers || !answers.length) {
+    container.innerHTML = '<div class="sc-empty">No answers data available.</div>';
+    return;
+  }
+
+  var myWord = bestWord ? bestWord.toUpperCase() : "";
+  var sorted = answers.slice().sort(function(a, b) {
+    return (b.word || "").length - (a.word || "").length;
+  });
+
+  sorted.forEach(function(a, idx) {
+    var word    = (a.word || "").toUpperCase();
+    var isTop   = idx === 0;
+    var isMine  = myWord && word === myWord;
+    var players = (playersByWord && playersByWord[word]) || [];
+
+    var row = document.createElement("div");
+    row.className = "sc-row" + (isTop ? " sc-target" : "") + (isMine ? " sc-mine" : "");
+
+    // Avatar stack
+    var avatarStack = document.createElement("div");
+    avatarStack.className = "sc-avatars";
+    var maxShow = 3;
+    var shown   = players.slice(0, maxShow);
+    shown.forEach(function(p, i) {
+      var circle = document.createElement("div");
+      circle.className = "sc-avatar";
+      circle.style.background = AVATAR_COLORS[i % AVATAR_COLORS.length];
+      circle.textContent = (p.username || "?").charAt(0).toUpperCase();
+      avatarStack.appendChild(circle);
+    });
+    if (players.length > maxShow) {
+      var overflow = document.createElement("div");
+      overflow.className = "sc-avatar-overflow";
+      overflow.textContent = "+" + (players.length - maxShow);
+      avatarStack.appendChild(overflow);
+    }
+    if (players.length === 0) {
+      var ph = document.createElement("div");
+      ph.className = "sc-avatar-placeholder";
+      avatarStack.appendChild(ph);
+    }
+    if (players.length > 0) {
+      avatarStack.dataset.tappable = "true";
+      avatarStack.addEventListener("click", function(e) {
+        e.stopPropagation();
+        openPlayerModal(players, word);
+      });
+    }
+
+    // Word (blurred until rubbed)
+    var wordSpan = document.createElement("span");
+    wordSpan.className = "sc-word sc-blurred";
+    wordSpan.textContent = word;
+
+    // Percentage
+    var pctSpan = document.createElement("span");
+    pctSpan.className = "sc-pct";
+    pctSpan.textContent = (a.pct || 0) + "%";
+
+    row.appendChild(avatarStack);
+    row.appendChild(wordSpan);
+    row.appendChild(pctSpan);
+    container.appendChild(row);
+  });
+
+  initScratchReveal(container);
+}
+
+function initScratchReveal(container) {
+  var dragging  = false;
+  var startX    = 0, startY = 0;
+  var lockH     = null; // null = undecided, true = horizontal, false = vertical
+
+  function revealAt(x, y) {
+    var el = document.elementFromPoint(x, y);
+    if (!el) return;
+    var wordEl = el.closest ? el.closest(".sc-word") : null;
+    if (wordEl) wordEl.classList.remove("sc-blurred");
+  }
+
+  container.addEventListener("pointerdown", function(e) {
+    dragging = true;
+    startX   = e.clientX;
+    startY   = e.clientY;
+    lockH    = null;
+    try { container.setPointerCapture(e.pointerId); } catch (_) {}
+  });
+
+  container.addEventListener("pointermove", function(e) {
+    if (!dragging) return;
+    var dx = Math.abs(e.clientX - startX);
+    var dy = Math.abs(e.clientY - startY);
+    if (lockH === null && (dx > 8 || dy > 8)) {
+      lockH = dx > dy;
+    }
+    if (lockH) {
+      e.preventDefault();
+      revealAt(e.clientX, e.clientY);
+    }
+  }, { passive: false });
+
+  container.addEventListener("pointerup",     function() { dragging = false; lockH = null; });
+  container.addEventListener("pointercancel", function() { dragging = false; lockH = null; });
+}
+
+function openPlayerModal(players, wordTitle) {
+  var modal  = document.getElementById("player-modal");
+  var wordEl = document.getElementById("player-modal-word");
+  var body   = document.getElementById("player-modal-body");
+  if (!modal || !body) return;
+
+  if (wordEl) wordEl.textContent = wordTitle || "";
+  body.innerHTML = "";
+
+  var sorted = players.slice().sort(function(a, b) { return (b.score || 0) - (a.score || 0); });
+
+  sorted.forEach(function(p, i) {
+    var rank       = i + 1;
+    var wrongAtt   = Math.max(0, (p.attempts || 0) - (p.validAttempts || 0));
+    var metaParts  = [];
+    if (p.validAttempts !== undefined) {
+      metaParts.push(p.validAttempts + " ✓ / " + wrongAtt + " ✗");
+    }
+    if (p.timeSpent) metaParts.push(formatTime(p.timeSpent));
+    var color = AVATAR_COLORS[i % AVATAR_COLORS.length];
+
+    var row = document.createElement("div");
+    row.className = "pm-row";
+    row.innerHTML =
+      '<span class="pm-rank' + (rank <= 3 ? " pm-top3" : "") + '">' + rank + "</span>" +
+      '<div class="pm-avatar" style="background:' + color + '">' + (p.username || "?").charAt(0).toUpperCase() + "</div>" +
+      '<div class="pm-info">' +
+        '<div class="pm-name">' + escHtml(p.username || "Player") + "</div>" +
+        (metaParts.length ? '<div class="pm-meta">' + metaParts.join(" · ") + "</div>" : "") +
+      "</div>" +
+      '<span class="pm-word">' + escHtml(p.word || "") + "</span>";
+
+    row.addEventListener("click", function() {
+      openPlayerProfile(p, color);
+    });
+    body.appendChild(row);
+  });
+
+  modal.hidden = false;
+}
+
+function openPlayerProfile(player, color) {
+  var modal = document.getElementById("player-profile-modal");
+  var body  = document.getElementById("ppm-body");
+  var title = document.getElementById("ppm-title");
+  if (!modal || !body) return;
+
+  if (title) title.textContent = (player.username || "Player") + "'s Profile";
+
+  var initials  = (player.username || "?").charAt(0).toUpperCase();
+  var wrongAtt  = Math.max(0, (player.attempts || 0) - (player.validAttempts || 0));
+  var timeStr   = player.timeSpent ? formatTime(player.timeSpent) : "—";
+  var wordStr   = (player.word || "—").toUpperCase();
+
+  body.innerHTML =
+    '<div class="ppm-avatar-lg" style="background:' + (color || "#7c4dff") + '">' + initials + "</div>" +
+    '<div class="ppm-name">' + escHtml(player.username || "Player") + "</div>" +
+    '<div class="ppm-stats-grid">' +
+      '<div class="ppm-stat-box"><div class="ppm-stat-val">' + wordStr + '</div><div class="ppm-stat-lbl">Best Word</div></div>' +
+      '<div class="ppm-stat-box"><div class="ppm-stat-val">' + (player.score || 0) + '</div><div class="ppm-stat-lbl">Letters</div></div>' +
+      '<div class="ppm-stat-box"><div class="ppm-stat-val">' + (player.validAttempts !== undefined ? player.validAttempts : "—") + '</div><div class="ppm-stat-lbl">Words Found</div></div>' +
+      '<div class="ppm-stat-box"><div class="ppm-stat-val">' + timeStr + '</div><div class="ppm-stat-lbl">Time Taken</div></div>' +
+    "</div>";
+
+  modal.hidden = false;
+}
+
+function initPlayerModals() {
+  var pm        = document.getElementById("player-modal");
+  var pmClose   = document.getElementById("player-modal-close");
+  var pmOverlay = document.getElementById("player-modal-overlay");
+  function closePlayerModal() { if (pm) pm.hidden = true; }
+  if (pmClose)   pmClose.addEventListener("click", closePlayerModal);
+  if (pmOverlay) pmOverlay.addEventListener("click", closePlayerModal);
+
+  var ppm       = document.getElementById("player-profile-modal");
+  var ppmClose  = document.getElementById("ppm-close");
+  var ppmBack   = document.getElementById("ppm-back");
+  var ppmOverlay = document.getElementById("ppm-overlay");
+  function closeProfileModal() { if (ppm) ppm.hidden = true; }
+  function backToPlayers()     { closeProfileModal(); if (pm) pm.hidden = false; }
+  if (ppmClose)   ppmClose.addEventListener("click", closeProfileModal);
+  if (ppmOverlay) ppmOverlay.addEventListener("click", closeProfileModal);
+  if (ppmBack)    ppmBack.addEventListener("click", backToPlayers);
+}
+
+// ─── Admin palette helpers ─────────────────────────────────────────────────────
+function loadPalettes() {
+  try { return JSON.parse(localStorage.getItem("shukuma-palettes") || "[]"); } catch (e) { return []; }
+}
+
+function savePalettes(palettes) {
+  localStorage.setItem("shukuma-palettes", JSON.stringify(palettes));
+}
+
+function renderPaletteList(palettes) {
+  var container = document.getElementById("admin-palette-list");
+  if (!container) return;
+  if (!palettes || !palettes.length) {
+    container.innerHTML = '<div style="color:#bbb;font-size:0.78rem;padding:2px 0">No saved palettes yet.</div>';
+    return;
+  }
+  container.innerHTML = "";
+  var swatchVars = ["--brand", "--tile-neutral", "--tile-selected", "--tile-valid"];
+  palettes.forEach(function(pal) {
+    var item = document.createElement("div");
+    item.className = "admin-palette-item";
+
+    var swatches = document.createElement("div");
+    swatches.className = "admin-palette-swatches";
+    swatchVars.forEach(function(v) {
+      var s = document.createElement("div");
+      s.className = "admin-palette-swatch";
+      s.style.background = (pal.css && pal.css[v]) || "#ccc";
+      swatches.appendChild(s);
+    });
+
+    var nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.className = "admin-palette-name-input";
+    nameInput.value = pal.name || "Unnamed";
+    nameInput.addEventListener("change", function() {
+      var all = loadPalettes();
+      var found = all.find(function(p) { return p.id === pal.id; });
+      if (found) { found.name = nameInput.value; savePalettes(all); }
+    });
+
+    var applyBtn = document.createElement("button");
+    applyBtn.className = "admin-palette-apply-btn";
+    applyBtn.textContent = "Use";
+    applyBtn.addEventListener("click", function() {
+      if (pal.css) {
+        Object.keys(pal.css).forEach(function(k) {
+          document.documentElement.style.setProperty(k, pal.css[k]);
+        });
+      }
+      if (pal.font)  document.body.style.fontFamily = pal.font;
+      if (pal.scale) document.documentElement.style.fontSize = (parseFloat(pal.scale) / 100) + "rem";
+      buildColours();
+      renderAllTiles();
+      // Sync colour picker inputs
+      if (typeof ADMIN_CSS_MAP !== "undefined") {
+        Object.keys(ADMIN_CSS_MAP).forEach(function(inputId) {
+          var cssVar = ADMIN_CSS_MAP[inputId];
+          var inp = document.getElementById(inputId);
+          if (inp && pal.css && pal.css[cssVar]) inp.value = pal.css[cssVar];
+        });
+      }
+      showToast('"' + pal.name + '" applied.');
+    });
+
+    var deleteBtn = document.createElement("button");
+    deleteBtn.className = "admin-palette-delete-btn";
+    deleteBtn.textContent = "×";
+    deleteBtn.title = "Delete palette";
+    deleteBtn.addEventListener("click", function() {
+      var all = loadPalettes().filter(function(p) { return p.id !== pal.id; });
+      savePalettes(all);
+      renderPaletteList(all);
+    });
+
+    item.appendChild(swatches);
+    item.appendChild(nameInput);
+    item.appendChild(applyBtn);
+    item.appendChild(deleteBtn);
+    container.appendChild(item);
+  });
 }
 
 // ─── Badge logic ──────────────────────────────────────────────────────────────
@@ -2765,9 +3098,10 @@ function initAdmin() {
     showToast("Theme saved.");
   });
 
-  // Reset button — clear saved overrides and reload
+  // Reset button — clear saved overrides and reload to CSS defaults
   var resetBtn = document.getElementById("admin-reset-btn");
   if (resetBtn) resetBtn.addEventListener("click", function() {
+    if (!confirm("Reset to CSS defaults? This removes saved theme overrides (palettes are kept).")) return;
     localStorage.removeItem("shukuma-admin-css");
     localStorage.removeItem("shukuma-admin-scale");
     localStorage.removeItem("shukuma-admin-font");
@@ -2791,6 +3125,47 @@ function initAdmin() {
       showToast("Seed failed: " + (e.message || e));
     });
   });
+
+  // ── Palette management ──────────────────────────────────────────────
+  renderPaletteList(loadPalettes());
+
+  var paletteNameInput = document.getElementById("admin-palette-name");
+  var savePaletteBtn   = document.getElementById("admin-save-palette-btn");
+  if (savePaletteBtn) {
+    savePaletteBtn.addEventListener("click", function() {
+      // Build default name from current datetime
+      var now = new Date();
+      var defaultName =
+        now.getFullYear() + "-" +
+        String(now.getMonth() + 1).padStart(2, "0") + "-" +
+        String(now.getDate()).padStart(2, "0") + " " +
+        String(now.getHours()).padStart(2, "0") + ":" +
+        String(now.getMinutes()).padStart(2, "0");
+      var palName = (paletteNameInput && paletteNameInput.value.trim()) || defaultName;
+
+      // Snapshot current CSS vars
+      var cssState = {};
+      Object.keys(ADMIN_CSS_MAP).forEach(function(inputId) {
+        var inp = document.getElementById(inputId);
+        if (inp) cssState[ADMIN_CSS_MAP[inputId]] = inp.value;
+      });
+
+      var pal = {
+        id:    "pal_" + now.getTime(),
+        name:  palName,
+        css:   cssState,
+        font:  fontSelect  ? fontSelect.value  : null,
+        scale: fontScaleRange ? fontScaleRange.value : null,
+      };
+
+      var all = loadPalettes();
+      all.push(pal);
+      savePalettes(all);
+      renderPaletteList(all);
+      if (paletteNameInput) paletteNameInput.value = "";
+      showToast('"' + palName + '" saved.');
+    });
+  }
 }
 
 async function seedDemoData() {
@@ -2895,6 +3270,7 @@ function init() {
   initSwipeNavigation();
   initSettings();
   initAdmin();
+  initPlayerModals();
 
   updateScoreDisplay(null);
   updateTicketDisplay();
