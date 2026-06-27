@@ -409,9 +409,17 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "1.9.0";
+const VERSION = "1.9.1";
 
 const CHANGELOG = [
+  { version: "1.9.1", date: "27 Jun 2026", changes: [
+    "Bottom nav pill returned: Play, Scores, Profile, Settings (large icons, no text)",
+    "Rainbow word-level bar beneath word box — grows from centre, colour tracks rank",
+    "Info (ℹ) button restored in header for quick rules access",
+    "Toast notifications larger, clearer, and displayed for 5 seconds",
+    "Past-game notice replaced by a toast on first interaction",
+    "Version tag moved to Settings tab",
+  ]},
   { version: "1.9.0", date: "26 Jun 2026", changes: [
     "Redesigned UI: clean white/light theme with purple brand accent",
     "New header with TODAY'S PUZZLE label and date",
@@ -890,6 +898,7 @@ function updateAnswerArea() {
     ansEl.style.fontSize = ""; ansEl.style.letterSpacing = "";
     if (promptEl) promptEl.hidden = false;
     if (resetBtn) resetBtn.hidden = true;
+    updateWordLevelBar(0);
     return;
   }
   var display = selectedPath.map(function(id) {
@@ -908,6 +917,8 @@ function updateAnswerArea() {
   var wordLen = display.replace("?", "").length;
   ansEl.style.fontSize    = wordLen <= 9  ? "" : wordLen <= 12 ? "1.2rem" : wordLen <= 15 ? "1rem" : "0.88rem";
   ansEl.style.letterSpacing = wordLen <= 9  ? "" : wordLen <= 12 ? "0.08em" : "0.04em";
+
+  updateWordLevelBar(selectedPath.length);
 }
 
 function updateScoreDisplay(validWord) {
@@ -950,6 +961,20 @@ function updateLevelBar() {
     const lvl = parseInt(seg.getAttribute("data-level"), 10);
     seg.classList.toggle("active", lvl <= activeLevel);
   });
+}
+
+function updateWordLevelBar(len) {
+  var fill = document.getElementById("word-level-fill");
+  if (!fill) return;
+  var width = len <= 0 ? 0 : Math.min(100, (len / 10) * 100);
+  fill.style.width = width + "%";
+  var color;
+  if (len <= 3)      color = "#ef4444";
+  else if (len <= 5) color = "#f97316";
+  else if (len <= 7) color = "#84cc16";
+  else if (len <= 9) color = "#14b8a6";
+  else               color = "#8b5cf6";
+  fill.style.backgroundColor = color;
 }
 
 function updateDifficultyBadge() {
@@ -1375,6 +1400,14 @@ function openSheet(tabName) {
   var sheet = document.getElementById("game-back");
   if (sheet) { sheet.classList.add("open"); }
   if (tabName) switchBackTab(tabName);
+  // Update nav active state (rules tab stays on "play")
+  var tabToNav = { scores: "scores", stats: "profile", settings: "settings" };
+  var navPanel = tabToNav[tabName];
+  if (navPanel) {
+    document.querySelectorAll(".nav-btn").forEach(function(b) {
+      b.classList.toggle("active", b.dataset.panel === navPanel);
+    });
+  }
 }
 
 function closeSheet() {
@@ -1396,6 +1429,25 @@ function initInfoPanel() {
 
   var scoresBtn = document.getElementById("scores-btn");
   if (scoresBtn) scoresBtn.addEventListener("click", function() { openSheet("scores"); });
+
+  var infoBtn = document.getElementById("info-btn");
+  if (infoBtn) infoBtn.addEventListener("click", function() { openSheet("rules"); });
+
+  // Bottom nav pill
+  var NAV_TAB_MAP = { scores: "scores", profile: "stats", settings: "settings" };
+  document.querySelectorAll(".nav-btn").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      var panel = btn.dataset.panel;
+      if (panel === "play") { closeSheet(); return; }
+      var tabName = NAV_TAB_MAP[panel];
+      if (tabName) {
+        openSheet(tabName);
+        document.querySelectorAll(".nav-btn").forEach(function(b) {
+          b.classList.toggle("active", b.dataset.panel === panel);
+        });
+      }
+    });
+  });
 
   // Action bar
   var undoBtn = document.getElementById("undo-btn");
@@ -1524,9 +1576,7 @@ function loadBoardForDate(ddmmyy) {
   if (prevBtn) prevBtn.disabled = browseOffset <= -13;
   if (nextBtn) nextBtn.disabled = browseOffset >= 0;
 
-  // Past-game banner
-  const banner = document.getElementById("past-game-banner");
-  if (banner) banner.hidden = isToday;
+  if (!isToday) setTimeout(function() { showToast("You're viewing a past puzzle"); }, 800);
 }
 
 function populateAnswers(explicitDateStr) {
@@ -2210,15 +2260,16 @@ function initShare() {
 }
 
 function showToast(msg) {
-  let toast = document.getElementById("toast");
+  var toast = document.getElementById("toast");
   if (!toast) {
     toast = document.createElement("div");
     toast.id = "toast";
     document.body.appendChild(toast);
   }
   toast.textContent = msg;
+  if (toast._timer) { clearTimeout(toast._timer); toast._timer = null; }
   toast.classList.add("visible");
-  setTimeout(() => toast.classList.remove("visible"), 2500);
+  toast._timer = setTimeout(function() { toast.classList.remove("visible"); toast._timer = null; }, 5000);
 }
 
 // ─── Persistence ──────────────────────────────────────────────────────────────
@@ -2474,6 +2525,15 @@ function doDateNavigate(direction) {
 
 // ─── Settings ─────────────────────────────────────────────────────────────────
 function renderSettingsPanel() {
+  // Version label — wired once
+  var verLabel = document.getElementById("settings-version-label");
+  if (verLabel && !verLabel._changelogWired) {
+    verLabel._changelogWired = true;
+    verLabel.textContent = "Shukuma v" + VERSION + " — tap to view changelog";
+    verLabel.style.cursor = "pointer";
+    verLabel.addEventListener("click", showChangelog);
+  }
+
   // Appearance
   var darkToggle  = document.getElementById("setting-dark-mode");
   var soundToggle = document.getElementById("setting-sound");
