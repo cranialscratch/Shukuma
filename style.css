@@ -161,6 +161,18 @@ html, body {
 #info-btn:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.15); }
 #info-btn:active { transform: scale(0.94); }
 
+#header-tickets {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 38px;
+  justify-content: flex-end;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--brand);
+  letter-spacing: -0.2px;
+}
+
 /* ── Word display box ───────────────────────────────────────────────── */
 #word-box {
   margin: 4px 14px 6px;
@@ -353,13 +365,8 @@ html, body {
   transition: opacity 0.2s, transform 0.15s;
   -webkit-tap-highlight-color: transparent;
 }
-#share-btn:not(:disabled):hover { opacity: 0.92; }
-#share-btn:not(:disabled):active { transform: scale(0.98); }
-#share-btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-  background: rgba(0,0,0,0.1);
-}
+#share-btn:hover { opacity: 0.92; }
+#share-btn:active { transform: scale(0.98); }
 
 #share-text-col {
   flex: 1;
@@ -1788,6 +1795,7 @@ html[data-theme="dark"] body {
   color: var(--tile-text);
 }
 html[data-theme="dark"] #puzzle-date { color: #f2f2f7; }
+html[data-theme="dark"] #header-tickets { color: #a78bfa; }
 html[data-theme="dark"] #info-btn {
   background: #3a3a3c;
   color: #a78bfa;

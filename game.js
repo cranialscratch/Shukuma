@@ -409,9 +409,18 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "1.9.1";
+const VERSION = "1.9.2";
 
 const CHANGELOG = [
+  { version: "1.9.2", date: "27 Jun 2026", changes: [
+    "Ticket count moved to top-right corner of header",
+    "Removed score/current/ticket cards below the board — cleaner layout",
+    "Undo, Clear, Hint moved directly beneath the board",
+    "Share button always available: share any puzzle even without a score",
+    "Up to 5 shares per day each earn a Ticket; further shares are free",
+    "Sheet navigation tabs removed — use the pill bar to switch panels",
+    "Admin colour changes now apply and re-render tiles live",
+  ]},
   { version: "1.9.1", date: "27 Jun 2026", changes: [
     "Bottom nav pill returned: Play, Scores, Profile, Settings (large icons, no text)",
     "Rainbow word-level bar beneath word box — grows from centre, colour tracks rank",
@@ -2205,7 +2214,19 @@ function updateShareBtn() {
   var btn = document.getElementById("share-btn");
   if (!btn) return;
   btn.classList.remove("is-throbbing");
-  btn.disabled = !(bestScore > 0 && browsedDateStr === null);
+  var headline = document.getElementById("share-headline");
+  var subline  = document.getElementById("share-subline");
+  var todayKey = "sharedToday-" + getDateString();
+  var shareCount = parseInt(localStorage.getItem(todayKey) || "0", 10);
+  if (bestScore > 0) {
+    if (headline) headline.textContent = "SHARE YOUR SCORE!";
+    if (subline) subline.textContent = shareCount >= 5
+      ? "5 tickets earned today ✓"
+      : "Earn a Ticket per share (up to 5/day)";
+  } else {
+    if (headline) headline.textContent = "SHARE THIS PUZZLE";
+    if (subline)  subline.textContent  = "Challenge your friends!";
+  }
 }
 
 function enableShare() { updateShareBtn(); }
@@ -2214,44 +2235,50 @@ function initShare() {
   var btn = document.getElementById("share-btn");
   if (!btn) return;
   btn.addEventListener("click", function() {
-    if (bestScore === 0) return;
-
     var doShare = function() {
-      var level = getScoreLevel(bestScore);
-      var displayLevel = inOneAchieved ? "Grandmaster in One!" : level;
       var dateStr = getDateString();
-      var text = "I scored '" + displayLevel + "' with " + bestScore +
-        " letters on Shukuma!\nHow did you do?\nhttps://cranialscratch.github.io/Shukuma/\n#Shukuma" + dateStr;
-
-      // First share of the day earns a ticket; subsequent shares are free but don't earn
-      var todayKey = "sharedToday-" + dateStr;
-      var alreadyEarned = !!localStorage.getItem(todayKey);
-      if (!alreadyEarned) {
-        ticketCount++;
-        localStorage.setItem(todayKey, "1");
-        updateTicketDisplay();
-        showToast("Ticket earned! 🎟");
+      var text;
+      if (bestScore > 0) {
+        var level = getScoreLevel(bestScore);
+        var displayLevel = inOneAchieved ? "Grandmaster in One!" : level;
+        text = "I scored '" + displayLevel + "' with " + bestScore +
+          " letters on Shukuma!\nHow did you do?\nhttps://cranialscratch.github.io/Shukuma/\n#Shukuma" + dateStr;
+      } else {
+        text = "Can you find the longest word? Try today's Shukuma puzzle!\nhttps://cranialscratch.github.io/Shukuma/\n#Shukuma";
       }
-      gameCompleted = true;
-      saveState();
+
+      // Each of the first 5 shares today earns one ticket
+      var todayKey = "sharedToday-" + dateStr;
+      var shareCount = parseInt(localStorage.getItem(todayKey) || "0", 10);
+      if (shareCount < 5) {
+        ticketCount++;
+        localStorage.setItem(todayKey, String(shareCount + 1));
+        updateTicketDisplay();
+        showToast("Ticket earned! " + (shareCount + 1) + "/5 🎟");
+      }
+
+      if (bestScore > 0) {
+        gameCompleted = true;
+        saveState();
+        if (currentUser) submitScore().catch(function() {});
+      }
       updateShareBtn();
-      if (currentUser) submitScore().catch(function() {});
 
       if (navigator.share) {
         navigator.share({ title: "Shukuma", text: text }).catch(function() {
           navigator.clipboard && navigator.clipboard.writeText(text);
-          if (alreadyEarned) showToast("Score copied to clipboard!");
         });
       } else if (navigator.clipboard) {
         navigator.clipboard.writeText(text).then(function() {
-          if (alreadyEarned) showToast("Score copied to clipboard!");
+          showToast("Copied to clipboard!");
         }).catch(function() {});
       } else {
         showToast("Share: " + text.split("\n")[0]);
       }
     };
 
-    if (!currentUser && db) {
+    // Only prompt auth when sharing a score (no need for guest share)
+    if (bestScore > 0 && !currentUser && db) {
       showAuthModal("signup", function() { doShare(); });
     } else {
       doShare();
@@ -2700,6 +2727,8 @@ function initAdmin() {
     }
     input.addEventListener("input", function() {
       document.documentElement.style.setProperty(cssVar, input.value);
+      buildColours();
+      renderAllTiles();
     });
   });
 
@@ -2733,6 +2762,8 @@ function initAdmin() {
     localStorage.setItem("shukuma-admin-css", JSON.stringify(overrides));
     if (fontScaleRange) localStorage.setItem("shukuma-admin-scale", fontScaleRange.value);
     if (fontSelect)     localStorage.setItem("shukuma-admin-font",  fontSelect.value);
+    buildColours();
+    renderAllTiles();
     showToast("Theme saved.");
   });
 
