@@ -412,6 +412,22 @@ const FIREBASE_CONFIG = {
 const VERSION = "1.9.7";
 
 const CHANGELOG = [
+  { version: "1.9.7", date: "27 Jun 2026", changes: [
+    "Clear now stays clear — board remains fully neutral for the rest of the session",
+    "Played (indigo) best-word tiles only restore on page reload or date change",
+  ]},
+  { version: "1.9.6", date: "27 Jun 2026", changes: [
+    "Undo removes the last selected tile (backspace); shake phone triggers the same action",
+    "Clear wipes the entire board to neutral including the indigo best-word tiles",
+    "Hint flashes the first unselected tile on the path of today's target word",
+    "Hint costs 1 ticket — confirmation modal shows your balance and a 'Buy Tickets' placeholder",
+  ]},
+  { version: "1.9.5", date: "27 Jun 2026", changes: [
+    "Prompt 'Find today's longest word' now correctly centred in the word box",
+    "Header label changes to 'ARCHIVED PUZZLE' when browsing past dates",
+    "Share button simplified: single row with 'Share' label and '+1 ticket' badge",
+    "All page icons standardised to 26×26 to match the nav pill icon size",
+  ]},
   { version: "1.9.4", date: "27 Jun 2026", changes: [
     "Scores tab redesigned: partial sheet sits 30px below the game board",
     "Today's answers shown as a scratchcard — rub left/right to reveal words",
