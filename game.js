@@ -863,7 +863,6 @@ function renderTile(tile) {
   const text = g.querySelector("text");
   if (poly) {
     poly.setAttribute("fill", (tile.state === "neutral" && tile.blank) ? COLOURS.blank.fill : c.fill);
-    poly.setAttribute("stroke", c.stroke);
   }
   var hatch = g.querySelector(".hatch-overlay");
   if (tile.state === "invalid") {
@@ -1037,8 +1036,7 @@ function buildBoard() {
     const poly = document.createElementNS(NS, "polygon");
     poly.setAttribute("points", hexPoints(x, y, HEX_SIZE - 2));
     poly.setAttribute("fill", tile.blank ? COLOURS.blank.fill : c.fill);
-    poly.setAttribute("stroke", c.stroke);
-    poly.setAttribute("stroke-width", "2");
+    poly.setAttribute("stroke", "none");
     poly.setAttribute("filter", "url(#tile-shadow)");
 
     const text = document.createElementNS(NS, "text");
