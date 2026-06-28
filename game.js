@@ -3094,8 +3094,10 @@ function startCyclingMessages() {
 
   var gen = ++_cycleGen; // capture generation for this run
 
-  var firstMsg = "You found today's word in " + _cycleAttemptCount +
-    (_cycleAttemptCount === 1 ? " attempt" : " attempts") + "!";
+  var attemptsLabel = _cycleAttemptCount === 1 ? "attempt" : "attempts";
+  var firstMsg = browsedDateStr
+    ? "Found in " + _cycleAttemptCount + " " + attemptsLabel + "!"
+    : "You found today's word in " + _cycleAttemptCount + " " + attemptsLabel + "!";
 
   // Shuffle the rest
   var rest = cycleMessages.slice();
