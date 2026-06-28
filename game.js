@@ -409,9 +409,17 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.8";
+const VERSION = "2.0.9";
 
 const CHANGELOG = [
+  { version: "2.0.9", date: "28 Jun 2026", changes: [
+    "Hint tile now throbs bright amber for 10 seconds — much more visible",
+    "Award tickets: configurable value (default 10) — earn on target word or Grandmaster in One",
+    "Word list: found words shown live during play; ≥4-letter words listed (locked until discovered or unlocked)",
+    "Tapping a found word highlights it on the board in sequence",
+    "Past-day words unlock free if you found the target word; otherwise pay 10 tickets",
+    "No ticket earnings for past-day games (spending still allowed)",
+  ]},
   { version: "2.0.8", date: "28 Jun 2026", changes: [
     "Added breathing room between word box and top of board",
     "Action icons and share button pulled inward from screen edges",
@@ -740,6 +748,7 @@ let isDragging = false;
 let bestScore = 0;
 let bestWord = "";
 let ticketCount = 0;
+var AWARD_TICKETS = 10; // tickets given per achievement award
 let gameCompleted = false;
 let lastTileEntered = null;
 const apiCache = new Map();
@@ -819,6 +828,8 @@ let timerLastStart = 0;
 // Board date browsing (0 = today, -1 = yesterday, …)
 let browseOffset = 0;
 let browsedDateStr = null; // null = today
+var foundWords = []; // words found (valid) in current session
+var unlockedDates = {}; // { "280626": true } — dates where user paid to unlock all words
 
 // Tile IDs forming the current best-score word (shown in indigo)
 let playedPath = [];
@@ -1375,13 +1386,14 @@ function lockValidWord(word) {
   selectedPath.forEach(id => { tiles[id].state = "valid"; });
   renderAllTiles();
   const len = selectedPath.length;
+  if (!foundWords.includes(word.toUpperCase())) foundWords.push(word.toUpperCase());
   if (len > bestScore) {
     bestScore = len;
     bestWord = word;
     playedPath = selectedPath.slice();
     if (isInOne) inOneAchieved = true;
-    saveState();
   }
+  saveState();
   updateScoreDisplay(word);
   updateAnswerArea();
   updateShareBtn();
@@ -1396,6 +1408,7 @@ function lockValidWord(word) {
     setTimeout(function() {
       showToast("🎯 Grandmaster in One! First attempt perfection!");
     }, 1600);
+    setTimeout(function() { giveAwardTickets("Grandmaster in One!"); }, 2000);
   } else if (foundTarget) {
     var msgs = FLOAT_MSGS.target_found;
     var cheer = msgs[Math.floor(Math.random() * msgs.length)];
@@ -1403,6 +1416,7 @@ function lockValidWord(word) {
     setTimeout(function() {
       showToast("🏆 You found today's longest word!");
     }, 1600);
+    setTimeout(function() { giveAwardTickets("today's longest word found!"); }, 2000);
   } else {
     var cheers = (FLOAT_MSGS.valid[level] || FLOAT_MSGS.valid["Average"]);
     var cheer2 = cheers[Math.floor(Math.random() * cheers.length)];
@@ -1514,6 +1528,24 @@ function findWordPath(word) {
   return dfs(0, -1, {});
 }
 
+function highlightWordOnBoard(word) {
+  var path = findWordPath(word);
+  if (!path || !path.length) { showToast("Cannot find " + word + " on this board"); return; }
+
+  // Clear current selection first
+  clearSelection();
+
+  // Animate tiles sequentially
+  path.forEach(function(id, idx) {
+    setTimeout(function() {
+      tiles[id].state = "selected";
+      selectedPath = path.slice(0, idx + 1);
+      renderAllTiles();
+      updateAnswerArea();
+    }, idx * 110);
+  });
+}
+
 function doHint() {
   var targetWord = puzzle && puzzle.prevAnswers && puzzle.prevAnswers[0]
     ? puzzle.prevAnswers[0].word : "";
@@ -1540,7 +1572,7 @@ function doHint() {
   var g = document.getElementById("tile-" + candidate);
   if (g) {
     g.classList.add("tile-hint");
-    setTimeout(function() { g.classList.remove("tile-hint"); }, 2000);
+    setTimeout(function() { g.classList.remove("tile-hint"); }, 10000);
   }
   showToast("Hint used (-1 ticket)");
 }
@@ -1769,7 +1801,7 @@ function loadBoardForDate(ddmmyy) {
   puzzle = isToday ? getTodaysPuzzle() : getPuzzleForDate(ddmmyy);
 
   // Reset game state for this date
-  tiles = []; selectedPath = []; isDragging = false; playedPath = []; playedPathVisible = true;
+  tiles = []; selectedPath = []; isDragging = false; playedPath = []; playedPathVisible = true; foundWords = [];
   bestScore = 0; bestWord = ""; gameCompleted = false;
   attemptCount = 0; validAttemptCount = 0; activeTimeMs = 0; timerRunning = false; timerLastStart = 0;
   inOneAchieved = false;
@@ -1815,107 +1847,10 @@ function loadBoardForDate(ddmmyy) {
 }
 
 function populateAnswers(explicitDateStr) {
+  // Now handled by buildScratchAnswers via the scores panel
+  // This function is kept for backward compat but delegates to the scratchcard
   var section = document.getElementById("answers-section");
-  var list    = document.getElementById("answers-list");
-  if (!section || !list) return;
-
-  var dateStr = explicitDateStr || browsedDateStr;
-  if (!dateStr) { section.hidden = true; return; }
-
-  var puz = getPuzzleForDate(dateStr);
-  section.hidden = false;
-
-  // Build answer list immediately (no expand/collapse)
-  list.innerHTML = "";
-  if (!puz || !puz.prevAnswers) return;
-
-  // Section heading
-  var heading = document.createElement("div");
-  heading.className = "wd-section-title";
-  heading.textContent = formatDateDisplay(dateStr) + " — Answers";
-  list.appendChild(heading);
-
-  // Sort longest → shortest
-  var answers = puz.prevAnswers.slice().sort(function(a, b) {
-    return (b.word || "").length - (a.word || "").length;
-  });
-
-  var myWord = bestWord ? bestWord.toUpperCase() : "";
-
-  answers.forEach(function(a, idx) {
-    var word = (a.word || "").toUpperCase();
-    var isTarget = idx === 0;
-    var isMine   = myWord && word === myWord;
-
-    var li = document.createElement("li");
-    li.className = "answer-item" +
-      (isTarget ? " answer-target" : "") +
-      (isMine   ? " answer-mine"   : "");
-
-    // Eye toggle button
-    var eyeBtn = document.createElement("button");
-    eyeBtn.className = "answer-eye-btn";
-    eyeBtn.setAttribute("aria-label", "Show / hide word");
-    eyeBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
-
-    // Word span (blurred by default)
-    var wordSpan = document.createElement("span");
-    wordSpan.className = "answer-word answer-blurred";
-    wordSpan.textContent = word;
-
-    eyeBtn.addEventListener("click", function() {
-      var revealed = wordSpan.classList.toggle("answer-blurred") === false;
-      eyeBtn.classList.toggle("revealed", revealed);
-      if (revealed) {
-        eyeBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
-      } else {
-        eyeBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
-      }
-    });
-
-    // Bar
-    var bar = document.createElement("span");
-    bar.className = "answer-bar";
-    var fill = document.createElement("span");
-    fill.className = "answer-fill";
-    fill.style.width = (a.pct || 0) + "%";
-    bar.appendChild(fill);
-
-    // Pct
-    var pct = document.createElement("span");
-    pct.className = "answer-pct";
-    pct.textContent = (a.pct || 0) + "%";
-
-    li.appendChild(eyeBtn);
-    li.appendChild(wordSpan);
-    li.appendChild(bar);
-    li.appendChild(pct);
-
-    // Definition button for target word only
-    if (isTarget) {
-        var defBtn = document.createElement("button");
-        defBtn.className = "def-btn";
-        defBtn.title = "Show definition";
-        defBtn.setAttribute("aria-label", "Show definition");
-        defBtn.textContent = "?";
-        defBtn.addEventListener("click", function(e) {
-          e.stopPropagation();
-          var box = li.querySelector(".def-box");
-          if (box) { box.remove(); return; }
-          var newBox = document.createElement("div");
-          newBox.className = "def-box";
-          newBox.textContent = "Loading…";
-          li.appendChild(newBox);
-          fetchDefinition(word).then(function(def) {
-            newBox.textContent = def || "No definition found.";
-          });
-        });
-        li.appendChild(defBtn);
-      }
-
-      list.appendChild(li);
-
-  });
+  if (section) section.hidden = true;
 }
 
 // ─── Word definition lookup ───────────────────────────────────────────────────
@@ -2240,110 +2175,137 @@ function buildScratchAnswers(answers, playersByWord, isToday) {
   if (!container) return;
   container.innerHTML = "";
 
+  // All valid words ≥ 4 letters from this puzzle
+  var allWords = (answers || []).filter(function(a) { return (a.word || "").length >= 4; })
+    .slice().sort(function(a, b) { return b.word.length - a.word.length; });
+
+  var dateKey = isToday ? null : (browsedDateStr || lbDayOffset !== 0 ? getDateForOffset(lbDayOffset) : null);
+
+  // Found words for this date (today = live foundWords, past = loaded from state)
+  var myFound;
   if (isToday) {
-    // Today: hide puzzle answers; show user's own progress
-    var msg = document.createElement("div");
-    msg.className = "sc-tomorrow-msg";
-    msg.textContent = "Come back tomorrow to compare your score!";
-    container.appendChild(msg);
-
-    if (bestWord && bestWord.length > 0) {
-      var hdr = document.createElement("div");
-      hdr.className = "sc-my-words-header";
-      hdr.textContent = "Your best word:";
-      container.appendChild(hdr);
-
-      var wordRow = document.createElement("div");
-      wordRow.className = "sc-my-word-row";
-      var wordText = document.createElement("span");
-      wordText.className = "sc-my-word-text";
-      wordText.textContent = bestWord.toUpperCase();
-      var wordLen = document.createElement("span");
-      wordLen.className = "sc-my-word-len";
-      wordLen.textContent = bestWord.length + " letters";
-      wordRow.appendChild(wordText);
-      wordRow.appendChild(wordLen);
-      container.appendChild(wordRow);
-    } else {
-      var noWord = document.createElement("div");
-      noWord.className = "sc-no-word-msg";
-      noWord.textContent = "No word found yet — keep playing!";
-      container.appendChild(noWord);
-    }
-    return;
+    myFound = new Set(foundWords.map(function(w) { return w.toUpperCase(); }));
+  } else {
+    // Load from saved state for that date
+    myFound = new Set();
+    try {
+      var raw = localStorage.getItem("shukuma-" + (dateKey || getDateString()));
+      if (raw) {
+        var s = JSON.parse(raw);
+        (s.foundWords || []).forEach(function(w) { myFound.add(w.toUpperCase()); });
+        // Also include bestWord for legacy saves that didn't have foundWords
+        if (s.bestWord) myFound.add(s.bestWord.toUpperCase());
+      }
+    } catch(_) {}
   }
 
-  // Past date: blurred word list with rub-to-reveal
-  if (!answers || !answers.length) {
+  // Target word (index 0 in answers, sorted by length desc)
+  var targetWord = allWords.length > 0 ? allWords[0].word.toUpperCase() : "";
+
+  // Is this date unlocked?
+  var isUnlocked = isToday ? false : (dateKey && unlockedDates[dateKey]);
+
+  // Check if user found the target word for this date (unlocks past-day words for free)
+  var foundTarget = targetWord && myFound.has(targetWord);
+  var canViewFree = foundTarget && !isToday;
+
+  if (isToday) {
+    // "Come back tomorrow" message for target word
+    var msg = document.createElement("div");
+    msg.className = "sc-tomorrow-msg";
+    msg.textContent = "Come back tomorrow to see today's answer!";
+    container.appendChild(msg);
+  }
+
+  // Header for found words
+  if (myFound.size > 0) {
+    var fHdr = document.createElement("div");
+    fHdr.className = "wl-section-hdr";
+    fHdr.textContent = "Your words";
+    container.appendChild(fHdr);
+
+    // Show found words sorted longest first
+    var foundArr = Array.from(myFound).sort(function(a, b) { return b.length - a.length; });
+    foundArr.forEach(function(w) {
+      var row = buildWordRow(w, true, false);
+      container.appendChild(row);
+    });
+  }
+
+  // Locked / unlockable words section
+  var lockedWords = allWords.filter(function(a) {
+    var wu = a.word.toUpperCase();
+    // Today: target word never shown, others can be unlocked
+    if (isToday && wu === targetWord) return false;
+    // Skip already found
+    if (myFound.has(wu)) return false;
+    return true;
+  });
+
+  if (lockedWords.length > 0) {
+    var lHdr = document.createElement("div");
+    lHdr.className = "wl-section-hdr";
+    lHdr.textContent = "Words to discover";
+    container.appendChild(lHdr);
+
+    // Unlock button (for past days only)
+    if (!isToday && !isUnlocked && !canViewFree) {
+      var unlockRow = document.createElement("div");
+      unlockRow.className = "wl-unlock-row";
+      var unlockBtn = document.createElement("button");
+      unlockBtn.className = "wl-unlock-btn";
+      unlockBtn.innerHTML = 'Unlock all — find today\'s word or <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg> &minus;10';
+      unlockBtn.addEventListener("click", function() {
+        if (ticketCount < 10) { showToast("Not enough tickets (need 10)"); return; }
+        ticketCount -= 10;
+        saveTickets();
+        updateTicketDisplay();
+        if (dateKey) { unlockedDates[dateKey] = true; saveUnlockedDates(); }
+        buildScratchAnswers(answers, playersByWord, isToday);
+        showToast("Words unlocked!");
+      });
+      unlockRow.appendChild(unlockBtn);
+      container.appendChild(unlockRow);
+    }
+
+    var showLocked = isUnlocked || canViewFree;
+    lockedWords.forEach(function(a) {
+      var row = buildWordRow(a.word.toUpperCase(), showLocked, !showLocked);
+      container.appendChild(row);
+    });
+  }
+
+  if (!isToday && allWords.length === 0) {
     var empty = document.createElement("div");
     empty.className = "sc-empty";
     empty.textContent = "No answers available for this date.";
     container.appendChild(empty);
-    return;
   }
-
-  var hint = document.createElement("div");
-  hint.className = "sc-rub-hint";
-  hint.textContent = "Rub your finger over the words to reveal them";
-  container.appendChild(hint);
-
-  var sorted = answers.slice().sort(function(a, b) {
-    return (b.word || "").length - (a.word || "").length;
-  });
-
-  sorted.forEach(function(a) {
-    var word = (a.word || "").toUpperCase();
-    var row = document.createElement("div");
-    row.className = "sc-row";
-
-    var wordSpan = document.createElement("span");
-    wordSpan.className = "sc-word sc-blurred";
-    wordSpan.textContent = word;
-
-    var bar = document.createElement("div");
-    bar.className = "answer-bar";
-    var fill = document.createElement("span");
-    fill.className = "answer-fill";
-    fill.style.width = (a.pct || 0) + "%";
-    bar.appendChild(fill);
-
-    var pct = document.createElement("span");
-    pct.className = "sc-pct";
-    pct.textContent = (a.pct || 0) + "%";
-
-    row.appendChild(wordSpan);
-    row.appendChild(bar);
-    row.appendChild(pct);
-    container.appendChild(row);
-  });
 }
 
-function initScratchReveal(container) {
-  function revealAt(x, y) {
-    var el = document.elementFromPoint(x, y);
-    if (!el) return;
-    // Walk up for sc-word (handles click on text inside span)
-    var wordEl = el.closest ? el.closest(".sc-word") : null;
-    // Also walk down in case el is a parent row (elementFromPoint may return sc-row)
-    if (!wordEl && el.querySelector) wordEl = el.querySelector(".sc-word");
-    if (!wordEl) return;
-    wordEl.classList.remove("sc-blurred");
-    // Re-blur after 10 seconds
-    clearTimeout(wordEl._reBlurTimer);
-    wordEl._reBlurTimer = setTimeout(function() {
-      wordEl.classList.add("sc-blurred");
-    }, 10000);
+function buildWordRow(word, revealed, locked) {
+  var row = document.createElement("div");
+  row.className = "wl-row" + (locked ? " wl-locked" : "") + (revealed ? " wl-found" : "");
+
+  var wordSpan = document.createElement("span");
+  wordSpan.className = "wl-word";
+  wordSpan.textContent = locked ? "• • • • •".substring(0, Math.max(word.length * 2 - 1, 5)) : word;
+
+  var lenSpan = document.createElement("span");
+  lenSpan.className = "wl-len";
+  lenSpan.textContent = word.length + " letters";
+
+  row.appendChild(wordSpan);
+  row.appendChild(lenSpan);
+
+  // Tapping a revealed word highlights it on the board
+  if (revealed) {
+    row.addEventListener("click", function() {
+      highlightWordOnBoard(word);
+    });
   }
 
-  container.addEventListener("touchstart", function(e) {
-    if (e.touches.length !== 1) return;
-    revealAt(e.touches[0].clientX, e.touches[0].clientY);
-  }, { passive: true });
-
-  container.addEventListener("touchmove", function(e) {
-    if (e.touches.length !== 1) return;
-    revealAt(e.touches[0].clientX, e.touches[0].clientY);
-  }, { passive: true });
+  return row;
 }
 
 function openPlayerModal(players, wordTitle) {
@@ -2816,10 +2778,10 @@ function initShare() {
         text = "Can you find the longest word? Try today's Shukuma puzzle!\nhttps://cranialscratch.github.io/Shukuma/\n#Shukuma";
       }
 
-      // Each of the first 5 shares today earns one ticket
+      // Each of the first 5 shares today earns one ticket (today only)
       var todayKey = "sharedToday-" + dateStr;
       var shareCount = parseInt(localStorage.getItem(todayKey) || "0", 10);
-      if (shareCount < 5) {
+      if (!browsedDateStr && shareCount < 5) {
         ticketCount++;
         localStorage.setItem(todayKey, String(shareCount + 1));
         saveTickets();
@@ -2877,7 +2839,7 @@ function saveState() {
   const elapsed = timerRunning ? activeTimeMs + (Date.now() - timerLastStart) : activeTimeMs;
   try {
     localStorage.setItem(storageKey(), JSON.stringify({
-      bestWord, bestScore, gameCompleted, attemptCount, validAttemptCount, activeTimeMs: elapsed, playedPath, inOneAchieved,
+      bestWord, bestScore, gameCompleted, attemptCount, validAttemptCount, activeTimeMs: elapsed, playedPath, inOneAchieved, foundWords,
     }));
   } catch(_) {}
 }
@@ -2895,6 +2857,7 @@ function loadState() {
     activeTimeMs     = s.activeTimeMs  || 0;
     playedPath       = Array.isArray(s.playedPath) ? s.playedPath : [];
     inOneAchieved    = s.inOneAchieved || false;
+    foundWords       = Array.isArray(s.foundWords) ? s.foundWords : [];
   } catch(_) {}
 }
 
@@ -2916,6 +2879,30 @@ function loadTickets() {
   } catch(_) {}
   ticketCount = 0;
   saveTickets();
+}
+
+function giveAwardTickets(reason) {
+  if (browsedDateStr) return; // no awards for past-day play
+  ticketCount += AWARD_TICKETS;
+  saveTickets();
+  updateTicketDisplay();
+  showToast("🎟 +" + AWARD_TICKETS + " tickets — " + reason);
+}
+
+function loadAwardTickets() {
+  var v = localStorage.getItem("shukuma-award-tickets");
+  if (v !== null) AWARD_TICKETS = parseInt(v) || 10;
+}
+
+function saveAwardTickets() {
+  localStorage.setItem("shukuma-award-tickets", String(AWARD_TICKETS));
+}
+
+function loadUnlockedDates() {
+  try { unlockedDates = JSON.parse(localStorage.getItem("shukuma-unlocked-dates") || "{}"); } catch(_) { unlockedDates = {}; }
+}
+function saveUnlockedDates() {
+  try { localStorage.setItem("shukuma-unlocked-dates", JSON.stringify(unlockedDates)); } catch(_) {}
 }
 
 // ─── Version / changelog ──────────────────────────────────────────────────────
@@ -3720,6 +3707,18 @@ function initAdmin() {
     showToast("Tickets set to " + newCount + ".");
   });
 
+  // Set award ticket value
+  var setAwardBtn = document.getElementById("admin-set-award-tickets-btn");
+  if (setAwardBtn) setAwardBtn.addEventListener("click", function() {
+    var input = document.getElementById("admin-award-ticket-input");
+    if (!input) return;
+    var v = parseInt(input.value, 10);
+    if (isNaN(v) || v < 0) { showToast("Invalid value."); return; }
+    AWARD_TICKETS = v;
+    saveAwardTickets();
+    showToast("Award tickets set to " + v + " per award.");
+  });
+
   // Seed demo data
   var seedBtn = document.getElementById("admin-seed-btn");
   if (seedBtn) seedBtn.addEventListener("click", function() {
@@ -4004,6 +4003,8 @@ function init() {
   puzzle = getTodaysPuzzle();
   loadState();
   loadTickets();
+  loadAwardTickets();
+  loadUnlockedDates();
 
   // Build tiles
   let tileIndex = 0;
@@ -4050,8 +4051,7 @@ function init() {
   initCalendar();
   initBackPanelDrag();
   initBlurReveal();
-  var scratchEl = document.getElementById("answers-scratchcard");
-  if (scratchEl) initScratchReveal(scratchEl);
+  // initScratchReveal replaced by buildWordRow tap-to-reveal system
 
   updateScoreDisplay(null);
   updateTicketDisplay();

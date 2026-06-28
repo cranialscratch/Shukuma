@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2.0.8" />
+  <link rel="stylesheet" href="style.css?v=2.0.9" />
 </head>
 <body>
   <div id="app">
@@ -732,6 +732,14 @@
         <div class="admin-actions" style="margin-top:8px;">
           <button class="admin-btn" id="admin-set-tickets-btn">Set Tickets</button>
         </div>
+        <div class="admin-row" style="align-items:center;gap:12px;margin-top:6px;">
+          <label for="admin-award-ticket-input" style="flex:1;font-size:0.9rem;">Tickets per award</label>
+          <input type="number" id="admin-award-ticket-input" min="0" max="9999" value="10"
+            style="width:100px;padding:7px 10px;border:1.5px solid #ddd;border-radius:8px;font-size:1rem;font-family:inherit;text-align:right;" />
+        </div>
+        <div class="admin-actions" style="margin-top:4px;">
+          <button class="admin-btn" id="admin-set-award-tickets-btn">Set Award Value</button>
+        </div>
       </div>
 
       <!-- ── Data Tools ─────────────────────────────────────────── -->
@@ -771,6 +779,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
-  <script src="game.js?v=2.0.8"></script>
+  <script src="game.js?v=2.0.9"></script>
 </body>
 </html>
