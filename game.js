@@ -409,9 +409,14 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.6";
+const VERSION = "2.0.7";
 
 const CHANGELOG = [
+  { version: "2.0.7", date: "28 Jun 2026", changes: [
+    "Board now sits at the top of the card — controls pin directly beneath it",
+    "Removed large vertical gap between board and action controls",
+    "Nav pill uses remaining space at the bottom naturally",
+  ]},
   { version: "2.0.6", date: "28 Jun 2026", changes: [
     "Action icons and share button now sit on one row directly under the board — icons left, share right",
     "Board moves up closer to the word box (less wasted gap)",

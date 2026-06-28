@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2.0.6" />
+  <link rel="stylesheet" href="style.css?v=2.0.7" />
 </head>
 <body>
   <div id="app">
@@ -52,6 +52,9 @@
           <!-- Word level bar -->
           <div id="word-level-bar"><div id="word-level-fill"></div></div>
 
+          <!-- Board group: board + controls pinned together -->
+          <div id="board-group">
+
           <!-- Hex board -->
           <div id="board-container">
             <svg id="hex-board" xmlns="http://www.w3.org/2000/svg"></svg>
@@ -87,6 +90,8 @@
               <span id="share-ticket-badge">+1</span>
             </button>
           </div>
+
+          </div><!-- /board-group -->
 
           <!-- Bottom nav pill -->
           <div id="bottom-nav">
@@ -766,6 +771,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
-  <script src="game.js?v=2.0.6"></script>
+  <script src="game.js?v=2.0.7"></script>
 </body>
 </html>
