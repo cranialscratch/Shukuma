@@ -409,9 +409,15 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.5";
+const VERSION = "2.0.6";
 
 const CHANGELOG = [
+  { version: "2.0.6", date: "28 Jun 2026", changes: [
+    "Action icons and share button now sit on one row directly under the board — icons left, share right",
+    "Board moves up closer to the word box (less wasted gap)",
+    "Share button is now a slim outline pill — present without dominating the game",
+    "Share button pulses gently 3× after each valid word is found, then rests",
+  ]},
   { version: "2.0.5", date: "28 Jun 2026", changes: [
     "Admin: colour panel redesigned — light & dark side by side, one row per colour",
     "Admin: 5 preset themes (Default, Maroon, Forest, Ocean, Coffee) — click to preview, then save",
@@ -1396,6 +1402,16 @@ function lockValidWord(word) {
 
   // After showing green, transition to played (indigo) state
   setTimeout(clearSelection, 1500);
+
+  // Subtle share throb once tiles have settled (~300ms after clearSelection)
+  setTimeout(function() {
+    var shareBtn = document.getElementById("share-btn");
+    if (!shareBtn) return;
+    shareBtn.classList.remove("share-pulse");
+    void shareBtn.offsetWidth; // force reflow so animation restarts cleanly
+    shareBtn.classList.add("share-pulse");
+    setTimeout(function() { shareBtn.classList.remove("share-pulse"); }, 2400);
+  }, 1800);
 }
 
 function flashInvalid() {
@@ -2766,6 +2782,7 @@ function updateShareBtn() {
   var btn = document.getElementById("share-btn");
   if (!btn) return;
   btn.classList.remove("is-throbbing");
+  btn.classList.remove("share-pulse");
   var badgeEl  = document.getElementById("share-ticket-badge");
   var todayKey = "sharedToday-" + getDateString();
   var shareCount = parseInt(localStorage.getItem(todayKey) || "0", 10);

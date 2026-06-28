@@ -310,7 +310,7 @@ html, body {
   justify-content: center;
   align-items: center;
   padding: 4px 8px;
-  margin-top: -12px;
+  margin-top: -20px;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -395,33 +395,48 @@ html, body {
   line-height: 1.3;
 }
 
-/* ── Share button (compact pill) ────────────────────────────────────── */
+/* ── Board controls row (action icons + share) ───────────────────────── */
+#board-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px 0 4px;
+  flex-shrink: 0;
+}
+
+/* ── Share button — outline pill, throbs after valid word ────────────── */
 #share-btn {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  align-self: center;
-  margin: -24px auto 8px;
-  padding: 11px 28px;
-  background: #22c55e;
-  border: none;
-  border-radius: 28px;
-  color: white;
+  gap: 5px;
+  margin: 0;
+  padding: 7px 14px;
+  background: transparent;
+  border: 1.5px solid var(--brand);
+  border-radius: 20px;
+  color: var(--brand);
   cursor: pointer;
-  font-size: 1.0625rem;
-  font-weight: 800;
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-family: inherit;
   flex-shrink: 0;
-  width: auto;
   transition: opacity 0.2s, transform 0.15s;
   -webkit-tap-highlight-color: transparent;
 }
-#share-btn:hover { opacity: 0.92; }
-#share-btn:active { transform: scale(0.98); }
+#share-btn:hover { opacity: 0.75; }
+#share-btn:active { transform: scale(0.96); }
 
 #share-ticket-badge {
-  font-size: 1.0625rem;
+  font-size: 0.875rem;
   font-weight: 800;
+}
+
+@keyframes sharePulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  45%       { transform: scale(1.10); opacity: 0.82; }
+}
+.share-pulse {
+  animation: sharePulse 0.75s ease-in-out 3;
 }
 
 /* ── Bottom nav pill ────────────────────────────────────────────────── */
@@ -471,10 +486,7 @@ html, body {
 #action-bar {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 16px;
-  padding: 2px 16px 4px;
-  margin-top: -24px;
+  gap: 2px;
   flex-shrink: 0;
 }
 
