@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2.0.13" />
+  <link rel="stylesheet" href="style.css?v=2.0.14" />
 </head>
 <body>
   <div id="app">
@@ -764,6 +764,39 @@
         </div>
       </div>
 
+      <!-- ── Game Card Audit ───────────────────────────────────────── -->
+      <div class="admin-section">
+        <h3>Game Card Audit</h3>
+        <p class="admin-mode-note">Scans every puzzle's letter grid for all valid words (4+ letters). Flags cards where the target word is under 10 letters or where a longer valid word exists on the board. Blank tiles are treated as wildcards.</p>
+        <div class="admin-actions">
+          <button class="admin-btn" id="admin-audit-run-btn">Analyse All Puzzles</button>
+          <button class="admin-btn admin-btn-secondary" id="admin-audit-cancel-btn" style="display:none">Cancel</button>
+        </div>
+        <div id="admin-audit-progress" style="display:none;margin-top:10px;">
+          <div style="background:#e5e7eb;border-radius:4px;height:6px;overflow:hidden;">
+            <div id="admin-audit-bar" style="height:100%;background:var(--brand);width:0%;transition:width 0.15s;"></div>
+          </div>
+          <div id="admin-audit-progress-label" style="font-size:0.75rem;color:#888;margin-top:4px;text-align:right;">0 / 365</div>
+        </div>
+        <div id="admin-audit-summary" style="display:none;margin-top:8px;font-size:0.8rem;padding:6px 10px;background:#f9fafb;border-radius:6px;border:1px solid #e5e7eb;"></div>
+        <div id="admin-audit-table-wrap" style="display:none;margin-top:10px;overflow-x:auto;max-height:440px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:8px;">
+          <table style="width:100%;border-collapse:collapse;font-size:0.78rem;white-space:nowrap;">
+            <thead>
+              <tr style="position:sticky;top:0;background:#f8f8f8;z-index:2;">
+                <th class="audit-th">#</th>
+                <th class="audit-th" style="text-align:left;">Target Word</th>
+                <th class="audit-th">Len</th>
+                <th class="audit-th">4+ Words</th>
+                <th class="audit-th" style="text-align:left;">Longest Found</th>
+                <th class="audit-th">Blanks</th>
+                <th class="audit-th" style="text-align:left;">Flags</th>
+              </tr>
+            </thead>
+            <tbody id="admin-audit-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -790,6 +823,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
-  <script src="game.js?v=2.0.13"></script>
+  <script src="game.js?v=2.0.14"></script>
 </body>
 </html>

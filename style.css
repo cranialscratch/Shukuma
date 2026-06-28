@@ -2683,6 +2683,34 @@ html, body {
   border: 1px solid rgba(220,60,60,0.2);
 }
 
+/* ── Game Card Audit table ────────────────────────────────────────────── */
+.audit-th {
+  padding: 7px 8px;
+  text-align: center;
+  border-bottom: 1.5px solid #e5e7eb;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #6b7280;
+  white-space: nowrap;
+}
+.audit-td {
+  padding: 5px 8px;
+  border-bottom: 1px solid #f3f4f6;
+}
+.audit-flag {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+.audit-flag-short { background: #fee2e2; color: #b91c1c; }
+.audit-flag-longer { background: #fef3c7; color: #92400e; }
+
 /* ── Colour-blind themes ─────────────────────────────────────────────── */
 html[data-colour="protanopia"] {
   --tile-valid:          #4a90d9;

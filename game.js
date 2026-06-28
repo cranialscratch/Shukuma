@@ -409,7 +409,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.13";
+const VERSION = "2.0.14";
 
 const CHANGELOG = [
   { version: "2.0.11", date: "28 Jun 2026", changes: [
@@ -3858,6 +3858,186 @@ var ADMIN_DARK_MAP = {
 // Combined for backward-compatible palette saves (all vars in one css object)
 var ADMIN_CSS_MAP = Object.assign({}, ADMIN_LIGHT_MAP, ADMIN_DARK_MAP);
 
+// ─── Game Card Audit ──────────────────────────────────────────────────────────
+var WORD_PREFIXES = null;
+var _auditCancel = false;
+
+function buildWordPrefixes() {
+  if (WORD_PREFIXES) return;
+  WORD_PREFIXES = new Set();
+  WORDS.forEach(function(w) {
+    if (w.length < 4) return;
+    for (var i = 1; i <= w.length; i++) WORD_PREFIXES.add(w.slice(0, i));
+  });
+}
+
+function auditOnePuzzle(puzzle) {
+  var letters = puzzle.letters.map(function(l) { return (l || "").toLowerCase(); });
+  var blankCount = letters.filter(function(l) { return l === ""; }).length;
+
+  // Build a local adjacency map (same hex topology as buildAdjacency but self-contained)
+  var posMap = {};
+  var idx = 0;
+  for (var row = 0; row < ROW_SIZES.length; row++) {
+    for (var col = 0; col < ROW_SIZES[row]; col++) {
+      posMap[row + "," + col] = idx++;
+    }
+  }
+  var adj = [];
+  idx = 0;
+  for (var row = 0; row < ROW_SIZES.length; row++) {
+    for (var col = 0; col < ROW_SIZES[row]; col++) {
+      var nbrs = [[row, col - 1], [row, col + 1]];
+      if (row % 2 === 0) {
+        nbrs.push([row - 1, col], [row - 1, col + 1], [row + 1, col], [row + 1, col + 1]);
+      } else {
+        nbrs.push([row - 1, col - 1], [row - 1, col], [row + 1, col - 1], [row + 1, col]);
+      }
+      var neighbors = [];
+      nbrs.forEach(function(nr) {
+        var key = nr[0] + "," + nr[1];
+        if (posMap[key] !== undefined) neighbors.push(posMap[key]);
+      });
+      adj.push(neighbors);
+      idx++;
+    }
+  }
+
+  var found = new Set();
+  var longestWord = "";
+  var visited = new Uint8Array(22);
+
+  function dfs(tileId, word) {
+    if (!WORD_PREFIXES.has(word)) return; // no 4+ letter word starts with this — prune
+    if (word.length >= 4 && WORDS.has(word) && !OFFENSIVE_WORDS.has(word)) {
+      found.add(word);
+      if (word.length > longestWord.length) longestWord = word;
+    }
+    if (word.length >= 16) return;
+    var neighbors = adj[tileId];
+    for (var ni = 0; ni < neighbors.length; ni++) {
+      var nextId = neighbors[ni];
+      if (visited[nextId]) continue;
+      visited[nextId] = 1;
+      var nextLetter = letters[nextId];
+      if (nextLetter === "") {
+        for (var ci = 97; ci <= 122; ci++) dfs(nextId, word + String.fromCharCode(ci));
+      } else {
+        dfs(nextId, word + nextLetter);
+      }
+      visited[nextId] = 0;
+    }
+  }
+
+  for (var i = 0; i < 22; i++) {
+    visited[i] = 1;
+    var letter = letters[i];
+    if (letter === "") {
+      for (var ci = 97; ci <= 122; ci++) dfs(i, String.fromCharCode(ci));
+    } else {
+      dfs(i, letter);
+    }
+    visited[i] = 0;
+  }
+
+  var targetWord = (puzzle.prevAnswers && puzzle.prevAnswers[0])
+    ? puzzle.prevAnswers[0].word.toLowerCase() : "";
+  var flags = [];
+  if (targetWord.length < 10) flags.push("short");
+  if (longestWord.length > targetWord.length) flags.push("longer");
+
+  return { wordCount: found.size, longestFound: longestWord, blankCount: blankCount,
+           targetLen: targetWord.length, flags: flags };
+}
+
+function runAdminAudit() {
+  buildWordPrefixes();
+
+  var tbody       = document.getElementById("admin-audit-tbody");
+  var bar         = document.getElementById("admin-audit-bar");
+  var progLabel   = document.getElementById("admin-audit-progress-label");
+  var progDiv     = document.getElementById("admin-audit-progress");
+  var tableWrap   = document.getElementById("admin-audit-table-wrap");
+  var summaryDiv  = document.getElementById("admin-audit-summary");
+  var runBtn      = document.getElementById("admin-audit-run-btn");
+  var cancelBtn   = document.getElementById("admin-audit-cancel-btn");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+  tableWrap.style.display = "none";
+  summaryDiv.style.display = "none";
+  progDiv.style.display = "block";
+  bar.style.width = "0%";
+  if (runBtn) runBtn.disabled = true;
+  if (cancelBtn) cancelBtn.style.display = "";
+  _auditCancel = false;
+
+  var total = PUZZLES.length;
+  var i = 0, shortCount = 0, longerCount = 0;
+
+  function processBatch() {
+    if (_auditCancel) {
+      progDiv.style.display = "none";
+      if (runBtn) runBtn.disabled = false;
+      if (cancelBtn) cancelBtn.style.display = "none";
+      return;
+    }
+    var batchEnd = Math.min(i + 8, total);
+    while (i < batchEnd) {
+      var puz = PUZZLES[i];
+      var r = auditOnePuzzle(puz);
+      var targetWord = puz.prevAnswers && puz.prevAnswers[0] ? puz.prevAnswers[0].word : "";
+
+      if (r.flags.indexOf("short") >= 0) shortCount++;
+      if (r.flags.indexOf("longer") >= 0) longerCount++;
+
+      var rowBg = r.flags.indexOf("short") >= 0 ? "#fff5f5"
+                : r.flags.indexOf("longer") >= 0 ? "#fffbf0" : "";
+
+      var longestTxt = r.longestFound
+        ? (r.longestFound.toUpperCase() + (r.longestFound.toLowerCase() === targetWord.toLowerCase()
+            ? " <span style='color:#22c55e;font-size:0.75em'>✓</span>"
+            : " <span style='color:#e67e00;font-weight:700;font-size:0.8em'>↑</span>"))
+        : "<span style='color:#d1d5db'>—</span>";
+
+      var flagsHtml = r.flags.length
+        ? r.flags.map(function(f) { return '<span class="audit-flag audit-flag-' + f + '">' + f.toUpperCase() + '</span>'; }).join(" ")
+        : "<span style='color:#d1d5db;font-size:0.78em'>OK</span>";
+
+      var tr = document.createElement("tr");
+      tr.style.background = rowBg;
+      tr.innerHTML =
+        '<td class="audit-td" style="text-align:center;color:#9ca3af;">' + (i + 1) + '</td>' +
+        '<td class="audit-td" style="font-weight:700;font-family:monospace;letter-spacing:0.05em;">' + escHtml(targetWord.toUpperCase()) + '</td>' +
+        '<td class="audit-td" style="text-align:center;font-weight:' + (r.targetLen < 10 ? "700" : "400") + ';color:' + (r.targetLen < 10 ? "#ef4444" : "#374151") + ';">' + r.targetLen + '</td>' +
+        '<td class="audit-td" style="text-align:center;color:#6b7280;">' + r.wordCount + '</td>' +
+        '<td class="audit-td" style="font-family:monospace;font-size:0.82rem;">' + longestTxt + '</td>' +
+        '<td class="audit-td" style="text-align:center;color:#9ca3af;">' + (r.blankCount || "—") + '</td>' +
+        '<td class="audit-td">' + flagsHtml + '</td>';
+      tbody.appendChild(tr);
+      i++;
+    }
+
+    var pct = Math.round(i / total * 100);
+    bar.style.width = pct + "%";
+    progLabel.textContent = i + " / " + total;
+
+    if (i < total) {
+      setTimeout(processBatch, 0);
+    } else {
+      progDiv.style.display = "none";
+      tableWrap.style.display = "";
+      summaryDiv.style.display = "";
+      summaryDiv.innerHTML =
+        "<strong style='color:#ef4444'>" + shortCount + "</strong> cards with target &lt;10 letters &nbsp;·&nbsp;" +
+        "<strong style='color:#e67e00'>" + longerCount + "</strong> cards where a longer valid word exists on the board";
+      if (runBtn) runBtn.disabled = false;
+      if (cancelBtn) cancelBtn.style.display = "none";
+    }
+  }
+  setTimeout(processBatch, 0);
+}
+
 function initAdmin() {
   var panel = document.getElementById("admin-panel");
   if (!panel) return;
@@ -4081,6 +4261,12 @@ function initAdmin() {
       });
     });
   }
+
+  // ── Game Card Audit ─────────────────────────────────────────────────────
+  var auditRunBtn = document.getElementById("admin-audit-run-btn");
+  var auditCancelBtn = document.getElementById("admin-audit-cancel-btn");
+  if (auditRunBtn) auditRunBtn.addEventListener("click", runAdminAudit);
+  if (auditCancelBtn) auditCancelBtn.addEventListener("click", function() { _auditCancel = true; });
 }
 
 async function seedDemoData() {
