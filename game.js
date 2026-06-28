@@ -409,9 +409,15 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.10";
+const VERSION = "2.0.11";
 
 const CHANGELOG = [
+  { version: "2.0.11", date: "28 Jun 2026", changes: [
+    "Hint: smooth amber throb via CSS keyframe on polygon fill — true fade in/out, 10 seconds",
+    "Ticket spend: confirmation modal shows current balance, cost, and remaining before any spend",
+    "Completion messages: prompt cycles through encouraging messages after finding today's word",
+    "Admin: edit cycle messages (saved to Firestore — affects all users)",
+  ]},
   { version: "2.0.10", date: "28 Jun 2026", changes: [
     "Hint tile pulses bright amber via JS fill-swap — reliable on all browsers including iOS Safari",
   ]},
@@ -834,6 +840,17 @@ let browsedDateStr = null; // null = today
 var foundWords = []; // words found (valid) in current session
 var unlockedDates = {}; // { "280626": true } — dates where user paid to unlock all words
 
+// Cycling completion messages
+var CYCLE_MESSAGES_DEFAULT = [
+  "Now find the most words",
+  "Come back tomorrow for another word",
+  "Compete with your friends",
+  "Share with friends and earn tickets",
+];
+var cycleMessages = CYCLE_MESSAGES_DEFAULT.slice();
+var _cycleTimer = null;
+var _cycleAttemptCount = 0;
+
 // Tile IDs forming the current best-score word (shown in indigo)
 let playedPath = [];
 let playedPathVisible = true; // false after clearBoard(); resets only on page load
@@ -1019,8 +1036,12 @@ function updateAnswerArea() {
     if (promptEl) promptEl.hidden = false;
     if (resetBtn) resetBtn.hidden = true;
     updateWordLevelBar(0);
+    // Restart cycling if target has been found
+    if (_cycleAttemptCount > 0 && !_cycleTimer) setTimeout(startCyclingMessages, 200);
     return;
   }
+  // User is selecting — pause the cycling so prompt hides cleanly
+  if (_cycleTimer) { clearInterval(_cycleTimer); _cycleTimer = null; }
   var display = selectedPath.map(function(id) {
     var t = tiles[id];
     if (t.blank) return (t.state === "valid" && t._resolvedLetter) ? t._resolvedLetter.toUpperCase() : "_";
@@ -1405,6 +1426,7 @@ function lockValidWord(word) {
   var level = getScoreLevel(len);
 
   if (isInOne) {
+    _cycleAttemptCount = attemptCount;
     var inOneMsgs = FLOAT_MSGS.in_one;
     var inOneCheer = inOneMsgs[Math.floor(Math.random() * inOneMsgs.length)];
     showFloatAnim({ type: "valid", score: len, level: "Grandmaster in One!", cheer: inOneCheer });
@@ -1412,7 +1434,9 @@ function lockValidWord(word) {
       showToast("🎯 Grandmaster in One! First attempt perfection!");
     }, 1600);
     setTimeout(function() { giveAwardTickets("Grandmaster in One!"); }, 2000);
+    setTimeout(startCyclingMessages, 2200);
   } else if (foundTarget) {
+    _cycleAttemptCount = attemptCount;
     var msgs = FLOAT_MSGS.target_found;
     var cheer = msgs[Math.floor(Math.random() * msgs.length)];
     showFloatAnim({ type: "valid", score: len, level: level, cheer: cheer });
@@ -1420,6 +1444,7 @@ function lockValidWord(word) {
       showToast("🏆 You found today's longest word!");
     }, 1600);
     setTimeout(function() { giveAwardTickets("today's longest word found!"); }, 2000);
+    setTimeout(startCyclingMessages, 2200);
   } else {
     var cheers = (FLOAT_MSGS.valid[level] || FLOAT_MSGS.valid["Average"]);
     var cheer2 = cheers[Math.floor(Math.random() * cheers.length)];
@@ -1581,36 +1606,51 @@ function pulseHintTile(tileId) {
   if (!g) return;
   var poly = g.querySelector("polygon:not(.hatch-overlay)");
   if (!poly) return;
-
-  var origFill = poly.getAttribute("fill") || COLOURS.neutral.fill;
-  var onColor  = "#ffb300"; // bright amber — unmissable
-  var step = 0;
-
-  // Alternate every 350ms: amber → original → amber → …
-  var iv = setInterval(function() {
-    step++;
-    poly.setAttribute("fill", step % 2 === 0 ? origFill : onColor);
-  }, 350);
-
+  // CSS keyframe on the polygon element — smooth fill throb, works on iOS Safari
+  poly.classList.add("tile-hint-poly");
   setTimeout(function() {
-    clearInterval(iv);
-    var restoreFill = (tiles[tileId] && tiles[tileId].state === "neutral")
-      ? COLOURS.neutral.fill : origFill;
-    poly.setAttribute("fill", restoreFill);
+    poly.classList.remove("tile-hint-poly");
+    renderTile(tiles[tileId]); // restore correct fill
   }, 10000);
 }
 
 function showHintModal() {
-  var modal = document.getElementById("hint-modal");
-  if (!modal) { doHint(); return; }
-  var countEl = document.getElementById("hint-modal-ticket-count");
-  var confirmBtn = document.getElementById("hint-confirm-btn");
-  if (countEl) countEl.textContent = ticketCount;
-  if (confirmBtn) {
-    confirmBtn.disabled = ticketCount < 1;
-    confirmBtn.textContent = ticketCount < 1 ? "Not enough tickets" : "Use 1 Ticket";
-  }
+  if (ticketCount < 1) { showToast("Not enough tickets for a hint"); return; }
+  confirmTicketSpend({
+    title: "Use a Hint?",
+    desc: "A hint will throb one letter from today's target word on the board for 10 seconds.",
+    cost: 1,
+  }, doHint);
+}
+
+// Generic ticket-spend confirmation — shows balance, cost, remainder
+function confirmTicketSpend(opts, onConfirm) {
+  var modal = document.getElementById("ticket-confirm-modal");
+  if (!modal) { onConfirm(); return; }
+
+  document.getElementById("ticket-confirm-title").textContent = opts.title || "Spend Tickets?";
+  document.getElementById("ticket-confirm-desc").textContent  = opts.desc  || "";
+  document.getElementById("tc-current").textContent = ticketCount;
+  document.getElementById("tc-cost").textContent    = opts.cost;
+  document.getElementById("tc-after").textContent   = Math.max(0, ticketCount - opts.cost);
+
   modal.hidden = false;
+
+  var okBtn  = document.getElementById("ticket-confirm-ok");
+  var canBtn = document.getElementById("ticket-confirm-cancel");
+  var overlay = document.getElementById("ticket-confirm-overlay");
+
+  function close() { modal.hidden = true; }
+
+  // Clone to remove old listeners
+  var okNew  = okBtn.cloneNode(true);
+  var canNew = canBtn.cloneNode(true);
+  okBtn.parentNode.replaceChild(okNew, okBtn);
+  canBtn.parentNode.replaceChild(canNew, canBtn);
+
+  okNew.addEventListener("click", function() { close(); onConfirm(); });
+  canNew.addEventListener("click", close);
+  overlay.onclick = close;
 }
 
 function triggerHint() {
@@ -1732,21 +1772,7 @@ function initInfoPanel() {
     showHintModal();
   });
 
-  // Hint modal buttons
-  var hintModal = document.getElementById("hint-modal");
-  var hintConfirmBtn = document.getElementById("hint-confirm-btn");
-  var hintCancelBtn = document.getElementById("hint-cancel-btn");
-  if (hintConfirmBtn) hintConfirmBtn.addEventListener("click", function() {
-    if (hintModal) hintModal.hidden = true;
-    doHint();
-  });
-  if (hintCancelBtn) hintCancelBtn.addEventListener("click", function() {
-    if (hintModal) hintModal.hidden = true;
-  });
-  var hintOverlay = document.getElementById("hint-modal-overlay");
-  if (hintOverlay) hintOverlay.addEventListener("click", function() {
-    if (hintModal) hintModal.hidden = true;
-  });
+  // Ticket-spend confirmation modal (generic — wired via confirmTicketSpend())
 
   // Back / close button → close sheet
   var backBtn = document.getElementById("back-btn");
@@ -1914,6 +1940,15 @@ function initFirebase() {
     db.collection("config").doc("theme").onSnapshot(function(doc) {
       if (doc.exists) applyThemeData(doc.data());
     }, function() {}); // ignore permission errors for unauthenticated users
+    // Load admin-configured cycling messages
+    db.collection("config").doc("cycleMessages").get().then(function(doc) {
+      if (doc.exists && Array.isArray(doc.data().messages) && doc.data().messages.length) {
+        cycleMessages = doc.data().messages;
+        saveCycleMessages(); // cache locally
+        var ta = document.getElementById("admin-cycle-messages");
+        if (ta) ta.value = cycleMessages.join("\n");
+      }
+    }).catch(function() {});
   } catch (e) {
     console.warn("Firebase init failed:", e.message);
   }
@@ -2279,13 +2314,19 @@ function buildScratchAnswers(answers, playersByWord, isToday) {
       unlockBtn.className = "wl-unlock-btn";
       unlockBtn.innerHTML = 'Unlock all — find today\'s word or <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg> &minus;10';
       unlockBtn.addEventListener("click", function() {
-        if (ticketCount < 10) { showToast("Not enough tickets (need 10)"); return; }
-        ticketCount -= 10;
-        saveTickets();
-        updateTicketDisplay();
-        if (dateKey) { unlockedDates[dateKey] = true; saveUnlockedDates(); }
-        buildScratchAnswers(answers, playersByWord, isToday);
-        showToast("Words unlocked!");
+        if (ticketCount < 10) { showToast("Not enough tickets — you need 10"); return; }
+        confirmTicketSpend({
+          title: "Unlock All Words?",
+          desc: "Reveal the full word list for this puzzle.",
+          cost: 10,
+        }, function() {
+          ticketCount -= 10;
+          saveTickets();
+          updateTicketDisplay();
+          if (dateKey) { unlockedDates[dateKey] = true; saveUnlockedDates(); }
+          buildScratchAnswers(answers, playersByWord, isToday);
+          showToast("Words unlocked!");
+        });
       });
       unlockRow.appendChild(unlockBtn);
       container.appendChild(unlockRow);
@@ -2926,6 +2967,53 @@ function loadUnlockedDates() {
 }
 function saveUnlockedDates() {
   try { localStorage.setItem("shukuma-unlocked-dates", JSON.stringify(unlockedDates)); } catch(_) {}
+}
+
+// ─── Completion cycling messages ───────────────────────────────────────────────
+function loadCycleMessages() {
+  try {
+    var v = localStorage.getItem("shukuma-cycle-messages");
+    if (v) cycleMessages = JSON.parse(v);
+  } catch(_) {}
+}
+function saveCycleMessages() {
+  try { localStorage.setItem("shukuma-cycle-messages", JSON.stringify(cycleMessages)); } catch(_) {}
+}
+
+function startCyclingMessages() {
+  var promptEl = document.getElementById("game-prompt");
+  if (!promptEl) return;
+  stopCyclingMessages();
+
+  var firstMsg = "You found today's word in " + _cycleAttemptCount +
+    (_cycleAttemptCount === 1 ? " attempt" : " attempts") + "!";
+
+  // Shuffle the rest
+  var rest = cycleMessages.slice();
+  for (var i = rest.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var tmp = rest[i]; rest[i] = rest[j]; rest[j] = tmp;
+  }
+  var msgs = [firstMsg].concat(rest);
+  var idx = 0;
+
+  function showMsg() {
+    promptEl.style.opacity = "0";
+    setTimeout(function() {
+      if (!promptEl.hidden) promptEl.textContent = msgs[idx];
+      promptEl.style.opacity = "1";
+      idx = (idx + 1) % msgs.length;
+    }, 500);
+  }
+
+  showMsg();
+  _cycleTimer = setInterval(showMsg, 4500);
+}
+
+function stopCyclingMessages() {
+  if (_cycleTimer) { clearInterval(_cycleTimer); _cycleTimer = null; }
+  var promptEl = document.getElementById("game-prompt");
+  if (promptEl) { promptEl.style.opacity = "1"; promptEl.textContent = "Find today's longest word"; }
 }
 
 // ─── Version / changelog ──────────────────────────────────────────────────────
@@ -3742,6 +3830,27 @@ function initAdmin() {
     showToast("Award tickets set to " + v + " per award.");
   });
 
+  // Cycle messages — populate textarea with current messages, save on button click
+  var cycleTA = document.getElementById("admin-cycle-messages");
+  if (cycleTA) {
+    cycleTA.value = cycleMessages.join("\n");
+    var saveCycleBtn = document.getElementById("admin-save-cycle-messages-btn");
+    if (saveCycleBtn) saveCycleBtn.addEventListener("click", function() {
+      var lines = cycleTA.value.split("\n").map(function(l) { return l.trim(); }).filter(Boolean);
+      if (!lines.length) { showToast("Enter at least one message."); return; }
+      cycleMessages = lines;
+      saveCycleMessages();
+      // Persist to Firestore so all users get the update
+      if (db) {
+        db.collection("config").doc("cycleMessages").set({ messages: lines })
+          .then(function() { showToast("Messages saved for all users."); })
+          .catch(function() { showToast("Saved locally (Firestore failed)."); });
+      } else {
+        showToast("Messages saved.");
+      }
+    });
+  }
+
   // Seed demo data
   var seedBtn = document.getElementById("admin-seed-btn");
   if (seedBtn) seedBtn.addEventListener("click", function() {
@@ -4028,6 +4137,7 @@ function init() {
   loadTickets();
   loadAwardTickets();
   loadUnlockedDates();
+  loadCycleMessages();
 
   // Build tiles
   let tileIndex = 0;

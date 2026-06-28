@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2.0.10" />
+  <link rel="stylesheet" href="style.css?v=2.0.11" />
 </head>
 <body>
   <div id="app">
@@ -405,29 +405,40 @@
 
   <div id="toast"></div>
 
-  <!-- Hint confirmation modal -->
-  <div id="hint-modal" hidden>
-    <div id="hint-modal-overlay"></div>
-    <div id="hint-modal-card">
-      <div id="hint-modal-title">Use a Hint?</div>
-      <div id="hint-modal-body">
-        <div id="hint-modal-ticket-row">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/>
-          </svg>
-          <strong id="hint-modal-ticket-count">0</strong>
-          <span>ticket(s) available</span>
+  <!-- Generic ticket-spend confirmation modal -->
+  <div id="ticket-confirm-modal" hidden>
+    <div id="ticket-confirm-overlay"></div>
+    <div id="ticket-confirm-card">
+      <div id="ticket-confirm-title">Spend Tickets?</div>
+      <p id="ticket-confirm-desc"></p>
+      <div id="ticket-confirm-balance">
+        <div class="tc-bal-row">
+          <span class="tc-bal-label">You have</span>
+          <span class="tc-bal-val"><span id="tc-current">0</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg>
+          </span>
         </div>
-        <p>A hint will flash one letter from today's target word on the board.</p>
-        <p class="hint-modal-cost">Cost: <strong>1 ticket</strong></p>
+        <div class="tc-bal-row tc-cost-row">
+          <span class="tc-bal-label">Cost</span>
+          <span class="tc-bal-val tc-cost-val">−<span id="tc-cost">0</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg>
+          </span>
+        </div>
+        <div class="tc-bal-row tc-after-row">
+          <span class="tc-bal-label">Remaining</span>
+          <span class="tc-bal-val"><span id="tc-after">0</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg>
+          </span>
+        </div>
       </div>
-      <div id="hint-modal-actions">
-        <button id="hint-confirm-btn" class="brand-btn">Use 1 Ticket</button>
-        <button id="hint-buy-btn" class="hint-buy-btn" disabled>Buy Tickets <span class="coming-soon-tag">coming soon</span></button>
-        <button id="hint-cancel-btn" class="hint-cancel-btn">Cancel</button>
+      <div id="ticket-confirm-actions">
+        <button id="ticket-confirm-ok" class="brand-btn">Confirm</button>
+        <button id="ticket-confirm-cancel" class="hint-cancel-btn">Cancel</button>
       </div>
     </div>
   </div>
+  <!-- Legacy alias so old code still finds hint-modal -->
+  <div id="hint-modal" hidden></div>
 
   <!-- ── Auth Modal ─────────────────────────────────────────────────────── -->
   <div id="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title" hidden>
@@ -742,6 +753,18 @@
         </div>
       </div>
 
+      <!-- ── Completion Messages ───────────────────────────────── -->
+      <div class="admin-section">
+        <h3>Completion Messages</h3>
+        <p class="admin-mode-note">Shown when a player finds today's longest word. One message per line. The attempt-count message is always shown first.</p>
+        <textarea id="admin-cycle-messages" rows="5"
+          style="width:100%;padding:8px 10px;border:1.5px solid #ddd;border-radius:8px;font-size:0.88rem;font-family:inherit;line-height:1.5;resize:vertical;margin-top:6px;"
+          placeholder="One message per line…"></textarea>
+        <div class="admin-actions" style="margin-top:6px;">
+          <button class="admin-btn" id="admin-save-cycle-messages-btn">Save Messages</button>
+        </div>
+      </div>
+
       <!-- ── Data Tools ─────────────────────────────────────────── -->
       <div class="admin-section">
         <h3>Data Tools</h3>
@@ -779,6 +802,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
-  <script src="game.js?v=2.0.10"></script>
+  <script src="game.js?v=2.0.11"></script>
 </body>
 </html>
