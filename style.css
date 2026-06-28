@@ -310,6 +310,7 @@ html, body {
   justify-content: center;
   align-items: center;
   padding: 4px 8px;
+  margin-top: -12px;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -401,7 +402,7 @@ html, body {
   justify-content: center;
   gap: 8px;
   align-self: center;
-  margin: 0 auto 8px;
+  margin: -24px auto 8px;
   padding: 11px 28px;
   background: #22c55e;
   border: none;
@@ -473,6 +474,7 @@ html, body {
   justify-content: center;
   gap: 16px;
   padding: 2px 16px 4px;
+  margin-top: -24px;
   flex-shrink: 0;
 }
 

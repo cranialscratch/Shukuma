@@ -409,9 +409,17 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.3";
+const VERSION = "2.0.4";
 
 const CHANGELOG = [
+  { version: "2.0.4", date: "28 Jun 2026", changes: [
+    "Game board moves 12px higher; action icons and share button tighten up beneath it",
+    "Share button now reads 'Share 🎟 +1' — ticket icon plus label, not just the icon",
+    "Scores sheet opens 120px higher so more content is immediately visible",
+    "Swipe-up on scores sheet now correctly expands to full screen height",
+    "Past-date word list: rubbing finger across blurred words now reveals them reliably",
+    "Revealed words re-blur after 10 seconds, keeping the puzzle spoiler-free",
+  ]},
   { version: "2.0.3", date: "27 Jun 2026", changes: [
     "Scores panel date nav now visible — swipe through past days directly in the scores sheet",
     "Scores panel syncs to the board's current date when opened",
@@ -1559,7 +1567,7 @@ function openSheet(tabName) {
       var boardEl = document.getElementById("board-container");
       if (boardEl) {
         var rect = boardEl.getBoundingClientRect();
-        sheet.style.top = (rect.bottom + 8) + "px";
+        sheet.style.top = (rect.bottom + 8 - 120) + "px";
       } else {
         sheet.style.top = "55%";
       }
@@ -2282,8 +2290,17 @@ function initScratchReveal(container) {
   function revealAt(x, y) {
     var el = document.elementFromPoint(x, y);
     if (!el) return;
+    // Walk up for sc-word (handles click on text inside span)
     var wordEl = el.closest ? el.closest(".sc-word") : null;
-    if (wordEl) wordEl.classList.remove("sc-blurred");
+    // Also walk down in case el is a parent row (elementFromPoint may return sc-row)
+    if (!wordEl && el.querySelector) wordEl = el.querySelector(".sc-word");
+    if (!wordEl) return;
+    wordEl.classList.remove("sc-blurred");
+    // Re-blur after 10 seconds
+    clearTimeout(wordEl._reBlurTimer);
+    wordEl._reBlurTimer = setTimeout(function() {
+      wordEl.classList.add("sc-blurred");
+    }, 10000);
   }
 
   container.addEventListener("touchstart", function(e) {
@@ -3659,11 +3676,15 @@ function initBackPanelDrag() {
   var headerEl = document.getElementById("back-header");
   if (!backEl || !headerEl) return;
 
-  var startY = 0, movedY = 0;
+  var startY = 0, movedY = 0, partialTop = "";
 
   headerEl.addEventListener("touchstart", function(e) {
     startY = e.touches[0].clientY;
     movedY = 0;
+    // Remember the current inline top so we can restore it when collapsing
+    if (!backEl.classList.contains("full-screen")) {
+      partialTop = backEl.style.top;
+    }
   }, { passive: true });
 
   headerEl.addEventListener("touchmove", function(e) {
@@ -3672,9 +3693,13 @@ function initBackPanelDrag() {
 
   headerEl.addEventListener("touchend", function() {
     if (movedY < -40) {
+      // Swipe up → full screen: clear inline top so CSS top:0 takes effect
+      backEl.style.top = "";
       backEl.classList.add("full-screen");
     } else if (movedY > 40 && backEl.classList.contains("full-screen")) {
+      // Swipe down → collapse back to partial: restore saved inline top
       backEl.classList.remove("full-screen");
+      backEl.style.top = partialTop;
     }
     startY = 0; movedY = 0;
   });
