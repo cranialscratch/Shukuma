@@ -409,7 +409,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.11";
+const VERSION = "2.0.12";
 
 const CHANGELOG = [
   { version: "2.0.11", date: "28 Jun 2026", changes: [
@@ -850,6 +850,13 @@ var CYCLE_MESSAGES_DEFAULT = [
 var cycleMessages = CYCLE_MESSAGES_DEFAULT.slice();
 var _cycleTimer = null;
 var _cycleAttemptCount = 0;
+var _cycleGen = 0; // incremented on stop/start to cancel stale setTimeouts
+
+// Board highlight auto-clear timer
+var _highlightTimer = null;
+
+// Definition cache { word: html }
+var _defCache = {};
 
 // Tile IDs forming the current best-score word (shown in indigo)
 let playedPath = [];
@@ -1560,7 +1567,8 @@ function highlightWordOnBoard(word) {
   var path = findWordPath(word);
   if (!path || !path.length) { showToast("Cannot find " + word + " on this board"); return; }
 
-  // Clear current selection first
+  // Clear current selection and any running auto-clear timer
+  if (_highlightTimer) { clearTimeout(_highlightTimer); _highlightTimer = null; }
   clearSelection();
 
   // Animate tiles sequentially
@@ -1572,6 +1580,13 @@ function highlightWordOnBoard(word) {
       updateAnswerArea();
     }, idx * 110);
   });
+
+  // Auto-clear after 5 seconds (counted from when last tile illuminates)
+  var clearAfter = (path.length * 110) + 5000;
+  _highlightTimer = setTimeout(function() {
+    _highlightTimer = null;
+    clearSelection();
+  }, clearAfter);
 }
 
 function doHint() {
@@ -1787,19 +1802,8 @@ function initInfoPanel() {
     btn.addEventListener("click", function() { setLocale(btn.dataset.locale); });
   });
 
-  document.querySelectorAll(".lb-filter-btn").forEach(function(btn) {
-    btn.addEventListener("click", function() {
-      document.querySelectorAll(".lb-filter-btn").forEach(function(b) { b.classList.remove("active"); });
-      btn.classList.add("active");
-      loadLeaderboard(btn.dataset.filter);
-    });
-  });
-
   var statsSigninBtn = document.getElementById("stats-signin-btn");
   if (statsSigninBtn) statsSigninBtn.addEventListener("click", function() { showAuthModal("signup"); });
-
-  var lbSigninBtn = document.getElementById("lb-signin-btn");
-  if (lbSigninBtn) lbSigninBtn.addEventListener("click", function() { showAuthModal("signup"); });
 
   var signoutBtn = document.getElementById("signout-btn");
   if (signoutBtn) signoutBtn.addEventListener("click", function() { fbSignOut(); });
@@ -2111,112 +2115,49 @@ let lbFilter = "date";
 let lbDayOffset = 0; // 0 = today, -1 = yesterday, etc.
 
 function updateLbDateNav() {
-  var labelEl   = document.getElementById("lb-date-label");
-  var prevBtn   = document.getElementById("lb-date-prev");
-  var nextBtn   = document.getElementById("lb-date-next");
-  var revealEl  = document.getElementById("lb-word-reveal");
+  var labelEl = document.getElementById("lb-date-label");
+  var prevBtn = document.getElementById("lb-date-prev");
+  var nextBtn = document.getElementById("lb-date-next");
   if (!labelEl) return;
 
   var dateStr = getDateForOffset(lbDayOffset);
   labelEl.textContent = lbDayOffset === 0 ? "Today" : formatDateDisplay(dateStr);
   if (nextBtn) nextBtn.disabled = lbDayOffset >= 0;
   if (prevBtn) prevBtn.disabled = lbDayOffset <= -13;
-
-  if (lbDayOffset < 0 && revealEl) {
-    var p = getPuzzleForDate(dateStr);
-    var word = p && p.prevAnswers && p.prevAnswers[0] ? p.prevAnswers[0].word : "";
-    revealEl.hidden = !word;
-    revealEl.innerHTML = word
-      ? '<button class="lb-reveal-btn" onclick="this.nextElementSibling.hidden=false;this.hidden=true">Reveal target word</button>' +
-        '<span class="lb-word-inner" hidden><span class="lb-word-label">Target word:</span> <strong class="lb-word-value">' + escHtml(word) + "</strong></span>"
-      : "";
-  } else if (revealEl) {
-    revealEl.hidden = true;
-  }
 }
 
 async function loadLeaderboard(filter) {
-  lbFilter = filter || "date";
-  var listEl    = document.getElementById("lb-list");
-  var loadingEl = document.getElementById("lb-loading");
-  var noauthEl  = document.getElementById("lb-noauth");
-  if (!listEl) return;
-
+  lbFilter = "date";
   var displayDate = getDateForOffset(lbDayOffset);
   var displayPuz  = getPuzzleForDate(displayDate);
   var isToday     = lbDayOffset === 0;
 
   updateLbDateNav();
 
-  // Always render scratchcard (even without auth)
-  buildScratchAnswers(displayPuz ? displayPuz.prevAnswers : [], {}, isToday);
+  // Render scratchcard immediately (no auth needed)
+  buildScratchAnswers(displayPuz ? displayPuz.prevAnswers : [], {}, isToday, 0);
+  buildPlayersSection([], "");
 
-  if (!db) {
-    if (noauthEl) noauthEl.hidden = false;
-    listEl.hidden = true;
-    if (loadingEl) loadingEl.hidden = true;
-    return;
-  }
-  if (noauthEl) noauthEl.hidden = true;
-  if (loadingEl) loadingEl.hidden = false;
-  listEl.hidden = true;
-  listEl.innerHTML = "";
+  if (!db) return;
 
   try {
-    var snap;
-    var docs;
-    if (lbFilter === "date") {
-      snap = await db.collection("scores").where("date", "==", displayDate).get();
-      docs = snap.docs.slice().sort(function(a, b) { return (b.data().score || 0) - (a.data().score || 0); });
+    var snap = await db.collection("scores").where("date", "==", displayDate).get();
+    var allDocs = snap.docs.map(function(d) { return d.data(); })
+      .sort(function(a, b) { return (b.score || 0) - (a.score || 0); });
 
-      // For today: rebuild scratchcard with live player avatar data
-      if (isToday) {
-        var playersByWord = {};
-        snap.docs.forEach(function(doc) {
-          var d = doc.data();
-          var w = (d.word || "").toUpperCase();
-          if (!playersByWord[w]) playersByWord[w] = [];
-          playersByWord[w].push(d);
-        });
-        if (displayPuz) buildScratchAnswers(displayPuz.prevAnswers, playersByWord, isToday);
-      }
-    } else {
-      snap = await db.collection("users").get();
-      docs = snap.docs.filter(function(d) { return d.data().stats && d.data().stats.bestScore; })
-        .slice().sort(function(a, b) { return (b.data().stats.bestScore || 0) - (a.data().stats.bestScore || 0); }).slice(0, 25);
-    }
-    if (loadingEl) loadingEl.hidden = true;
-    listEl.hidden = false;
-    listEl.innerHTML = "";
-
-    if (!docs.length) { listEl.innerHTML = '<div class="lb-empty">No scores yet — be first!</div>'; return; }
-
-    var topDocs = lbFilter === "date" ? docs.slice(0, 25) : docs;
-    topDocs.forEach(function(doc, i) {
-      var d     = doc.data();
-      var score = lbFilter === "date" ? d.score : ((d.stats && d.stats.bestScore) || 0);
-      var name  = d.username || "Player";
-      var isMe  = currentUser && (d.uid === currentUser.uid || doc.id === currentUser.uid);
-      var rank  = i + 1;
-      var wrongAttempts = lbFilter === "date"
-        ? Math.max(0, (d.attempts || 0) - (d.validAttempts || 0))
-        : 0;
-      var meta  = (lbFilter === "date" && (d.attempts || d.timeSpent))
-        ? '<span class="lb-meta">' + (d.validAttempts || 0) + ' ✓ / ' + wrongAttempts + ' ✗ · ' + formatTime(d.timeSpent || 0) + "</span>"
-        : "";
-      var row   = document.createElement("div");
-      row.className = "lb-row" + (isMe ? " lb-row-me" : "");
-      row.innerHTML =
-        '<span class="lb-rank' + (rank <= 3 ? " top3" : "") + '">' + rank + "</span>" +
-        '<span class="lb-name">' + escHtml(name) + (isMe ? ' <span style="color:var(--brand)">(you)</span>' : "") + "</span>" +
-        '<span class="lb-score">' + score + "</span>" +
-        '<span class="lb-level">' + getScoreLevel(score) + "</span>" + meta;
-      listEl.appendChild(row);
+    var playersByWord = {};
+    allDocs.forEach(function(d) {
+      var w = (d.word || "").toUpperCase();
+      if (!playersByWord[w]) playersByWord[w] = [];
+      playersByWord[w].push(d);
     });
+
+    var targetWord = displayPuz && displayPuz.prevAnswers && displayPuz.prevAnswers[0]
+      ? displayPuz.prevAnswers[0].word.toUpperCase() : "";
+
+    if (displayPuz) buildScratchAnswers(displayPuz.prevAnswers, playersByWord, isToday, allDocs.length);
+    buildPlayersSection(allDocs, targetWord);
   } catch (e) {
-    if (loadingEl) loadingEl.hidden = true;
-    listEl.hidden = false;
-    listEl.innerHTML = '<div class="lb-empty">Could not load scores.</div>';
     console.warn("loadLeaderboard:", e.message);
   }
 }
@@ -2228,7 +2169,7 @@ function escHtml(s) {
 // ─── Scratchcard answers (v1.9.4) ─────────────────────────────────────────────
 var AVATAR_COLORS = ["#7c4dff","#ef4444","#22c55e","#f97316","#3b82f6","#ec4899","#0ea5e9","#a855f7"];
 
-function buildScratchAnswers(answers, playersByWord, isToday) {
+function buildScratchAnswers(answers, playersByWord, isToday, totalPlayers) {
   var container = document.getElementById("scratchcard-list");
   if (!container) return;
   container.innerHTML = "";
@@ -2285,7 +2226,7 @@ function buildScratchAnswers(answers, playersByWord, isToday) {
     // Show found words sorted longest first
     var foundArr = Array.from(myFound).sort(function(a, b) { return b.length - a.length; });
     foundArr.forEach(function(w) {
-      var row = buildWordRow(w, true, false);
+      var row = buildWordRow(w, true, false, playersByWord, totalPlayers || 0);
       container.appendChild(row);
     });
   }
@@ -2324,7 +2265,7 @@ function buildScratchAnswers(answers, playersByWord, isToday) {
           saveTickets();
           updateTicketDisplay();
           if (dateKey) { unlockedDates[dateKey] = true; saveUnlockedDates(); }
-          buildScratchAnswers(answers, playersByWord, isToday);
+          buildScratchAnswers(answers, playersByWord, isToday, totalPlayers || 0);
           showToast("Words unlocked!");
         });
       });
@@ -2334,7 +2275,7 @@ function buildScratchAnswers(answers, playersByWord, isToday) {
 
     var showLocked = isUnlocked || canViewFree;
     lockedWords.forEach(function(a) {
-      var row = buildWordRow(a.word.toUpperCase(), showLocked, !showLocked);
+      var row = buildWordRow(a.word.toUpperCase(), showLocked, !showLocked, playersByWord, totalPlayers || 0);
       container.appendChild(row);
     });
   }
@@ -2347,22 +2288,57 @@ function buildScratchAnswers(answers, playersByWord, isToday) {
   }
 }
 
-function buildWordRow(word, revealed, locked) {
+function buildWordRow(word, revealed, locked, playersByWord, totalPlayers) {
   var row = document.createElement("div");
   row.className = "wl-row" + (locked ? " wl-locked" : "") + (revealed ? " wl-found" : "");
 
   var wordSpan = document.createElement("span");
   wordSpan.className = "wl-word";
-  wordSpan.textContent = locked ? "• • • • •".substring(0, Math.max(word.length * 2 - 1, 5)) : word;
+  if (locked) {
+    var dots = "";
+    for (var d = 0; d < word.length; d++) dots += (d ? " ·" : "·");
+    wordSpan.textContent = dots;
+  } else {
+    wordSpan.textContent = word;
+  }
 
-  var lenSpan = document.createElement("span");
-  lenSpan.className = "wl-len";
-  lenSpan.textContent = word.length + " letters";
+  var rightSide = document.createElement("div");
+  rightSide.className = "wl-row-right";
+
+  if (!locked) {
+    // % of players who found this word
+    if (playersByWord && totalPlayers > 0) {
+      var count = (playersByWord[word] || []).length;
+      var pct = Math.round((count / totalPlayers) * 100);
+      var pctSpan = document.createElement("span");
+      pctSpan.className = "wl-pct";
+      pctSpan.textContent = pct + "%";
+      rightSide.appendChild(pctSpan);
+    } else {
+      var lenSpan = document.createElement("span");
+      lenSpan.className = "wl-len";
+      lenSpan.textContent = word.length + " letters";
+      rightSide.appendChild(lenSpan);
+    }
+
+    // (?) dictionary button on revealed words
+    if (revealed) {
+      var defBtn = document.createElement("button");
+      defBtn.className = "wl-def-btn";
+      defBtn.setAttribute("aria-label", "Definition of " + word);
+      defBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8" stroke-width="3"/></svg>';
+      defBtn.addEventListener("click", function(e) {
+        e.stopPropagation();
+        toggleWordDefinition(word, row);
+      });
+      rightSide.appendChild(defBtn);
+    }
+  }
 
   row.appendChild(wordSpan);
-  row.appendChild(lenSpan);
+  row.appendChild(rightSide);
 
-  // Tapping a revealed word highlights it on the board
+  // Tap revealed word → highlight on board for 5 seconds
   if (revealed) {
     row.addEventListener("click", function() {
       highlightWordOnBoard(word);
@@ -2370,6 +2346,119 @@ function buildWordRow(word, revealed, locked) {
   }
 
   return row;
+}
+
+function toggleWordDefinition(word, rowEl) {
+  var existing = rowEl.nextElementSibling;
+  if (existing && existing.classList.contains("wl-def-panel")) {
+    existing.remove();
+    return;
+  }
+  var panel = document.createElement("div");
+  panel.className = "wl-def-panel";
+  panel.textContent = "Loading…";
+  rowEl.parentNode.insertBefore(panel, rowEl.nextSibling);
+
+  var cached = _defCache[word];
+  if (cached) { panel.innerHTML = cached; return; }
+
+  var key = word.toLowerCase();
+  var locale = (typeof selectedLocale !== "undefined" ? selectedLocale : "en_GB");
+  fetch("https://api.dictionaryapi.dev/api/v2/entries/" + locale + "/" + encodeURIComponent(key))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!Array.isArray(data) || !data[0]) throw new Error("no data");
+      var html = "";
+      (data[0].meanings || []).slice(0, 2).forEach(function(m) {
+        var def = m.definitions && m.definitions[0] ? m.definitions[0].definition : "";
+        if (def) html += '<div class="wl-def-entry"><span class="wl-def-pos">' + escHtml(m.partOfSpeech) + '</span> ' + escHtml(def) + '</div>';
+      });
+      if (!html) html = '<em>No definition found.</em>';
+      _defCache[word] = html;
+      if (panel.parentNode) panel.innerHTML = html;
+    })
+    .catch(function() {
+      var html = '<em>Could not load definition.</em>';
+      _defCache[word] = html;
+      if (panel.parentNode) panel.innerHTML = html;
+    });
+}
+
+function buildPlayersSection(players, targetWord) {
+  var container = document.getElementById("scores-players");
+  if (!container) return;
+  container.innerHTML = "";
+
+  if (!players || !players.length) {
+    var empty = document.createElement("div");
+    empty.className = "scores-empty";
+    empty.textContent = "No scores yet — be the first!";
+    container.appendChild(empty);
+    return;
+  }
+
+  var hdr = document.createElement("div");
+  hdr.className = "scores-players-hdr";
+  hdr.textContent = "How Everyone Did";
+  container.appendChild(hdr);
+
+  players.forEach(function(p, i) {
+    var row = document.createElement("div");
+    row.className = "player-row";
+
+    var color = AVATAR_COLORS[i % AVATAR_COLORS.length];
+    var initials = (p.username || "?").charAt(0).toUpperCase();
+    var foundTarget = targetWord && (p.word || "").toUpperCase() === targetWord.toUpperCase();
+    var timeStr = p.timeSpent ? formatTime(p.timeSpent) : null;
+    var wrongAtt = Math.max(0, (p.attempts || 0) - (p.validAttempts || 0));
+
+    var metaParts = [];
+    if (timeStr) metaParts.push(timeStr);
+    if (p.attempts !== undefined) metaParts.push((p.validAttempts || 0) + "✓ / " + wrongAtt + "✗");
+
+    row.innerHTML =
+      '<div class="player-avatar" style="background:' + color + '">' + initials + '</div>' +
+      '<div class="player-info">' +
+        '<div class="player-name">' + escHtml(p.username || "Player") + '</div>' +
+        '<div class="player-best-word">' + escHtml((p.word || "—").toUpperCase()) + '</div>' +
+        (metaParts.length ? '<div class="player-meta">' + metaParts.join(" · ") + '</div>' : '') +
+      '</div>' +
+      '<div class="player-right">' +
+        '<span class="player-score-badge">' + (p.score || 0) + ' letters</span>' +
+        (foundTarget ? '<span class="player-found-badge">Found it!</span>' : '') +
+      '</div>';
+
+    // Send hint button for players who haven't found the target
+    if (!foundTarget && targetWord && currentUser && p.uid !== currentUser.uid) {
+      var hintBtn = document.createElement("button");
+      hintBtn.className = "player-hint-btn";
+      hintBtn.innerHTML = 'Hint <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg>';
+      (function(player) {
+        hintBtn.addEventListener("click", function(e) {
+          e.stopPropagation();
+          sendHintToPlayer(player);
+        });
+      })(p);
+      row.querySelector(".player-right").appendChild(hintBtn);
+    }
+
+    container.appendChild(row);
+  });
+}
+
+function sendHintToPlayer(player) {
+  if (ticketCount < 1) { showToast("Not enough tickets to send a hint"); return; }
+  confirmTicketSpend({
+    title: "Send Hint?",
+    desc: "Send " + escHtml(player.username || "Player") + " a hint for today's word.",
+    cost: 1,
+  }, function() {
+    ticketCount = Math.max(0, ticketCount - 1);
+    saveTickets();
+    updateTicketDisplay();
+    showToast("Hint sent to " + (player.username || "Player") + "!");
+    // TODO: write hint notification to Firestore for recipient
+  });
 }
 
 function openPlayerModal(players, wordTitle) {
@@ -2983,7 +3072,9 @@ function saveCycleMessages() {
 function startCyclingMessages() {
   var promptEl = document.getElementById("game-prompt");
   if (!promptEl) return;
-  stopCyclingMessages();
+  stopCyclingMessages(); // clears _cycleTimer and increments _cycleGen
+
+  var gen = ++_cycleGen; // capture generation for this run
 
   var firstMsg = "You found today's word in " + _cycleAttemptCount +
     (_cycleAttemptCount === 1 ? " attempt" : " attempts") + "!";
@@ -2998,12 +3089,15 @@ function startCyclingMessages() {
   var idx = 0;
 
   function showMsg() {
+    if (_cycleGen !== gen) return; // stale — a newer cycle started or cycling stopped
     promptEl.style.opacity = "0";
+    var capturedIdx = idx;
+    idx = (idx + 1) % msgs.length;
     setTimeout(function() {
-      if (!promptEl.hidden) promptEl.textContent = msgs[idx];
+      if (_cycleGen !== gen) return; // still stale after fade-out delay
+      promptEl.textContent = msgs[capturedIdx];
       promptEl.style.opacity = "1";
-      idx = (idx + 1) % msgs.length;
-    }, 500);
+    }, 520);
   }
 
   showMsg();
@@ -3011,6 +3105,7 @@ function startCyclingMessages() {
 }
 
 function stopCyclingMessages() {
+  _cycleGen++; // invalidate any pending setTimeout callbacks
   if (_cycleTimer) { clearInterval(_cycleTimer); _cycleTimer = null; }
   var promptEl = document.getElementById("game-prompt");
   if (promptEl) { promptEl.style.opacity = "1"; promptEl.textContent = "Find today's longest word"; }

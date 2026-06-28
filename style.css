@@ -222,22 +222,30 @@ html, body {
 #word-box {
   margin: 4px 14px 6px;
   height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 44px;
+  display: block;
+  line-height: 52px;
   position: relative;
   flex-shrink: 0;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
   background: var(--word-box-bg);
   border-radius: 12px;
+  text-align: center;
+  white-space: nowrap;
 }
+#word-box::-webkit-scrollbar { display: none; }
 
 #game-prompt {
   font-size: var(--fs-sm);
   color: var(--prompt-color);
-  text-align: center;
   letter-spacing: 0.1px;
+  display: inline-block;
+  vertical-align: middle;
+  white-space: nowrap;
+  padding: 0 44px;
+  transition: opacity 0.5s ease;
 }
 
 #answer-text {
@@ -247,8 +255,10 @@ html, body {
   color: var(--tile-text);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  text-align: center;
-  flex: 1;
+  display: inline-block;
+  vertical-align: middle;
+  white-space: nowrap;
+  padding: 0 44px;
 }
 
 @keyframes checking-pulse {
@@ -723,21 +733,23 @@ html, body {
 }
 
 #back-header-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
   align-items: center;
-  justify-content: space-between;
-  padding: 4px 14px 0;
+  padding: 4px 8px 8px;
 }
 
 #back-panel-title {
-  font-size: 1.0625rem;
-  font-weight: 700;
-  letter-spacing: 0.3px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
   color: white;
+  text-align: center;
 }
 
 #back-btn {
-  background: rgba(255,255,255,0.2);
+  background: transparent;
   border: none;
   border-radius: 50%;
   width: 30px; height: 30px;
@@ -747,8 +759,9 @@ html, body {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  margin-left: auto;
 }
-#back-btn:hover { background: rgba(255,255,255,0.32); }
+#back-btn:hover { background: rgba(255,255,255,0.18); }
 
 /* Sheet tabs */
 #back-tabs {
@@ -1291,10 +1304,178 @@ html, body {
   font-family: inherit;
 }
 
-/* ── Cycling completion messages ─────────────────────────────────── */
-#game-prompt {
-  transition: opacity 0.5s ease;
+/* ── Scores tab: compact date nav ────────────────────────────────── */
+#scores-date-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 4px 4px;
+  gap: 8px;
 }
+#scores-date-nav #lb-date-prev,
+#scores-date-nav #lb-date-next {
+  background: none;
+  border: 1px solid var(--lb-row-border);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+#scores-date-nav #lb-date-prev:disabled,
+#scores-date-nav #lb-date-next:disabled { opacity: 0.25; cursor: default; }
+#scores-date-nav #lb-date-label {
+  flex: 1;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+/* ── Scores tab: word row enhancements ───────────────────────────── */
+.wl-row-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.wl-pct {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  min-width: 32px;
+  text-align: right;
+}
+.wl-def-btn {
+  background: none;
+  border: 1.5px solid var(--lb-row-border);
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 0;
+  flex-shrink: 0;
+}
+.wl-def-btn:active { opacity: 0.6; }
+.wl-def-panel {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  padding: 6px 8px 10px;
+  background: var(--stat-box-bg, rgba(0,0,0,0.03));
+  border-radius: 0 0 6px 6px;
+  margin-top: -1px;
+  border: 1px solid var(--lb-row-border);
+  border-top: none;
+}
+.wl-def-entry { margin-bottom: 4px; }
+.wl-def-entry:last-child { margin-bottom: 0; }
+.wl-def-pos {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--brand);
+  margin-right: 5px;
+}
+.wl-def-panel em { color: var(--text-muted); font-style: italic; }
+
+/* ── Scores tab: players section ─────────────────────────────────── */
+.scores-players-hdr {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-muted);
+  padding: 14px 0 6px;
+}
+.player-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--lb-row-border);
+}
+.player-row:last-child { border-bottom: none; }
+.player-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.player-info { flex: 1; min-width: 0; }
+.player-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.player-best-word {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--brand);
+  margin-top: 1px;
+}
+.player-meta {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+.player-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  flex-shrink: 0;
+}
+.player-score-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--brand);
+}
+.player-found-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: #22c55e;
+  color: white;
+  border-radius: 10px;
+  padding: 1px 6px;
+  letter-spacing: 0.04em;
+}
+.player-hint-btn {
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: none;
+  border: 1.5px solid var(--brand);
+  border-radius: 10px;
+  padding: 2px 8px;
+  color: var(--brand);
+  cursor: pointer;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.player-hint-btn:active { opacity: 0.7; }
+.scores-empty { text-align: center; color: var(--text-muted); font-size: 0.9rem; padding: 16px 0; }
 
 /* ── Player list modal ───────────────────────────────────────────────── */
 #player-modal,
@@ -1807,51 +1988,7 @@ html, body {
 }
 
 /* ── Leaderboard ─────────────────────────────────────────────────────── */
-#lb-date-nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px 6px;
-  gap: 8px;
-}
-#lb-date-prev,
-#lb-date-next {
-  background: none;
-  border: 1px solid #ddd;
-  border-radius: 50%;
-  width: 30px;
-  height: 30px;
-  font-size: 1.0625rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #555;
-  flex-shrink: 0;
-}
-#lb-date-prev:disabled,
-#lb-date-next:disabled { opacity: 0.25; cursor: default; }
-#lb-date-prev:not(:disabled):hover,
-#lb-date-next:not(:disabled):hover { background: #f5f5f5; }
-#lb-date-label {
-  flex: 1;
-  text-align: center;
-  font-weight: 600;
-  font-size: 1.0625rem;
-  color: #333;
-}
-#lb-word-reveal {
-  background: #fff8e8;
-  border: 1px solid #f0d080;
-  border-radius: 8px;
-  margin: 0 14px 8px;
-  padding: 8px 12px;
-  font-size: 1.0625rem;
-  color: #666;
-  text-align: center;
-}
-.lb-word-label { color: #888; margin-right: 4px; }
-.lb-word-value { color: #3a3a3a; font-size: 1.0625rem; letter-spacing: 0.08em; }
+/* #lb-date-nav removed — date nav now lives in #scores-date-nav (see above) */
 .lb-meta {
   display: block;
   font-size: 1.0625rem;
@@ -1860,46 +1997,7 @@ html, body {
   grid-column: 1 / -1;
 }
 
-#lb-filter-row {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-.lb-filter-btn {
-  background: #f0f0ec;
-  border: none;
-  border-radius: 16px;
-  padding: 5px 14px;
-  font-size: 1.0625rem;
-  font-family: inherit;
-  font-weight: bold;
-  color: #666;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-.lb-filter-btn.active {
-  background: var(--brand);
-  color: white;
-}
-
-#lb-loading {
-  text-align: center;
-  color: #aaa;
-  font-size: 1.0625rem;
-  padding: 20px 0;
-}
-#lb-noauth {
-  text-align: center;
-  padding: 20px 16px;
-  color: #666;
-  font-size: 1.0625rem;
-}
-#lb-noauth p { margin-bottom: 12px; }
-#lb-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
+/* #lb-filter-row, #lb-loading, #lb-noauth, #lb-list removed — replaced by #scores-players */
 .lb-row {
   display: flex;
   align-items: center;
@@ -2769,7 +2867,6 @@ html[data-theme="dark"] .colour-theme-btn.active { border-color: var(--brand); c
 html[data-theme="dark"] .settings-action-btn { border-color: rgba(255,255,255,0.15); color: rgba(255,255,255,0.75); background: rgba(255,255,255,0.05); }
 html[data-theme="dark"] .settings-action-btn:hover { background: rgba(255,255,255,0.1); }
 html[data-theme="dark"] #settings-version-label { color: rgba(255,255,255,0.25); }
-html[data-theme="dark"] .lb-filter-btn { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.6); }
 html[data-theme="dark"] #user-profile-row { border-bottom-color: rgba(255,255,255,0.1); }
 html[data-theme="dark"] #user-email-text { color: rgba(255,255,255,0.5); }
 html[data-theme="dark"] #signout-btn { border-color: rgba(255,255,255,0.15); color: rgba(255,255,255,0.55); }
