@@ -410,9 +410,12 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.18";
+const VERSION = "2.0.19";
 
 const CHANGELOG = [
+  { version: "2.0.19", date: "28 Jun 2026", changes: [
+    "Hint button greys out once you've found today's longest word — tap it anyway for a free hint, no tickets charged",
+  ]},
   { version: "2.0.18", date: "28 Jun 2026", changes: [
     "Puzzle difficulty now varies day-to-day: Standard (10–12 letters) most days, Hard (13–14) 1–2 times per week, Super Hard (15+) once every 1–2 weeks",
     "No more than 5 Standard days in a row — a harder puzzle always arrives within the week",
@@ -1509,6 +1512,9 @@ function lockValidWord(word) {
     showFloatAnim({ type: "valid", score: len, level: level, cheer: cheer2 });
   }
 
+  // Reflect targetWordFound state on hint button immediately
+  updateHintBtn();
+
   // Spelling variant overlay — informational flag if player used GB/US alternate form
   var variantInfo = getSpellingVariant(word);
   if (variantInfo) {
@@ -1646,7 +1652,7 @@ function highlightWordOnBoard(word) {
   }, clearAfter);
 }
 
-function doHint() {
+function doHint(free) {
   var targetWord = puzzle && puzzle.prevAnswers && puzzle.prevAnswers[0]
     ? puzzle.prevAnswers[0].word : "";
   if (!targetWord) { showToast("No hint available for this puzzle"); return; }
@@ -1665,12 +1671,26 @@ function doHint() {
   }
   if (candidate === null) { showToast("All hint tiles already selected!"); return; }
 
-  ticketCount = Math.max(0, ticketCount - 1);
-  saveTickets();
-  updateTicketDisplay();
+  if (!free) {
+    ticketCount = Math.max(0, ticketCount - 1);
+    saveTickets();
+    updateTicketDisplay();
+  }
 
   pulseHintTile(candidate);
-  showToast("Hint — next letter highlighted for 10 seconds");
+  showToast(free ? "Free hint — you've already found today's word!" : "Hint — next letter highlighted for 10 seconds");
+}
+
+function updateHintBtn() {
+  var hintBtn = document.getElementById("hint-btn");
+  if (!hintBtn) return;
+  if (targetWordFound) {
+    hintBtn.classList.add("hint-found");
+    hintBtn.setAttribute("aria-label", "Hint (free — longest word already found)");
+  } else {
+    hintBtn.classList.remove("hint-found");
+    hintBtn.setAttribute("aria-label", "Hint");
+  }
 }
 
 function pulseHintTile(tileId) {
@@ -1841,7 +1861,11 @@ function initInfoPanel() {
   var hintBtn = document.getElementById("hint-btn");
   if (hintBtn) hintBtn.addEventListener("click", function() {
     if (gameCompleted) return;
-    showHintModal();
+    if (targetWordFound) {
+      doHint(true);  // free after the longest word has been found
+    } else {
+      showHintModal();
+    }
   });
 
   // Ticket-spend confirmation modal (generic — wired via confirmTicketSpend())
@@ -1942,6 +1966,7 @@ function loadBoardForDate(ddmmyy) {
   updateTicketDisplay();
   updateAnswerArea();
   updateShareBtn();
+  updateHintBtn();
   updateDifficultyBadge();
 
   // Date display
@@ -4697,6 +4722,7 @@ function init() {
   updateTicketDisplay();
   updateAnswerArea();
   updateShareBtn();
+  updateHintBtn();
   updateDifficultyBadge();
 
   const dateEl = document.getElementById("puzzle-date");

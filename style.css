@@ -524,6 +524,13 @@ html, body {
 .action-btn:active { color: var(--brand); }
 .action-btn svg { flex-shrink: 0; }
 
+/* Hint button greyed out after target word found — still tappable (free hint) */
+#hint-btn.hint-found {
+  opacity: 0.38;
+  filter: grayscale(0.5);
+}
+#hint-btn.hint-found:hover { color: var(--icon-color); background: none; }
+
 /* ── Float animation ─────────────────────────────────────────────── */
 .float-anim-wrapper {
   position: absolute;
