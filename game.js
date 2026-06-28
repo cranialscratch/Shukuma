@@ -840,6 +840,7 @@ let timerLastStart = 0;
 let browseOffset = 0;
 let browsedDateStr = null; // null = today
 var foundWords = []; // words found (valid) in current session
+var targetWordFound = false; // true once the puzzle's longest word has been found
 var unlockedDates = {}; // { "280626": true } — dates where user paid to unlock all words
 
 // Cycling completion messages
@@ -1338,7 +1339,7 @@ async function onPointerUp(e) {
     lastTileEntered = null;
     pointerDownTile = null;
     if (selectedPath.length === 0) return;
-    attemptCount++;
+    if (!targetWordFound) attemptCount++;
     var validWord = validateWord(selectedPath);
     if (validWord) {
       if (OFFENSIVE_WORDS.has(validWord.toLowerCase())) { flashInvalid(); return; }
@@ -1376,7 +1377,7 @@ async function onPointerUp(e) {
 
   // Tapping the last tile with ≥2 letters: submit
   if (selectedPath.length >= 2 && selectedPath[selectedPath.length - 1] === tileId) {
-    attemptCount++;
+    if (!targetWordFound) attemptCount++;
     await submitTappedWord();
     return;
   }
@@ -1409,6 +1410,14 @@ async function onPointerUp(e) {
 }
 
 function lockValidWord(word) {
+  // Guard: word already found today — shake tile and bail
+  if (foundWords.includes(word.toUpperCase())) {
+    showAlreadyFoundAnim();
+    triggerHaptic([40, 20, 40, 20, 40, 20, 40, 20, 40]);
+    setTimeout(clearSelection, 1500);
+    return;
+  }
+
   // "In One!" — player nailed the target word on their very first attempt
   var targetLen = (puzzle && puzzle.prevAnswers && puzzle.prevAnswers[0])
     ? puzzle.prevAnswers[0].word.length : 0;
@@ -1419,7 +1428,7 @@ function lockValidWord(word) {
   selectedPath.forEach(id => { tiles[id].state = "valid"; });
   renderAllTiles();
   const len = selectedPath.length;
-  if (!foundWords.includes(word.toUpperCase())) foundWords.push(word.toUpperCase());
+  foundWords.push(word.toUpperCase());
   if (len > bestScore) {
     bestScore = len;
     bestWord = word;
@@ -1435,6 +1444,7 @@ function lockValidWord(word) {
   var level = getScoreLevel(len);
 
   if (isInOne) {
+    targetWordFound = true;
     _cycleAttemptCount = attemptCount;
     var inOneMsgs = FLOAT_MSGS.in_one;
     var inOneCheer = inOneMsgs[Math.floor(Math.random() * inOneMsgs.length)];
@@ -1447,6 +1457,7 @@ function lockValidWord(word) {
     setTimeout(function() { giveAwardTickets("Grandmaster in One!"); }, 2000);
     setTimeout(startCyclingMessages, 2200);
   } else if (foundTarget) {
+    targetWordFound = true;
     _cycleAttemptCount = attemptCount;
     var msgs = FLOAT_MSGS.target_found;
     var cheer = msgs[Math.floor(Math.random() * msgs.length)];
@@ -1863,9 +1874,14 @@ function loadBoardForDate(ddmmyy) {
   tiles = []; selectedPath = []; isDragging = false; playedPath = []; playedPathVisible = true; foundWords = [];
   bestScore = 0; bestWord = ""; gameCompleted = false;
   attemptCount = 0; validAttemptCount = 0; activeTimeMs = 0; timerRunning = false; timerLastStart = 0;
-  inOneAchieved = false;
+  inOneAchieved = false; targetWordFound = false;
 
   loadState();
+
+  // Re-derive targetWordFound from persisted bestScore
+  var _targetLen = (puzzle && puzzle.prevAnswers && puzzle.prevAnswers[0])
+    ? puzzle.prevAnswers[0].word.length : 0;
+  if (_targetLen > 0 && bestScore >= _targetLen) targetWordFound = true;
 
   let tileIndex = 0;
   for (let row = 0; row < ROW_SIZES.length; row++) {
@@ -3228,6 +3244,34 @@ function showFloatAnim(opts) {
   wrapper.appendChild(inner);
   container.appendChild(wrapper);
 
+  inner.addEventListener("animationend", function() { wrapper.remove(); }, { once: true });
+}
+
+function showAlreadyFoundAnim() {
+  var container = document.getElementById("board-container");
+  if (!container) return;
+  var old = container.querySelector(".float-anim-wrapper");
+  if (old) old.remove();
+  var wrapper = document.createElement("div");
+  wrapper.className = "float-anim-wrapper float-already";
+  var inner = document.createElement("div");
+  inner.className = "float-anim-inner";
+  var r = 52, cx = 60, cy = 62, pts = [];
+  for (var i = 0; i < 6; i++) {
+    var ang = (Math.PI / 180) * (60 * i - 30);
+    pts.push((cx + r * Math.cos(ang)).toFixed(1) + "," + (cy + r * Math.sin(ang)).toFixed(1));
+  }
+  inner.innerHTML =
+    '<svg class="float-hex-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 124" width="120" height="124" aria-hidden="true">' +
+      '<defs><filter id="fh-shadow-af" x="-30%" y="-30%" width="160%" height="160%">' +
+        '<feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="rgba(0,0,0,0.25)"/>' +
+      '</filter></defs>' +
+      '<polygon points="' + pts.join(" ") + '" fill="var(--tile-neutral,#e8dfc8)" stroke="var(--tile-neutral-stroke,#c8b098)" stroke-width="2.5" filter="url(#fh-shadow-af)"/>' +
+      '<text x="60" y="50" font-family="Inter,sans-serif" font-size="15" font-weight="800" text-anchor="middle" dominant-baseline="middle" fill="var(--tile-text,#1a0a00)">Already</text>' +
+      '<text x="60" y="70" font-family="Inter,sans-serif" font-size="15" font-weight="800" text-anchor="middle" dominant-baseline="middle" fill="var(--tile-text,#1a0a00)">Found</text>' +
+    '</svg>';
+  wrapper.appendChild(inner);
+  container.appendChild(wrapper);
   inner.addEventListener("animationend", function() { wrapper.remove(); }, { once: true });
 }
 

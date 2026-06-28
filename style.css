@@ -552,6 +552,24 @@ html, body {
   100% { opacity: 0; transform: translateY(-70px); }
 }
 
+@keyframes shakeFloat {
+  0%   { opacity: 0; transform: translateY(20px) scale(0.55); }
+  10%  { opacity: 1; transform: translateY(-6px) scale(1.08); }
+  16%  { transform: translateY(0) scale(1.0); }
+  20%  { transform: translateX(-10px); }
+  24%  { transform: translateX(10px); }
+  28%  { transform: translateX(-10px); }
+  32%  { transform: translateX(10px); }
+  36%  { transform: translateX(-8px); }
+  40%  { transform: translateX(8px); }
+  44%  { transform: translateX(-5px); }
+  48%  { transform: translateX(5px); }
+  52%  { transform: translateX(0); }
+  72%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-70px); }
+}
+.float-already .float-anim-inner { animation: shakeFloat 2.8s ease-out forwards; }
+
 .float-hex-svg {
   display: block;
   overflow: visible;
