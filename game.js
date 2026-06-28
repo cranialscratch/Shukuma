@@ -410,9 +410,12 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.19";
+const VERSION = "2.0.20";
 
 const CHANGELOG = [
+  { version: "2.0.20", date: "28 Jun 2026", changes: [
+    "Admin audit list now shows the publication date for each puzzle card",
+  ]},
   { version: "2.0.19", date: "28 Jun 2026", changes: [
     "Hint button greys out once you've found today's longest word — tap it anyway for a free hint, no tickets charged",
   ]},
@@ -4171,10 +4174,14 @@ function runAdminAudit() {
         ? r.flags.map(function(f) { return '<span class="audit-flag audit-flag-' + f + '">' + f.toUpperCase() + '</span>'; }).join(" ")
         : "<span style='color:#d1d5db;font-size:0.78em'>OK</span>";
 
+      var pubDate = new Date(PUZZLE_BASE_MS + i * 86400000);
+      var pubDateStr = pubDate.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+
       var tr = document.createElement("tr");
       tr.style.background = rowBg;
       tr.innerHTML =
         '<td class="audit-td" style="text-align:center;color:#9ca3af;">' + (i + 1) + '</td>' +
+        '<td class="audit-td" style="color:#6b7280;font-size:0.76rem;white-space:nowrap;">' + pubDateStr + '</td>' +
         '<td class="audit-td" style="font-weight:700;font-family:monospace;letter-spacing:0.05em;">' + escHtml(targetWord.toUpperCase()) + '</td>' +
         '<td class="audit-td" style="text-align:center;font-weight:' + (r.targetLen < 10 ? "700" : "400") + ';color:' + (r.targetLen < 10 ? "#ef4444" : "#374151") + ';">' + r.targetLen + '</td>' +
         '<td class="audit-td" style="text-align:center;color:#6b7280;">' + r.wordCount + '</td>' +
