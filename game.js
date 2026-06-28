@@ -409,9 +409,36 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.16";
+const VERSION = "2.0.17";
 
 const CHANGELOG = [
+  { version: "2.0.17", date: "28 Jun 2026", changes: [
+    "Already found a word? A hex tile labelled 'Already Found' shakes left and right with rapid haptic, then floats off — no duplicate tickets awarded",
+    "Attempt counter freezes the moment you find today's longest word — re-submissions no longer inflate your attempt count",
+  ]},
+  { version: "2.0.16", date: "28 Jun 2026", changes: [
+    "All 365 puzzles redesigned — every target word is now 10 letters or longer (average 12 letters)",
+    "Longest targets reach 16 letters: responsibilities, wholeheartedness, characteristics",
+    "Half of all puzzles now include a blank wildcard tile to help discover more words",
+    "No board has a word longer than its target — every puzzle is winnable",
+    "Average of 39 discoverable words per board (up from ~15)",
+  ]},
+  { version: "2.0.15", date: "28 Jun 2026", changes: [
+    "Fixed 4 puzzles where target words were shorter than 10 letters",
+    "Day 34: BLACKSMITH (10), Day 53: REGULATIONS (11), Day 327: BACKGROUND (10), Day 354: BRAINSTORMING (13)",
+  ]},
+  { version: "2.0.14", date: "28 Jun 2026", changes: [
+    "Admin: Game Card Audit tool — scan all 365 boards and flag short targets or boards with a longer word than the target",
+  ]},
+  { version: "2.0.13", date: "28 Jun 2026", changes: [
+    "Valid words float off the board as a hex tile showing your score, level badge, and cheer message",
+    "Confetti burst and rich haptic pattern when you find today's longest word",
+    "Past-day play restores the correct prompt and completion state on return",
+  ]},
+  { version: "2.0.12", date: "28 Jun 2026", changes: [
+    "Scores panel redesigned — cleaner layout, polished header",
+    "Cycling completion message fix — first line is now day-specific, not always generic",
+  ]},
   { version: "2.0.11", date: "28 Jun 2026", changes: [
     "Hint: smooth amber throb via CSS keyframe on polygon fill — true fade in/out, 10 seconds",
     "Ticket spend: confirmation modal shows current balance, cost, and remaining before any spend",
