@@ -409,9 +409,13 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.7";
+const VERSION = "2.0.8";
 
 const CHANGELOG = [
+  { version: "2.0.8", date: "28 Jun 2026", changes: [
+    "Added breathing room between word box and top of board",
+    "Action icons and share button pulled inward from screen edges",
+  ]},
   { version: "2.0.7", date: "28 Jun 2026", changes: [
     "Board now sits at the top of the card — controls pin directly beneath it",
     "Removed large vertical gap between board and action controls",
