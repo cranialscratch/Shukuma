@@ -409,9 +409,16 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.4";
+const VERSION = "2.0.5";
 
 const CHANGELOG = [
+  { version: "2.0.5", date: "28 Jun 2026", changes: [
+    "Admin: colour panel redesigned — light & dark side by side, one row per colour",
+    "Admin: 5 preset themes (Default, Maroon, Forest, Ocean, Coffee) — click to preview, then save",
+    "Admin: ⇒ suggest-dark button on every row derives a sensible dark-mode equivalent from the light colour",
+    "Admin: secondary colours (strokes, sub-variants) collapsed under 'Advanced colours'",
+    "Theme persistence unchanged — colours saved to Firestore survive all future JS/CSS updates",
+  ]},
   { version: "2.0.4", date: "28 Jun 2026", changes: [
     "Game board moves 12px higher; action icons and share button tighten up beneath it",
     "Share button now reads 'Share 🎟 +1' — ticket icon plus label, not just the icon",
@@ -3266,6 +3273,225 @@ function initSettings() {
 }
 
 // ─── Admin panel ─────────────────────────────────────────────────────────────
+
+// ── Colour math helpers ───────────────────────────────────────────────────────
+function hexToHsl(hex) {
+  var r = parseInt(hex.slice(1,3),16)/255;
+  var g = parseInt(hex.slice(3,5),16)/255;
+  var b = parseInt(hex.slice(5,7),16)/255;
+  var max = Math.max(r,g,b), min = Math.min(r,g,b);
+  var h=0, s=0, l=(max+min)/2;
+  if (max !== min) {
+    var d = max - min;
+    s = l > 0.5 ? d/(2-max-min) : d/(max+min);
+    switch (max) {
+      case r: h = ((g-b)/d + (g<b?6:0))/6; break;
+      case g: h = ((b-r)/d + 2)/6; break;
+      case b: h = ((r-g)/d + 4)/6; break;
+    }
+  }
+  return {h: h*360, s: s, l: l};
+}
+
+function hslToHex(h, s, l) {
+  h = ((h % 360) + 360) % 360;
+  s = Math.max(0, Math.min(1, s));
+  l = Math.max(0, Math.min(1, l));
+  var c = (1 - Math.abs(2*l-1)) * s;
+  var x = c * (1 - Math.abs((h/60)%2-1));
+  var m = l - c/2;
+  var r,g,b;
+  if      (h<60) {r=c;g=x;b=0;}
+  else if (h<120){r=x;g=c;b=0;}
+  else if (h<180){r=0;g=c;b=x;}
+  else if (h<240){r=0;g=x;b=c;}
+  else if (h<300){r=x;g=0;b=c;}
+  else           {r=c;g=0;b=x;}
+  return "#" + [r+m,g+m,b+m].map(function(v){return Math.round(v*255).toString(16).padStart(2,"0");}).join("");
+}
+
+// Suggest a dark-mode equivalent of a light-mode colour based on the CSS var name.
+function suggestDark(lightHex, varName) {
+  if (!lightHex || lightHex.length < 7) return lightHex;
+  var hsl = hexToHsl(lightHex);
+  var h = hsl.h, s = hsl.s, l = hsl.l;
+
+  if (/board-bg|page-bg|sheet-bg|word-box|stat-box/.test(varName)) {
+    // Backgrounds: very dark, same hue
+    return hslToHex(h, s * 0.65, Math.max(0.05, 0.18 * (1 - l)));
+  }
+  if (/card-bg/.test(varName)) {
+    return hslToHex(h, s * 0.65, Math.max(0.10, 0.22 * (1 - l)));
+  }
+  if (/brand/.test(varName) && !/stroke/.test(varName)) {
+    // Accent: lighten for dark backgrounds
+    return hslToHex(h, Math.min(s, 0.9), Math.min(l + 0.22, 0.80));
+  }
+  if (/text-primary/.test(varName)) {
+    return hslToHex(h, s * 0.12, 0.93);
+  }
+  if (/text-secondary/.test(varName)) {
+    return hslToHex(h, s * 0.30, Math.min(l + 0.38, 0.72));
+  }
+  if (/text-muted|prompt|icon/.test(varName)) {
+    return hslToHex(h, s * 0.25, Math.min(l + 0.28, 0.60));
+  }
+  if (/tile-neutral/.test(varName) && !/stroke/.test(varName)) {
+    // Neutral tile: dark grey, slight hue tint
+    return hslToHex(h, Math.max(s * 0.5, 0.04), 0.22);
+  }
+  if (/tile-selected|tile-valid|tile-invalid|tile-played/.test(varName) && !/stroke/.test(varName)) {
+    // Coloured states: slightly lighter
+    return hslToHex(h, s, Math.min(l + 0.16, 0.85));
+  }
+  if (/stroke/.test(varName)) {
+    return hslToHex(h, s, Math.min(l + 0.10, 0.55));
+  }
+  if (/lb-row-border/.test(varName)) {
+    return hslToHex(h, s * 0.5, Math.max(0.14, 0.24 * (1 - l)));
+  }
+  // Default: brighten
+  return hslToHex(h, s, Math.min(l + 0.22, 0.88));
+}
+
+// ── Preset themes ─────────────────────────────────────────────────────────────
+var PRESET_THEMES = {
+  default: {
+    "--brand":"#7c4dff","--brand-dark":"#5e35b1","--board-bg":"#f2f2f7","--card-bg":"#ffffff",
+    "--sheet-bg":"#f2f2f7","--word-box-bg":"#f0f0ec","--stat-box-bg":"#f7f7f5",
+    "--text-primary":"#1c1c1e","--text-secondary":"#6e6e73","--text-muted":"#9ca3af",
+    "--prompt-color":"#9ca3af","--icon-color":"#6e6e73","--lb-row-border":"#f0f0ec",
+    "--tile-neutral":"#ffffff","--tile-neutral-stroke":"#e5e7eb","--tile-blank":"#f3f0eb",
+    "--tile-text":"#1f2937","--tile-text-light":"#ffffff",
+    "--tile-selected":"#7c4dff","--tile-selected-stroke":"#5e35b1",
+    "--tile-valid":"#22c55e","--tile-valid-stroke":"#16a34a",
+    "--tile-invalid":"#ef4444","--tile-invalid-stroke":"#dc2626",
+    "--tile-played":"#4ade80","--tile-played-stroke":"#16a34a",
+    "--dk-brand":"#a78bfa","--dk-brand-dark":"#7c4dff","--dk-board-bg":"#1c1c1e","--dk-card-bg":"#2c2c2e",
+    "--dk-sheet-bg":"#1c1c1e","--dk-word-box-bg":"#2c2c2e","--dk-stat-box-bg":"#3a3a3c",
+    "--dk-text-primary":"#f2f2f7","--dk-text-secondary":"#aeaeb2","--dk-text-muted":"#636366",
+    "--dk-prompt-color":"#636366","--dk-icon-color":"#aeaeb2","--dk-lb-row-border":"#3a3a3c",
+    "--dk-tile-neutral":"#3a3a3c","--dk-tile-neutral-stroke":"#48484a","--dk-tile-blank":"#3a3532",
+    "--dk-tile-text":"#f2f2f7","--dk-tile-text-light":"#ffffff",
+    "--dk-tile-selected":"#a78bfa","--dk-tile-selected-stroke":"#7c4dff",
+    "--dk-tile-valid":"#4ade80","--dk-tile-valid-stroke":"#22c55e",
+    "--dk-tile-invalid":"#f87171","--dk-tile-invalid-stroke":"#ef4444",
+    "--dk-tile-played":"#86efac","--dk-tile-played-stroke":"#4ade80",
+  },
+  maroon: {
+    // Cream tiles on wine-maroon board — original design spec
+    "--brand":"#c0395c","--brand-dark":"#8e1f3d","--board-bg":"#f5f0e8","--card-bg":"#fdfaf5",
+    "--sheet-bg":"#f0ebe0","--word-box-bg":"#eee8d8","--stat-box-bg":"#f5f0e8",
+    "--text-primary":"#2d1a10","--text-secondary":"#6b4c3a","--text-muted":"#a08070",
+    "--prompt-color":"#a08070","--icon-color":"#6b4c3a","--lb-row-border":"#eee8d8",
+    "--tile-neutral":"#e8dfc8","--tile-neutral-stroke":"#c8b098","--tile-blank":"#f0e8d0",
+    "--tile-text":"#1a0a00","--tile-text-light":"#ffffff",
+    "--tile-selected":"#e8c840","--tile-selected-stroke":"#c9a820",
+    "--tile-valid":"#5cb85c","--tile-valid-stroke":"#3d8b3d",
+    "--tile-invalid":"#d9534f","--tile-invalid-stroke":"#a02020",
+    "--tile-played":"#4c5ab8","--tile-played-stroke":"#333f8f",
+    "--dk-brand":"#e8607a","--dk-brand-dark":"#c0395c","--dk-board-bg":"#3d1a24","--dk-card-bg":"#521d2a",
+    "--dk-sheet-bg":"#3d1a24","--dk-word-box-bg":"#3d1a24","--dk-stat-box-bg":"#521d2a",
+    "--dk-text-primary":"#f5e8d8","--dk-text-secondary":"#c8a898","--dk-text-muted":"#886050",
+    "--dk-prompt-color":"#886050","--dk-icon-color":"#c8a898","--dk-lb-row-border":"#521d2a",
+    "--dk-tile-neutral":"#e8dfc8","--dk-tile-neutral-stroke":"#c8b098","--dk-tile-blank":"#f0e8d0",
+    "--dk-tile-text":"#1a0a00","--dk-tile-text-light":"#ffffff",
+    "--dk-tile-selected":"#e8c840","--dk-tile-selected-stroke":"#c9a820",
+    "--dk-tile-valid":"#5cb85c","--dk-tile-valid-stroke":"#3d8b3d",
+    "--dk-tile-invalid":"#d9534f","--dk-tile-invalid-stroke":"#a02020",
+    "--dk-tile-played":"#6c7ad8","--dk-tile-played-stroke":"#4c5ab8",
+  },
+  forest: {
+    "--brand":"#2d7a4f","--brand-dark":"#1a5c38","--board-bg":"#f0f4f0","--card-bg":"#ffffff",
+    "--sheet-bg":"#e8f0e8","--word-box-bg":"#e4ede4","--stat-box-bg":"#f0f5f0",
+    "--text-primary":"#1a2e1a","--text-secondary":"#4a6a4a","--text-muted":"#7a9a7a",
+    "--prompt-color":"#7a9a7a","--icon-color":"#4a6a4a","--lb-row-border":"#e0ece0",
+    "--tile-neutral":"#ffffff","--tile-neutral-stroke":"#d0e4d0","--tile-blank":"#e8f2e8",
+    "--tile-text":"#1a2e1a","--tile-text-light":"#ffffff",
+    "--tile-selected":"#2d7a4f","--tile-selected-stroke":"#1a5c38",
+    "--tile-valid":"#22c55e","--tile-valid-stroke":"#16a34a",
+    "--tile-invalid":"#ef4444","--tile-invalid-stroke":"#dc2626",
+    "--tile-played":"#a3e635","--tile-played-stroke":"#65a30d",
+    "--dk-brand":"#4ade80","--dk-brand-dark":"#22c55e","--dk-board-bg":"#0f1a10","--dk-card-bg":"#1a2e1a",
+    "--dk-sheet-bg":"#0f1a10","--dk-word-box-bg":"#1a2e1a","--dk-stat-box-bg":"#1e3520",
+    "--dk-text-primary":"#e8f5e8","--dk-text-secondary":"#a0c8a0","--dk-text-muted":"#5a7a5a",
+    "--dk-prompt-color":"#5a7a5a","--dk-icon-color":"#a0c8a0","--dk-lb-row-border":"#1e3520",
+    "--dk-tile-neutral":"#1e3520","--dk-tile-neutral-stroke":"#2d4a2e","--dk-tile-blank":"#243828",
+    "--dk-tile-text":"#e8f5e8","--dk-tile-text-light":"#ffffff",
+    "--dk-tile-selected":"#4ade80","--dk-tile-selected-stroke":"#22c55e",
+    "--dk-tile-valid":"#86efac","--dk-tile-valid-stroke":"#4ade80",
+    "--dk-tile-invalid":"#f87171","--dk-tile-invalid-stroke":"#ef4444",
+    "--dk-tile-played":"#bef264","--dk-tile-played-stroke":"#a3e635",
+  },
+  ocean: {
+    "--brand":"#0e7490","--brand-dark":"#0c5d73","--board-bg":"#f0f8ff","--card-bg":"#ffffff",
+    "--sheet-bg":"#e0f2fe","--word-box-bg":"#e0f2fe","--stat-box-bg":"#f0f8ff",
+    "--text-primary":"#0c2438","--text-secondary":"#1e5a7a","--text-muted":"#5a8ca8",
+    "--prompt-color":"#5a8ca8","--icon-color":"#1e5a7a","--lb-row-border":"#e0f2fe",
+    "--tile-neutral":"#ffffff","--tile-neutral-stroke":"#bae6fd","--tile-blank":"#e0f2fe",
+    "--tile-text":"#0c2438","--tile-text-light":"#ffffff",
+    "--tile-selected":"#0e7490","--tile-selected-stroke":"#0c5d73",
+    "--tile-valid":"#22c55e","--tile-valid-stroke":"#16a34a",
+    "--tile-invalid":"#ef4444","--tile-invalid-stroke":"#dc2626",
+    "--tile-played":"#38bdf8","--tile-played-stroke":"#0284c7",
+    "--dk-brand":"#38bdf8","--dk-brand-dark":"#0ea5e9","--dk-board-bg":"#0c1825","--dk-card-bg":"#0f2535",
+    "--dk-sheet-bg":"#0c1825","--dk-word-box-bg":"#0f2535","--dk-stat-box-bg":"#162d40",
+    "--dk-text-primary":"#e0f2fe","--dk-text-secondary":"#7abbd8","--dk-text-muted":"#3a6a85",
+    "--dk-prompt-color":"#3a6a85","--dk-icon-color":"#7abbd8","--dk-lb-row-border":"#162d40",
+    "--dk-tile-neutral":"#162d40","--dk-tile-neutral-stroke":"#1e3d55","--dk-tile-blank":"#1a3548",
+    "--dk-tile-text":"#e0f2fe","--dk-tile-text-light":"#ffffff",
+    "--dk-tile-selected":"#38bdf8","--dk-tile-selected-stroke":"#0ea5e9",
+    "--dk-tile-valid":"#4ade80","--dk-tile-valid-stroke":"#22c55e",
+    "--dk-tile-invalid":"#f87171","--dk-tile-invalid-stroke":"#ef4444",
+    "--dk-tile-played":"#7dd3fc","--dk-tile-played-stroke":"#38bdf8",
+  },
+  coffee: {
+    "--brand":"#92400e","--brand-dark":"#6b2d08","--board-bg":"#fdf8f0","--card-bg":"#fffef8",
+    "--sheet-bg":"#f5ede0","--word-box-bg":"#f5ede0","--stat-box-bg":"#fdf8f0",
+    "--text-primary":"#2c1a08","--text-secondary":"#6b4825","--text-muted":"#a07050",
+    "--prompt-color":"#a07050","--icon-color":"#6b4825","--lb-row-border":"#f0e0c8",
+    "--tile-neutral":"#fffef8","--tile-neutral-stroke":"#e8d5b8","--tile-blank":"#f5ede0",
+    "--tile-text":"#2c1a08","--tile-text-light":"#ffffff",
+    "--tile-selected":"#92400e","--tile-selected-stroke":"#6b2d08",
+    "--tile-valid":"#22c55e","--tile-valid-stroke":"#16a34a",
+    "--tile-invalid":"#ef4444","--tile-invalid-stroke":"#dc2626",
+    "--tile-played":"#d97706","--tile-played-stroke":"#b45309",
+    "--dk-brand":"#fbbf24","--dk-brand-dark":"#f59e0b","--dk-board-bg":"#1a0e04","--dk-card-bg":"#261408",
+    "--dk-sheet-bg":"#1a0e04","--dk-word-box-bg":"#261408","--dk-stat-box-bg":"#30180a",
+    "--dk-text-primary":"#fdf8f0","--dk-text-secondary":"#c8a070","--dk-text-muted":"#7a5030",
+    "--dk-prompt-color":"#7a5030","--dk-icon-color":"#c8a070","--dk-lb-row-border":"#30180a",
+    "--dk-tile-neutral":"#30180a","--dk-tile-neutral-stroke":"#402010","--dk-tile-blank":"#382010",
+    "--dk-tile-text":"#fdf8f0","--dk-tile-text-light":"#ffffff",
+    "--dk-tile-selected":"#fbbf24","--dk-tile-selected-stroke":"#f59e0b",
+    "--dk-tile-valid":"#4ade80","--dk-tile-valid-stroke":"#22c55e",
+    "--dk-tile-invalid":"#f87171","--dk-tile-invalid-stroke":"#ef4444",
+    "--dk-tile-played":"#fcd34d","--dk-tile-played-stroke":"#fbbf24",
+  },
+};
+
+// Apply a PRESET_THEMES entry: set CSS vars + sync all pickers + live preview.
+// Does NOT save — user clicks "Apply & save theme" to persist.
+function applyPreset(presetKey) {
+  var theme = PRESET_THEMES[presetKey];
+  if (!theme) return;
+  // Apply vars live
+  Object.keys(theme).forEach(function(cssVar) {
+    document.documentElement.style.setProperty(cssVar, theme[cssVar]);
+  });
+  buildColours();
+  renderAllTiles();
+  // Sync all colour pickers that exist in the DOM
+  Object.keys(ADMIN_CSS_MAP).forEach(function(inputId) {
+    var cssVar = ADMIN_CSS_MAP[inputId];
+    var inp = document.getElementById(inputId);
+    if (inp && theme[cssVar]) inp.value = theme[cssVar];
+  });
+  // Update preset button active state
+  document.querySelectorAll(".theme-preset").forEach(function(btn) {
+    btn.classList.toggle("active", btn.dataset.preset === presetKey);
+  });
+}
+
 // Map of color input IDs → CSS variable names
 // Maps input id → CSS variable name.
 // Light-mode pickers set the main var directly on :root.
@@ -3354,15 +3580,28 @@ function initAdmin() {
   var closeBtn = document.getElementById("admin-close");
   if (closeBtn) closeBtn.addEventListener("click", function() { panel.hidden = true; });
 
-  // Mode tab switcher (Light / Dark)
-  var modeTabs = panel.querySelectorAll(".admin-mode-tab");
-  modeTabs.forEach(function(tab) {
-    tab.addEventListener("click", function() {
-      modeTabs.forEach(function(t) { t.classList.remove("active"); });
-      tab.classList.add("active");
-      var mode = tab.getAttribute("data-mode");
-      panel.querySelector("#admin-pane-light").hidden = (mode !== "light");
-      panel.querySelector("#admin-pane-dark").hidden  = (mode !== "dark");
+  // Preset theme buttons
+  panel.querySelectorAll(".theme-preset").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      applyPreset(btn.dataset.preset);
+      showToast("Theme preview applied — click 'Apply & save' to make it permanent.");
+    });
+  });
+
+  // Suggest-dark buttons
+  panel.querySelectorAll(".suggest-dark").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      var lightId = btn.dataset.light;
+      var darkId  = btn.dataset.dark;
+      var lightInput = document.getElementById(lightId);
+      var darkInput  = document.getElementById(darkId);
+      if (!lightInput || !darkInput) return;
+      var cssVar = ADMIN_CSS_MAP[darkId] || darkId;
+      var suggested = suggestDark(lightInput.value, cssVar);
+      darkInput.value = suggested;
+      document.documentElement.style.setProperty(ADMIN_CSS_MAP[darkId], suggested);
+      buildColours();
+      renderAllTiles();
     });
   });
 

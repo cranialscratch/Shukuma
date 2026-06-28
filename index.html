@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2.0.4" />
+  <link rel="stylesheet" href="style.css?v=2.0.5" />
 </head>
 <body>
   <div id="app">
@@ -471,175 +471,219 @@
     </div>
     <div id="admin-content">
 
-      <!-- Mode tab switcher -->
-      <div class="admin-mode-tabs">
-        <button class="admin-mode-tab active" data-mode="light">☀ Light</button>
-        <button class="admin-mode-tab" data-mode="dark">☾ Dark</button>
+      <!-- ── Preset Themes ───────────────────────────────────────── -->
+      <div class="admin-section admin-presets">
+        <h3>Preset Themes</h3>
+        <div class="theme-preset-grid">
+          <button class="theme-preset" data-preset="default">
+            <span class="preset-dot" style="background:#7c4dff"></span>Default
+          </button>
+          <button class="theme-preset" data-preset="maroon">
+            <span class="preset-dot" style="background:#c0395c"></span>Maroon
+          </button>
+          <button class="theme-preset" data-preset="forest">
+            <span class="preset-dot" style="background:#2d7a4f"></span>Forest
+          </button>
+          <button class="theme-preset" data-preset="ocean">
+            <span class="preset-dot" style="background:#0e7490"></span>Ocean
+          </button>
+          <button class="theme-preset" data-preset="coffee">
+            <span class="preset-dot" style="background:#92400e"></span>Coffee
+          </button>
+        </div>
       </div>
 
-      <!-- ── LIGHT MODE PICKERS ─────────────────────────────────── -->
-      <div class="admin-mode-pane" id="admin-pane-light">
-
-        <div class="admin-section">
-          <h3>Brand</h3>
-          <div class="admin-row"><label>Primary (buttons, active nav, score)</label>
-            <input type="color" id="ac-brand" data-var="--brand"></div>
-          <div class="admin-row"><label>Brand dark (hover, strokes)</label>
-            <input type="color" id="ac-brand-dark" data-var="--brand-dark"></div>
+      <!-- ── Colour Palette: side-by-side Light | Dark ────────────── -->
+      <div class="admin-section">
+        <div class="palette-header">
+          <span></span>
+          <span class="palette-mode-label">☀ Light</span>
+          <span></span>
+          <span class="palette-mode-label">☾ Dark</span>
         </div>
 
-        <div class="admin-section">
-          <h3>Backgrounds</h3>
-          <div class="admin-row"><label>Page &amp; board</label>
-            <input type="color" id="ac-board-bg" data-var="--board-bg"></div>
-          <div class="admin-row"><label>Card (nav pill, stat cards, info btn)</label>
-            <input type="color" id="ac-card-bg" data-var="--card-bg"></div>
-          <div class="admin-row"><label>Sheet (slide-up panel)</label>
-            <input type="color" id="ac-sheet-bg" data-var="--sheet-bg"></div>
-          <div class="admin-row"><label>Word box</label>
-            <input type="color" id="ac-word-box-bg" data-var="--word-box-bg"></div>
-          <div class="admin-row"><label>Stat sub-box</label>
-            <input type="color" id="ac-stat-box-bg" data-var="--stat-box-bg"></div>
+        <div class="palette-group-title">Brand</div>
+        <div class="palette-row2">
+          <span class="prow-label">Accent</span>
+          <input type="color" id="ac-brand" data-var="--brand">
+          <button class="suggest-dark" data-light="ac-brand" data-dark="dk-brand" title="Suggest dark">⇒</button>
+          <input type="color" id="dk-brand" data-var="--dk-brand">
         </div>
 
-        <div class="admin-section">
-          <h3>Text</h3>
-          <div class="admin-row"><label>Primary (headings, names, labels)</label>
-            <input type="color" id="ac-text-primary" data-var="--text-primary"></div>
-          <div class="admin-row"><label>Secondary (sub-labels, section titles)</label>
-            <input type="color" id="ac-text-secondary" data-var="--text-secondary"></div>
-          <div class="admin-row"><label>Muted (stat labels, card sub-text)</label>
-            <input type="color" id="ac-text-muted" data-var="--text-muted"></div>
-          <div class="admin-row"><label>Prompt ("Find today's longest word")</label>
-            <input type="color" id="ac-prompt-color" data-var="--prompt-color"></div>
+        <div class="palette-group-title">Backgrounds</div>
+        <div class="palette-row2">
+          <span class="prow-label">Page &amp; board</span>
+          <input type="color" id="ac-board-bg" data-var="--board-bg">
+          <button class="suggest-dark" data-light="ac-board-bg" data-dark="dk-board-bg" title="Suggest dark">⇒</button>
+          <input type="color" id="dk-board-bg" data-var="--dk-board-bg">
+        </div>
+        <div class="palette-row2 prow-sub">
+          <span class="prow-label">Cards &amp; sheets</span>
+          <input type="color" id="ac-card-bg" data-var="--card-bg">
+          <button class="suggest-dark" data-light="ac-card-bg" data-dark="dk-card-bg" title="Suggest dark">⇒</button>
+          <input type="color" id="dk-card-bg" data-var="--dk-card-bg">
         </div>
 
-        <div class="admin-section">
-          <h3>Icons &amp; Buttons</h3>
-          <div class="admin-row"><label>Action icons (undo / clear / hint)</label>
-            <input type="color" id="ac-icon-color" data-var="--icon-color"></div>
-          <div class="admin-row"><label>Leaderboard row border</label>
-            <input type="color" id="ac-lb-row-border" data-var="--lb-row-border"></div>
+        <div class="palette-group-title">Text</div>
+        <div class="palette-row2">
+          <span class="prow-label">Primary</span>
+          <input type="color" id="ac-text-primary" data-var="--text-primary">
+          <button class="suggest-dark" data-light="ac-text-primary" data-dark="dk-text-primary" title="Suggest dark">⇒</button>
+          <input type="color" id="dk-text-primary" data-var="--dk-text-primary">
+        </div>
+        <div class="palette-row2 prow-sub">
+          <span class="prow-label">Secondary</span>
+          <input type="color" id="ac-text-secondary" data-var="--text-secondary">
+          <button class="suggest-dark" data-light="ac-text-secondary" data-dark="dk-text-secondary" title="Suggest dark">⇒</button>
+          <input type="color" id="dk-text-secondary" data-var="--dk-text-secondary">
         </div>
 
-        <div class="admin-section">
-          <h3>Tile Fills</h3>
-          <div class="admin-row"><label>Neutral</label>
-            <input type="color" id="ac-tile-neutral" data-var="--tile-neutral"></div>
-          <div class="admin-row"><label>Neutral stroke</label>
-            <input type="color" id="ac-tile-neutral-stroke" data-var="--tile-neutral-stroke"></div>
-          <div class="admin-row"><label>Blank (wildcard)</label>
-            <input type="color" id="ac-tile-blank" data-var="--tile-blank"></div>
-          <div class="admin-row"><label>Tile text (on neutral/blank)</label>
-            <input type="color" id="ac-tile-text" data-var="--tile-text"></div>
-          <div class="admin-row"><label>Tile text (on coloured tiles)</label>
-            <input type="color" id="ac-tile-text-light" data-var="--tile-text-light"></div>
+        <div class="palette-group-title">Tiles</div>
+        <div class="palette-row2">
+          <span class="prow-label">Default</span>
+          <input type="color" id="ac-tile-neutral" data-var="--tile-neutral">
+          <button class="suggest-dark" data-light="ac-tile-neutral" data-dark="dk-tile-neutral" title="Suggest dark">⇒</button>
+          <input type="color" id="dk-tile-neutral" data-var="--dk-tile-neutral">
+        </div>
+        <div class="palette-row2">
+          <span class="prow-label">Selecting</span>
+          <input type="color" id="ac-tile-selected" data-var="--tile-selected">
+          <button class="suggest-dark" data-light="ac-tile-selected" data-dark="dk-tile-selected" title="Suggest dark">⇒</button>
+          <input type="color" id="dk-tile-selected" data-var="--dk-tile-selected">
+        </div>
+        <div class="palette-row2">
+          <span class="prow-label">Valid word</span>
+          <input type="color" id="ac-tile-valid" data-var="--tile-valid">
+          <button class="suggest-dark" data-light="ac-tile-valid" data-dark="dk-tile-valid" title="Suggest dark">⇒</button>
+          <input type="color" id="dk-tile-valid" data-var="--dk-tile-valid">
+        </div>
+        <div class="palette-row2">
+          <span class="prow-label">Invalid</span>
+          <input type="color" id="ac-tile-invalid" data-var="--tile-invalid">
+          <button class="suggest-dark" data-light="ac-tile-invalid" data-dark="dk-tile-invalid" title="Suggest dark">⇒</button>
+          <input type="color" id="dk-tile-invalid" data-var="--dk-tile-invalid">
+        </div>
+        <div class="palette-row2">
+          <span class="prow-label">Best word</span>
+          <input type="color" id="ac-tile-played" data-var="--tile-played">
+          <button class="suggest-dark" data-light="ac-tile-played" data-dark="dk-tile-played" title="Suggest dark">⇒</button>
+          <input type="color" id="dk-tile-played" data-var="--dk-tile-played">
         </div>
 
-        <div class="admin-section">
-          <h3>Tile States</h3>
-          <div class="admin-row"><label>Selected fill</label>
-            <input type="color" id="ac-tile-selected" data-var="--tile-selected"></div>
-          <div class="admin-row"><label>Selected stroke</label>
-            <input type="color" id="ac-tile-selected-stroke" data-var="--tile-selected-stroke"></div>
-          <div class="admin-row"><label>Valid fill</label>
-            <input type="color" id="ac-tile-valid" data-var="--tile-valid"></div>
-          <div class="admin-row"><label>Valid stroke</label>
-            <input type="color" id="ac-tile-valid-stroke" data-var="--tile-valid-stroke"></div>
-          <div class="admin-row"><label>Invalid fill</label>
-            <input type="color" id="ac-tile-invalid" data-var="--tile-invalid"></div>
-          <div class="admin-row"><label>Invalid stroke</label>
-            <input type="color" id="ac-tile-invalid-stroke" data-var="--tile-invalid-stroke"></div>
-          <div class="admin-row"><label>Best word fill</label>
-            <input type="color" id="ac-tile-played" data-var="--tile-played"></div>
-          <div class="admin-row"><label>Best word stroke</label>
-            <input type="color" id="ac-tile-played-stroke" data-var="--tile-played-stroke"></div>
-        </div>
+        <!-- Advanced: strokes + sub-variants -->
+        <details class="admin-advanced">
+          <summary>Advanced colours</summary>
 
-      </div><!-- /admin-pane-light -->
+          <div class="palette-group-title">Brand</div>
+          <div class="palette-row2 prow-sub">
+            <span class="prow-label">Accent dark</span>
+            <input type="color" id="ac-brand-dark" data-var="--brand-dark">
+            <button class="suggest-dark" data-light="ac-brand-dark" data-dark="dk-brand-dark" title="Suggest dark">⇒</button>
+            <input type="color" id="dk-brand-dark" data-var="--dk-brand-dark">
+          </div>
 
-      <!-- ── DARK MODE PICKERS ──────────────────────────────────── -->
-      <div class="admin-mode-pane" id="admin-pane-dark" hidden>
+          <div class="palette-group-title">Background sub-variants</div>
+          <div class="palette-row2 prow-sub">
+            <span class="prow-label">Sheet panel</span>
+            <input type="color" id="ac-sheet-bg" data-var="--sheet-bg">
+            <button class="suggest-dark" data-light="ac-sheet-bg" data-dark="dk-sheet-bg" title="Suggest dark">⇒</button>
+            <input type="color" id="dk-sheet-bg" data-var="--dk-sheet-bg">
+          </div>
+          <div class="palette-row2 prow-sub">
+            <span class="prow-label">Word box</span>
+            <input type="color" id="ac-word-box-bg" data-var="--word-box-bg">
+            <button class="suggest-dark" data-light="ac-word-box-bg" data-dark="dk-word-box-bg" title="Suggest dark">⇒</button>
+            <input type="color" id="dk-word-box-bg" data-var="--dk-word-box-bg">
+          </div>
+          <div class="palette-row2 prow-sub">
+            <span class="prow-label">Stat sub-box</span>
+            <input type="color" id="ac-stat-box-bg" data-var="--stat-box-bg">
+            <button class="suggest-dark" data-light="ac-stat-box-bg" data-dark="dk-stat-box-bg" title="Suggest dark">⇒</button>
+            <input type="color" id="dk-stat-box-bg" data-var="--dk-stat-box-bg">
+          </div>
 
-        <p class="admin-mode-note">These colours apply when the player switches to dark mode.</p>
+          <div class="palette-group-title">Text sub-variants</div>
+          <div class="palette-row2 prow-sub">
+            <span class="prow-label">Muted</span>
+            <input type="color" id="ac-text-muted" data-var="--text-muted">
+            <button class="suggest-dark" data-light="ac-text-muted" data-dark="dk-text-muted" title="Suggest dark">⇒</button>
+            <input type="color" id="dk-text-muted" data-var="--dk-text-muted">
+          </div>
+          <div class="palette-row2 prow-sub">
+            <span class="prow-label">Prompt</span>
+            <input type="color" id="ac-prompt-color" data-var="--prompt-color">
+            <button class="suggest-dark" data-light="ac-prompt-color" data-dark="dk-prompt-color" title="Suggest dark">⇒</button>
+            <input type="color" id="dk-prompt-color" data-var="--dk-prompt-color">
+          </div>
+          <div class="palette-row2 prow-sub">
+            <span class="prow-label">Icons</span>
+            <input type="color" id="ac-icon-color" data-var="--icon-color">
+            <button class="suggest-dark" data-light="ac-icon-color" data-dark="dk-icon-color" title="Suggest dark">⇒</button>
+            <input type="color" id="dk-icon-color" data-var="--dk-icon-color">
+          </div>
+          <div class="palette-row2 prow-sub">
+            <span class="prow-label">LB row border</span>
+            <input type="color" id="ac-lb-row-border" data-var="--lb-row-border">
+            <button class="suggest-dark" data-light="ac-lb-row-border" data-dark="dk-lb-row-border" title="Suggest dark">⇒</button>
+            <input type="color" id="dk-lb-row-border" data-var="--dk-lb-row-border">
+          </div>
 
-        <div class="admin-section">
-          <h3>Brand</h3>
-          <div class="admin-row"><label>Primary (on dark bg)</label>
-            <input type="color" id="dk-brand" data-var="--dk-brand"></div>
-          <div class="admin-row"><label>Brand dark (hover, strokes)</label>
-            <input type="color" id="dk-brand-dark" data-var="--dk-brand-dark"></div>
-        </div>
+          <div class="palette-group-title">Tile sub-variants</div>
+          <div class="palette-row2 prow-sub">
+            <span class="prow-label">Default stroke</span>
+            <input type="color" id="ac-tile-neutral-stroke" data-var="--tile-neutral-stroke">
+            <button class="suggest-dark" data-light="ac-tile-neutral-stroke" data-dark="dk-tile-neutral-stroke" title="Suggest dark">⇒</button>
+            <input type="color" id="dk-tile-neutral-stroke" data-var="--dk-tile-neutral-stroke">
+          </div>
+          <div class="palette-row2 prow-sub">
+            <span class="prow-label">Blank tile</span>
+            <input type="color" id="ac-tile-blank" data-var="--tile-blank">
+            <button class="suggest-dark" data-light="ac-tile-blank" data-dark="dk-tile-blank" title="Suggest dark">⇒</button>
+            <input type="color" id="dk-tile-blank" data-var="--dk-tile-blank">
+          </div>
+          <div class="palette-row2 prow-sub">
+            <span class="prow-label">Tile text (on light)</span>
+            <input type="color" id="ac-tile-text" data-var="--tile-text">
+            <button class="suggest-dark" data-light="ac-tile-text" data-dark="dk-tile-text" title="Suggest dark">⇒</button>
+            <input type="color" id="dk-tile-text" data-var="--dk-tile-text">
+          </div>
+          <div class="palette-row2 prow-sub">
+            <span class="prow-label">Tile text (on color)</span>
+            <input type="color" id="ac-tile-text-light" data-var="--tile-text-light">
+            <button class="suggest-dark" data-light="ac-tile-text-light" data-dark="dk-tile-text-light" title="Suggest dark">⇒</button>
+            <input type="color" id="dk-tile-text-light" data-var="--dk-tile-text-light">
+          </div>
+          <div class="palette-row2 prow-sub">
+            <span class="prow-label">Selecting stroke</span>
+            <input type="color" id="ac-tile-selected-stroke" data-var="--tile-selected-stroke">
+            <button class="suggest-dark" data-light="ac-tile-selected-stroke" data-dark="dk-tile-selected-stroke" title="Suggest dark">⇒</button>
+            <input type="color" id="dk-tile-selected-stroke" data-var="--dk-tile-selected-stroke">
+          </div>
+          <div class="palette-row2 prow-sub">
+            <span class="prow-label">Valid stroke</span>
+            <input type="color" id="ac-tile-valid-stroke" data-var="--tile-valid-stroke">
+            <button class="suggest-dark" data-light="ac-tile-valid-stroke" data-dark="dk-tile-valid-stroke" title="Suggest dark">⇒</button>
+            <input type="color" id="dk-tile-valid-stroke" data-var="--dk-tile-valid-stroke">
+          </div>
+          <div class="palette-row2 prow-sub">
+            <span class="prow-label">Invalid stroke</span>
+            <input type="color" id="ac-tile-invalid-stroke" data-var="--tile-invalid-stroke">
+            <button class="suggest-dark" data-light="ac-tile-invalid-stroke" data-dark="dk-tile-invalid-stroke" title="Suggest dark">⇒</button>
+            <input type="color" id="dk-tile-invalid-stroke" data-var="--dk-tile-invalid-stroke">
+          </div>
+          <div class="palette-row2 prow-sub">
+            <span class="prow-label">Best word stroke</span>
+            <input type="color" id="ac-tile-played-stroke" data-var="--tile-played-stroke">
+            <button class="suggest-dark" data-light="ac-tile-played-stroke" data-dark="dk-tile-played-stroke" title="Suggest dark">⇒</button>
+            <input type="color" id="dk-tile-played-stroke" data-var="--dk-tile-played-stroke">
+          </div>
+        </details>
 
-        <div class="admin-section">
-          <h3>Backgrounds</h3>
-          <div class="admin-row"><label>Page &amp; board</label>
-            <input type="color" id="dk-board-bg" data-var="--dk-board-bg"></div>
-          <div class="admin-row"><label>Card (nav pill, stat cards)</label>
-            <input type="color" id="dk-card-bg" data-var="--dk-card-bg"></div>
-          <div class="admin-row"><label>Sheet (slide-up panel)</label>
-            <input type="color" id="dk-sheet-bg" data-var="--dk-sheet-bg"></div>
-          <div class="admin-row"><label>Word box</label>
-            <input type="color" id="dk-word-box-bg" data-var="--dk-word-box-bg"></div>
-          <div class="admin-row"><label>Stat sub-box</label>
-            <input type="color" id="dk-stat-box-bg" data-var="--dk-stat-box-bg"></div>
-        </div>
+      </div><!-- /palette section -->
 
-        <div class="admin-section">
-          <h3>Text</h3>
-          <div class="admin-row"><label>Primary</label>
-            <input type="color" id="dk-text-primary" data-var="--dk-text-primary"></div>
-          <div class="admin-row"><label>Secondary</label>
-            <input type="color" id="dk-text-secondary" data-var="--dk-text-secondary"></div>
-          <div class="admin-row"><label>Muted</label>
-            <input type="color" id="dk-text-muted" data-var="--dk-text-muted"></div>
-          <div class="admin-row"><label>Prompt</label>
-            <input type="color" id="dk-prompt-color" data-var="--dk-prompt-color"></div>
-        </div>
-
-        <div class="admin-section">
-          <h3>Icons &amp; Buttons</h3>
-          <div class="admin-row"><label>Action icons</label>
-            <input type="color" id="dk-icon-color" data-var="--dk-icon-color"></div>
-          <div class="admin-row"><label>Leaderboard row border</label>
-            <input type="color" id="dk-lb-row-border" data-var="--dk-lb-row-border"></div>
-        </div>
-
-        <div class="admin-section">
-          <h3>Tile Fills</h3>
-          <div class="admin-row"><label>Neutral</label>
-            <input type="color" id="dk-tile-neutral" data-var="--dk-tile-neutral"></div>
-          <div class="admin-row"><label>Neutral stroke</label>
-            <input type="color" id="dk-tile-neutral-stroke" data-var="--dk-tile-neutral-stroke"></div>
-          <div class="admin-row"><label>Blank (wildcard)</label>
-            <input type="color" id="dk-tile-blank" data-var="--dk-tile-blank"></div>
-          <div class="admin-row"><label>Tile text (on neutral/blank)</label>
-            <input type="color" id="dk-tile-text" data-var="--dk-tile-text"></div>
-          <div class="admin-row"><label>Tile text (on coloured tiles)</label>
-            <input type="color" id="dk-tile-text-light" data-var="--dk-tile-text-light"></div>
-        </div>
-
-        <div class="admin-section">
-          <h3>Tile States</h3>
-          <div class="admin-row"><label>Selected fill</label>
-            <input type="color" id="dk-tile-selected" data-var="--dk-tile-selected"></div>
-          <div class="admin-row"><label>Selected stroke</label>
-            <input type="color" id="dk-tile-selected-stroke" data-var="--dk-tile-selected-stroke"></div>
-          <div class="admin-row"><label>Valid fill</label>
-            <input type="color" id="dk-tile-valid" data-var="--dk-tile-valid"></div>
-          <div class="admin-row"><label>Valid stroke</label>
-            <input type="color" id="dk-tile-valid-stroke" data-var="--dk-tile-valid-stroke"></div>
-          <div class="admin-row"><label>Invalid fill</label>
-            <input type="color" id="dk-tile-invalid" data-var="--dk-tile-invalid"></div>
-          <div class="admin-row"><label>Invalid stroke</label>
-            <input type="color" id="dk-tile-invalid-stroke" data-var="--dk-tile-invalid-stroke"></div>
-          <div class="admin-row"><label>Best word fill</label>
-            <input type="color" id="dk-tile-played" data-var="--dk-tile-played"></div>
-          <div class="admin-row"><label>Best word stroke</label>
-            <input type="color" id="dk-tile-played-stroke" data-var="--dk-tile-played-stroke"></div>
-        </div>
-
-      </div><!-- /admin-pane-dark -->
+      <!-- hidden placeholders preserve IDs used by legacy palette-apply code -->
+      <div id="admin-pane-light" hidden></div>
+      <div id="admin-pane-dark" hidden></div>
 
       <!-- ── Shared: Typography ────────────────────────────────── -->
       <div class="admin-section">
@@ -720,6 +764,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
-  <script src="game.js?v=2.0.4"></script>
+  <script src="game.js?v=2.0.5"></script>
 </body>
 </html>
