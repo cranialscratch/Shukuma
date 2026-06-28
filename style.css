@@ -539,43 +539,40 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  animation: floatUp 1.8s ease-out forwards;
+  gap: 6px;
+  animation: floatUp 3s ease-out forwards;
   text-align: center;
 }
 
 @keyframes floatUp {
-  0%   { opacity: 0; transform: translateY(24px) scale(0.8); }
-  18%  { opacity: 1; transform: translateY(0)    scale(1.05); }
-  30%  { transform: scale(1); }
-  70%  { opacity: 1; }
-  100% { opacity: 0; transform: translateY(-44px); }
+  0%   { opacity: 0; transform: translateY(20px) scale(0.55); }
+  12%  { opacity: 1; transform: translateY(-6px) scale(1.08); }
+  20%  { transform: translateY(0) scale(1.0); }
+  72%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-70px); }
 }
 
-.float-score {
-  font-size: 3.8rem;
-  font-weight: 900;
-  font-family: "Inter", sans-serif;
-  color: var(--tile-text);
-  line-height: 1;
-  text-shadow: 0 3px 16px rgba(0,0,0,0.12);
+.float-hex-svg {
+  display: block;
+  overflow: visible;
 }
 
 .float-level {
-  font-size: 1.0625rem;
-  font-weight: 700;
-  color: rgba(0,0,0,0.5);
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: rgba(255,255,255,0.92);
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.13em;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.45);
 }
 
 .float-cheer {
-  font-size: 1.0625rem;
+  font-size: 0.85rem;
   font-weight: 500;
-  color: rgba(0,0,0,0.6);
+  color: rgba(255,255,255,0.78);
+  text-shadow: 0 1px 6px rgba(0,0,0,0.4);
 }
 
-.float-type-valid   .float-score { color: #16a34a; }
 .float-type-wrong   .float-cheer { color: #ef4444; }
 .float-type-neutral .float-cheer { color: rgba(0,0,0,0.4); }
 
@@ -2876,8 +2873,4 @@ html[data-theme="dark"] #version-tag:hover { color: var(--brand); }
 html[data-theme="dark"] .hex-tile polygon:not(.hatch-overlay) {
   filter: drop-shadow(0 2px 5px rgba(0,0,0,0.4));
 }
-html[data-theme="dark"] .float-score { color: var(--text-primary); text-shadow: 0 3px 16px rgba(0,0,0,0.6); }
-html[data-theme="dark"] .float-level { color: rgba(255,255,255,0.6); }
-html[data-theme="dark"] .float-cheer { color: rgba(255,255,255,0.7); }
-html[data-theme="dark"] .float-type-valid .float-score { color: var(--tile-played); }
 html[data-theme="dark"] .float-type-wrong .float-cheer { color: #f87171; }

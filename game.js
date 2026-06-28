@@ -409,7 +409,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.12";
+const VERSION = "2.0.13";
 
 const CHANGELOG = [
   { version: "2.0.11", date: "28 Jun 2026", changes: [
@@ -799,9 +799,11 @@ var soundEnabled  = true;
 var hapticsEnabled = true;
 var colourTheme   = "default"; // "default" | "protanopia" | "highcontrast"
 
-function triggerHaptic(ms) {
+function triggerHaptic(pattern) {
   if (!hapticsEnabled) return;
-  if (navigator.vibrate) navigator.vibrate(ms || 8);
+  if (!navigator.vibrate) return;
+  if (Array.isArray(pattern)) navigator.vibrate(pattern);
+  else navigator.vibrate(pattern || 8);
 }
 
 function applyDarkMode(on) {
@@ -1437,6 +1439,8 @@ function lockValidWord(word) {
     var inOneMsgs = FLOAT_MSGS.in_one;
     var inOneCheer = inOneMsgs[Math.floor(Math.random() * inOneMsgs.length)];
     showFloatAnim({ type: "valid", score: len, level: "Grandmaster in One!", cheer: inOneCheer });
+    showConfetti();
+    triggerHaptic([100, 50, 100, 50, 200]);
     setTimeout(function() {
       showToast("🎯 Grandmaster in One! First attempt perfection!");
     }, 1600);
@@ -1447,6 +1451,8 @@ function lockValidWord(word) {
     var msgs = FLOAT_MSGS.target_found;
     var cheer = msgs[Math.floor(Math.random() * msgs.length)];
     showFloatAnim({ type: "valid", score: len, level: level, cheer: cheer });
+    showConfetti();
+    triggerHaptic([100, 50, 100, 50, 200]);
     setTimeout(function() {
       showToast("🏆 You found today's longest word!");
     }, 1600);
@@ -1897,6 +1903,18 @@ function loadBoardForDate(ddmmyy) {
   if (nextBtn) nextBtn.disabled = browseOffset >= 0;
 
   if (!isToday) setTimeout(function() { showToast("You're viewing a past puzzle"); }, 800);
+
+  // Restore word-area message based on loaded game state
+  if (gameCompleted) {
+    _cycleAttemptCount = attemptCount;
+    setTimeout(startCyclingMessages, isToday ? 200 : 500);
+  } else if (!isToday && bestScore > 0) {
+    stopCyclingMessages();
+    var promptEl = document.getElementById("game-prompt");
+    if (promptEl) promptEl.textContent = "Keep going to find the longest word";
+  } else {
+    stopCyclingMessages();
+  }
 }
 
 function populateAnswers(explicitDateStr) {
@@ -3174,7 +3192,6 @@ function showFloatAnim(opts) {
   var container = document.getElementById("board-container");
   if (!container) return;
 
-  // Remove any existing animation that hasn't finished
   var old = container.querySelector(".float-anim-wrapper");
   if (old) old.remove();
 
@@ -3185,19 +3202,84 @@ function showFloatAnim(opts) {
   inner.className = "float-anim-inner float-type-" + (opts.type || "neutral");
 
   if (opts.type === "valid") {
+    // Pointy-top SVG hex styled like a game tile
+    var r = 52, cx = 60, cy = 62;
+    var pts = [];
+    for (var i = 0; i < 6; i++) {
+      var ang = (Math.PI / 180) * (60 * i - 30);
+      pts.push((cx + r * Math.cos(ang)).toFixed(1) + "," + (cy + r * Math.sin(ang)).toFixed(1));
+    }
     inner.innerHTML =
-      '<span class="float-score">' + escHtml(String(opts.score)) + '</span>' +
-      '<span class="float-level">' + escHtml(opts.level) + '</span>' +
-      '<span class="float-cheer">' + escHtml(opts.cheer) + '</span>';
+      '<svg class="float-hex-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 124" width="120" height="124" aria-hidden="true">' +
+        '<defs><filter id="fh-shadow" x="-30%" y="-30%" width="160%" height="160%">' +
+          '<feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="rgba(0,0,0,0.25)"/>' +
+        '</filter></defs>' +
+        '<polygon points="' + pts.join(" ") + '" fill="var(--tile-neutral,#e8dfc8)" stroke="var(--tile-neutral-stroke,#c8b098)" stroke-width="2.5" filter="url(#fh-shadow)"/>' +
+        '<text x="60" y="66" font-family="Inter,sans-serif" font-size="54" font-weight="900" text-anchor="middle" dominant-baseline="middle" fill="var(--tile-text,#1a0a00)">' + escHtml(String(opts.score)) + '</text>' +
+      '</svg>' +
+      '<span class="float-level">' + escHtml(opts.level || "") + '</span>' +
+      '<span class="float-cheer">' + escHtml(opts.cheer || "") + '</span>';
   } else {
-    inner.innerHTML = '<span class="float-cheer">' + escHtml(opts.cheer) + '</span>';
+    inner.innerHTML = '<span class="float-cheer">' + escHtml(opts.cheer || "") + '</span>';
   }
 
   wrapper.appendChild(inner);
   container.appendChild(wrapper);
 
-  // Remove element after animation completes
   inner.addEventListener("animationend", function() { wrapper.remove(); }, { once: true });
+}
+
+// ─── Confetti ─────────────────────────────────────────────────────────────────
+function showConfetti() {
+  var canvas = document.createElement("canvas");
+  var dpr = window.devicePixelRatio || 1;
+  var W = window.innerWidth, H = window.innerHeight;
+  canvas.style.cssText = "position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:9999;";
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  document.body.appendChild(canvas);
+  var ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+
+  var COLS = ["#e8dfc8","#4c5ab8","#5cb85c","#e8c840","#c8b098","#ff2d55","#ffffff","#3d1a24"];
+  var particles = [];
+  for (var i = 0; i < 90; i++) {
+    particles.push({
+      x: Math.random() * W,
+      y: -12 - Math.random() * 100,
+      w: 7 + Math.random() * 8,
+      h: 4 + Math.random() * 5,
+      color: COLS[Math.floor(Math.random() * COLS.length)],
+      vx: (Math.random() - 0.5) * 3.5,
+      vy: 2.5 + Math.random() * 4.5,
+      rot: Math.random() * Math.PI * 2,
+      spin: (Math.random() - 0.5) * 0.18,
+      opacity: 1
+    });
+  }
+  var started = Date.now();
+
+  function draw() {
+    var elapsed = Date.now() - started;
+    ctx.clearRect(0, 0, W, H);
+    var any = false;
+    for (var j = 0; j < particles.length; j++) {
+      var p = particles[j];
+      p.x += p.vx; p.y += p.vy; p.rot += p.spin; p.vy += 0.12;
+      if (elapsed > 1800) p.opacity = Math.max(0, p.opacity - 0.016);
+      if (p.y < H + 20 && p.opacity > 0) any = true;
+      ctx.save();
+      ctx.globalAlpha = p.opacity;
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+    }
+    if (any) requestAnimationFrame(draw);
+    else canvas.remove();
+  }
+  requestAnimationFrame(draw);
 }
 
 // ─── Pull-to-refresh ──────────────────────────────────────────────────────────
