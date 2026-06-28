@@ -611,10 +611,10 @@ html, body {
 /* ── Hint tile — smooth fill throb applied directly to polygon ───── */
 @keyframes hintThrob {
   0%, 100% { fill: var(--tile-neutral); }
-  50%       { fill: #ffb300; }
+  50%       { fill: #f0c87a; }
 }
 .tile-hint-poly {
-  animation: hintThrob 0.85s ease-in-out infinite !important;
+  animation: hintThrob 2.5s ease-in-out infinite !important;
 }
 
 /* ── Tap-to-select hint ─────────────────────────────────────────────── */

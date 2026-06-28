@@ -410,9 +410,14 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.20";
+const VERSION = "2.0.21";
 
 const CHANGELOG = [
+  { version: "2.0.21", date: "28 Jun 2026", changes: [
+    "Blank wildcard tile now looks like a full tile — same fill as neutral tiles, faint ★ indicator instead of underscore",
+    "Hint throb is slower (2.5s cycle) and half as bright — gentle warm glow rather than strong amber",
+    "Hint duration reduced from 10s to 5s",
+  ]},
   { version: "2.0.20", date: "28 Jun 2026", changes: [
     "Admin audit list now shows the publication date for each puzzle card",
   ]},
@@ -1041,7 +1046,7 @@ function renderTile(tile) {
   const poly = g.querySelector("polygon:not(.hatch-overlay)");
   const text = g.querySelector("text");
   if (poly) {
-    poly.setAttribute("fill", (tile.state === "neutral" && tile.blank) ? COLOURS.blank.fill : c.fill);
+    poly.setAttribute("fill", c.fill);
   }
   var hatch = g.querySelector(".hatch-overlay");
   if (tile.state === "invalid") {
@@ -1061,13 +1066,25 @@ function renderTile(tile) {
     if (tile.blank) {
       if (tile.state === "valid" && tile._resolvedLetter) {
         text.setAttribute("text-decoration", "underline");
+        text.setAttribute("font-size", "22");
+        text.setAttribute("fill-opacity", "1");
         text.textContent = tile._resolvedLetter.toUpperCase();
-      } else {
+      } else if (tile.state !== "neutral") {
+        // selected / invalid / played — show resolved letter or star at full opacity
         text.removeAttribute("text-decoration");
-        text.textContent = "_";
+        text.setAttribute("font-size", tile._resolvedLetter ? "22" : "18");
+        text.setAttribute("fill-opacity", tile._resolvedLetter ? "1" : "0.5");
+        text.textContent = tile._resolvedLetter ? tile._resolvedLetter.toUpperCase() : "★";
+      } else {
+        // neutral — faint star, looks like a real tile
+        text.removeAttribute("text-decoration");
+        text.setAttribute("font-size", "18");
+        text.setAttribute("fill-opacity", "0.35");
+        text.textContent = "★";
       }
     } else {
       text.removeAttribute("text-decoration");
+      text.setAttribute("fill-opacity", "1");
       text.textContent = tile.letter.toUpperCase();
     }
   }
@@ -1218,7 +1235,7 @@ function buildBoard() {
 
     const poly = document.createElementNS(NS, "polygon");
     poly.setAttribute("points", hexPoints(x, y, HEX_SIZE - 2));
-    poly.setAttribute("fill", tile.blank ? COLOURS.blank.fill : c.fill);
+    poly.setAttribute("fill", c.fill);
     poly.setAttribute("stroke", "none");
     poly.setAttribute("filter", "url(#tile-shadow)");
 
@@ -1227,13 +1244,14 @@ function buildBoard() {
     text.setAttribute("y", y);
     text.setAttribute("text-anchor", "middle");
     text.setAttribute("dominant-baseline", "central");
-    text.setAttribute("font-size", "22");
+    text.setAttribute("font-size", tile.blank ? "18" : "22");
     text.setAttribute("font-weight", "700");
     text.setAttribute("font-family", "'Arial Black', 'Arial Bold', Arial, 'Helvetica Neue', sans-serif");
     text.setAttribute("fill", c.text);
+    text.setAttribute("fill-opacity", tile.blank ? "0.35" : "1");
     text.setAttribute("pointer-events", "none");
     text.setAttribute("user-select", "none");
-    text.textContent = tile.blank ? "_" : tile.letter.toUpperCase();
+    text.textContent = tile.blank ? "★" : tile.letter.toUpperCase();
 
     g.appendChild(poly);
     g.appendChild(text);
@@ -1706,7 +1724,7 @@ function pulseHintTile(tileId) {
   setTimeout(function() {
     poly.classList.remove("tile-hint-poly");
     renderTile(tiles[tileId]); // restore correct fill
-  }, 10000);
+  }, 5000);
 }
 
 function showHintModal() {
