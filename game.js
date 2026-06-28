@@ -409,9 +409,12 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.9";
+const VERSION = "2.0.10";
 
 const CHANGELOG = [
+  { version: "2.0.10", date: "28 Jun 2026", changes: [
+    "Hint tile pulses bright amber via JS fill-swap — reliable on all browsers including iOS Safari",
+  ]},
   { version: "2.0.9", date: "28 Jun 2026", changes: [
     "Hint tile now throbs bright amber for 10 seconds — much more visible",
     "Award tickets: configurable value (default 10) — earn on target word or Grandmaster in One",
@@ -1569,12 +1572,32 @@ function doHint() {
   saveTickets();
   updateTicketDisplay();
 
-  var g = document.getElementById("tile-" + candidate);
-  if (g) {
-    g.classList.add("tile-hint");
-    setTimeout(function() { g.classList.remove("tile-hint"); }, 10000);
-  }
-  showToast("Hint used (-1 ticket)");
+  pulseHintTile(candidate);
+  showToast("Hint — next letter highlighted for 10 seconds");
+}
+
+function pulseHintTile(tileId) {
+  var g = document.getElementById("tile-" + tileId);
+  if (!g) return;
+  var poly = g.querySelector("polygon:not(.hatch-overlay)");
+  if (!poly) return;
+
+  var origFill = poly.getAttribute("fill") || COLOURS.neutral.fill;
+  var onColor  = "#ffb300"; // bright amber — unmissable
+  var step = 0;
+
+  // Alternate every 350ms: amber → original → amber → …
+  var iv = setInterval(function() {
+    step++;
+    poly.setAttribute("fill", step % 2 === 0 ? origFill : onColor);
+  }, 350);
+
+  setTimeout(function() {
+    clearInterval(iv);
+    var restoreFill = (tiles[tileId] && tiles[tileId].state === "neutral")
+      ? COLOURS.neutral.fill : origFill;
+    poly.setAttribute("fill", restoreFill);
+  }, 10000);
 }
 
 function showHintModal() {
