@@ -3822,7 +3822,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.47";
+const VERSION = "2.0.48";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
@@ -4573,6 +4573,7 @@ function loadUserSettings() {
 // Attempt + time tracking
 let attemptCount = 0;
 let validAttemptCount = 0;
+let hintsUsed = 0;
 let activeTimeMs = 0;
 let timerRunning = false;
 let timerLastStart = 0;
@@ -4582,7 +4583,9 @@ let browseOffset = 0;
 let browsedDateStr = null; // null = today
 var foundWords = []; // words found (valid) in current session
 var targetWordFound = false; // true once the puzzle's longest word has been found
-var unlockedDates = {}; // { "280626": true } — dates where user paid to unlock all words
+var unlockedDates = {}; // { "280626": true } — legacy: dates where user paid to unlock all words
+var revealedLongestByDate = {}; // { "DDMMYY": true } — paid to reveal only the longest word
+var wlSortMode = "length-desc"; // word list sort: length-desc / length-asc / pct-desc / pct-asc
 
 // Cycling completion messages
 var CYCLE_MESSAGES_DEFAULT = [
@@ -5141,6 +5144,7 @@ async function onPointerUp(e) {
     lastTileEntered = null;
     pointerDownTile = null;
     if (selectedPath.length === 0) return;
+    if (selectedPath.length === 1) { clearSelection(); return; } // reverted to start — silent clear
     if (selectedPath.length < 4) { flashInvalid("Need 4+"); return; }
     if (!targetWordFound) attemptCount++;
     var validWord = validateWord(selectedPath);
@@ -5225,6 +5229,18 @@ async function onPointerUp(e) {
 }
 
 function lockValidWord(word) {
+  // Guard: word was revealed via tickets — cannot score it
+  if (!browsedDateStr) {
+    var todayKey = getDateString();
+    var todayTarget = puzzle && puzzle.prevAnswers && puzzle.prevAnswers[0]
+      ? puzzle.prevAnswers[0].word.toUpperCase() : "";
+    if (revealedLongestByDate[todayKey] && word.toUpperCase() === todayTarget) {
+      showToast("You revealed this word — it can't count as your score");
+      setTimeout(clearSelection, 1500);
+      return;
+    }
+  }
+
   // Guard: word already found today — shake tile and bail
   if (foundWords.includes(word.toUpperCase())) {
     showAlreadyFoundAnim();
@@ -5478,6 +5494,8 @@ function doHint(free) {
     ticketCount = Math.max(0, ticketCount - 1);
     saveTickets();
     updateTicketDisplay();
+    hintsUsed++;
+    saveState();
   }
 
   pulseHintTile(candidate);
@@ -5696,25 +5714,17 @@ function initInfoPanel() {
   var signoutBtn = document.getElementById("signout-btn");
   if (signoutBtn) signoutBtn.addEventListener("click", function() { fbSignOut(); });
 
-  // Leaderboard date navigation — synced with board date
-  var lbPrevBtn = document.getElementById("lb-date-prev");
-  var lbNextBtn = document.getElementById("lb-date-next");
-  if (lbPrevBtn) lbPrevBtn.addEventListener("click", function() {
-    if (lbDayOffset > -13) {
-      lbDayOffset--;
-      browseOffset = lbDayOffset;
-      loadBoardForDate(getDateForOffset(browseOffset));
-      loadLeaderboard("date");
-    }
-  });
-  if (lbNextBtn) lbNextBtn.addEventListener("click", function() {
-    if (lbDayOffset < 0) {
-      lbDayOffset++;
-      browseOffset = lbDayOffset;
-      loadBoardForDate(getDateForOffset(browseOffset));
-      loadLeaderboard("date");
-    }
-  });
+  // Scores date button — tapping opens the calendar (same as board date)
+  var lbDateBtn = document.getElementById("lb-date-btn");
+  if (lbDateBtn) {
+    lbDateBtn.addEventListener("click", function() {
+      var openCal = window._openCalendar;
+      if (openCal) openCal();
+    });
+  }
+
+  // Add swipe navigation to scores tab (same day nav as board swipe)
+  initScoresSwipe();
 
   // Board date navigation — synced with leaderboard date
   var boardPrevBtn = document.getElementById("board-date-prev");
@@ -6264,14 +6274,9 @@ let lbDayOffset = 0; // 0 = today, -1 = yesterday, etc.
 
 function updateLbDateNav() {
   var labelEl = document.getElementById("lb-date-label");
-  var prevBtn = document.getElementById("lb-date-prev");
-  var nextBtn = document.getElementById("lb-date-next");
   if (!labelEl) return;
-
   var dateStr = getDateForOffset(lbDayOffset);
   labelEl.textContent = lbDayOffset === 0 ? "Today" : formatDateDisplay(dateStr);
-  if (nextBtn) nextBtn.disabled = lbDayOffset >= 0;
-  if (prevBtn) prevBtn.disabled = lbDayOffset <= -13;
 }
 
 async function loadLeaderboard(filter) {
@@ -6326,171 +6331,234 @@ function buildScratchAnswers(answers, playersByWord, isToday, totalPlayers) {
   var allWords = (answers || []).filter(function(a) { return (a.word || "").length >= 4; })
     .slice().sort(function(a, b) { return b.word.length - a.word.length; });
 
-  var dateKey = isToday ? null : (browsedDateStr || lbDayOffset !== 0 ? getDateForOffset(lbDayOffset) : null);
+  var dateKey = getDateForOffset(lbDayOffset);
 
-  // Found words for this date (today = live foundWords, past = loaded from state)
+  // Build myFound set (today = live, past = from localStorage)
   var myFound;
   if (isToday) {
     myFound = new Set(foundWords.map(function(w) { return w.toUpperCase(); }));
   } else {
-    // Load from saved state for that date
     myFound = new Set();
     try {
-      var raw = localStorage.getItem("shukuma-" + (dateKey || getDateString()));
+      var raw = localStorage.getItem("shukuma-" + dateKey);
       if (raw) {
         var s = JSON.parse(raw);
         (s.foundWords || []).forEach(function(w) { myFound.add(w.toUpperCase()); });
-        // Also include bestWord for legacy saves that didn't have foundWords
         if (s.bestWord) myFound.add(s.bestWord.toUpperCase());
       }
     } catch(_) {}
   }
 
-  // Target word (index 0 in answers, sorted by length desc)
+  // Longest (target) word
   var targetWord = allWords.length > 0 ? allWords[0].word.toUpperCase() : "";
 
-  // Is this date unlocked?
-  var isUnlocked = isToday ? false : (dateKey && unlockedDates[dateKey]);
+  // Has the user paid to reveal the longest word for this date?
+  var revealedTarget = !!(revealedLongestByDate && revealedLongestByDate[dateKey]);
 
-  // Check if user found the target word for this date (unlocks past-day words for free)
-  var foundTarget = targetWord && myFound.has(targetWord);
-  var canViewFree = foundTarget && !isToday;
-
-  if (isToday) {
-    // "Come back tomorrow" message for target word
-    var msg = document.createElement("div");
-    msg.className = "sc-tomorrow-msg";
-    msg.textContent = "Come back tomorrow to see today's answer!";
-    container.appendChild(msg);
-  }
-
-  // Header for found words
-  if (myFound.size > 0) {
-    var fHdr = document.createElement("div");
-    fHdr.className = "wl-section-hdr";
-    fHdr.textContent = "Your words";
-    container.appendChild(fHdr);
-
-    // Show found words sorted longest first
-    var foundArr = Array.from(myFound).sort(function(a, b) { return b.length - a.length; });
-    foundArr.forEach(function(w) {
-      var row = buildWordRow(w, true, false, playersByWord, totalPlayers || 0);
-      container.appendChild(row);
-    });
-  }
-
-  // Locked / unlockable words section
-  var lockedWords = allWords.filter(function(a) {
-    var wu = a.word.toUpperCase();
-    // Today: target word never shown, others can be unlocked
-    if (isToday && wu === targetWord) return false;
-    // Skip already found
-    if (myFound.has(wu)) return false;
-    return true;
-  });
-
-  if (lockedWords.length > 0) {
-    var lHdr = document.createElement("div");
-    lHdr.className = "wl-section-hdr";
-    lHdr.textContent = "Words to discover";
-    container.appendChild(lHdr);
-
-    // Unlock button (for past days only)
-    if (!isToday && !isUnlocked && !canViewFree) {
-      var unlockRow = document.createElement("div");
-      unlockRow.className = "wl-unlock-row";
-      var unlockBtn = document.createElement("button");
-      unlockBtn.className = "wl-unlock-btn";
-      unlockBtn.innerHTML = 'Unlock all — find today\'s word or <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg> &minus;10';
-      unlockBtn.addEventListener("click", function() {
-        if (ticketCount < 10) { showToast("Not enough tickets — you need 10"); return; }
-        confirmTicketSpend({
-          title: "Unlock All Words?",
-          desc: "Reveal the full word list for this puzzle.",
-          cost: 10,
-        }, function() {
-          ticketCount -= 10;
-          saveTickets();
-          updateTicketDisplay();
-          if (dateKey) { unlockedDates[dateKey] = true; saveUnlockedDates(); }
-          buildScratchAnswers(answers, playersByWord, isToday, totalPlayers || 0);
-          showToast("Words unlocked!");
-        });
+  // ── Sort controls ────────────────────────────────────────────────
+  var sortBar = document.createElement("div");
+  sortBar.className = "wl-sort-bar";
+  var SORTS = [
+    { key: "length-desc", label: "Longest" },
+    { key: "length-asc",  label: "Shortest" },
+    { key: "pct-desc",    label: "Most Found" },
+    { key: "pct-asc",     label: "Least Found" },
+  ];
+  SORTS.forEach(function(s) {
+    var btn = document.createElement("button");
+    btn.className = "wl-sort-btn" + (wlSortMode === s.key ? " active" : "");
+    btn.textContent = s.label;
+    (function(key) {
+      btn.addEventListener("click", function() {
+        wlSortMode = key;
+        buildScratchAnswers(answers, playersByWord, isToday, totalPlayers);
       });
-      unlockRow.appendChild(unlockBtn);
-      container.appendChild(unlockRow);
-    }
+    })(s.key);
+    sortBar.appendChild(btn);
+  });
+  container.appendChild(sortBar);
 
-    var showLocked = isUnlocked || canViewFree;
-    lockedWords.forEach(function(a) {
-      var row = buildWordRow(a.word.toUpperCase(), showLocked, !showLocked, playersByWord, totalPlayers || 0);
-      container.appendChild(row);
-    });
-  }
-
-  if (!isToday && allWords.length === 0) {
+  if (allWords.length === 0) {
     var empty = document.createElement("div");
     empty.className = "sc-empty";
-    empty.textContent = "No answers available for this date.";
+    empty.textContent = "No words available for this puzzle.";
     container.appendChild(empty);
+    return;
   }
+
+  // ── Apply sort ───────────────────────────────────────────────────
+  var sorted = allWords.slice();
+  if (wlSortMode === "length-asc") {
+    sorted.sort(function(a, b) { return a.word.length - b.word.length; });
+  } else if (wlSortMode === "pct-desc" || wlSortMode === "pct-asc") {
+    sorted.sort(function(a, b) {
+      var wa = a.word.toUpperCase(), wb = b.word.toUpperCase();
+      var pa = totalPlayers > 0 ? (playersByWord[wa] || []).length : 0;
+      var pb = totalPlayers > 0 ? (playersByWord[wb] || []).length : 0;
+      return wlSortMode === "pct-desc" ? pb - pa : pa - pb;
+    });
+  }
+
+  // ── Render each word ─────────────────────────────────────────────
+  sorted.forEach(function(a) {
+    var wu = a.word.toUpperCase();
+    var isFound = myFound.has(wu);
+    var isTarget = wu === targetWord;
+    var isRevealedWord = isTarget && revealedTarget && !isFound;
+    var count = totalPlayers > 0 ? (playersByWord[wu] || []).length : 0;
+    var pct = totalPlayers > 0 ? Math.round((count / totalPlayers) * 100) : -1;
+    var row = buildWordRow({
+      word: wu, found: isFound, isTarget: isTarget, revealed: isRevealedWord,
+      pct: pct, totalPlayers: totalPlayers, isToday: isToday,
+      answers: answers, playersByWord: playersByWord, dateKey: dateKey,
+    });
+    container.appendChild(row);
+  });
 }
 
-function buildWordRow(word, revealed, locked, playersByWord, totalPlayers) {
+function buildWordRow(cfg) {
+  var word = cfg.word, found = cfg.found, isTarget = cfg.isTarget;
+  var revealed = cfg.revealed; // paid to reveal (target only, not yet found)
+  var pct = cfg.pct, totalPlayers = cfg.totalPlayers;
+  var isToday = cfg.isToday, answers = cfg.answers, playersByWord = cfg.playersByWord, dateKey = cfg.dateKey;
+  var locked = !found && !revealed;
+
   var row = document.createElement("div");
-  row.className = "wl-row" + (locked ? " wl-locked" : "") + (revealed ? " wl-found" : "");
+  row.className = "wl-row" + (locked ? " wl-locked" : "") + (found ? " wl-found" : "") + (revealed && !found ? " wl-revealed" : "");
 
-  var wordSpan = document.createElement("span");
-  wordSpan.className = "wl-word";
+  // ── LEFT column ──────────────────────────────────────────────────
+  var leftCol = document.createElement("div");
+  leftCol.className = "wl-left";
+
+  var wordEl = document.createElement("div");
+  wordEl.className = "wl-word";
   if (locked) {
-    var dots = "";
-    for (var d = 0; d < word.length; d++) dots += (d ? " ·" : "·");
-    wordSpan.textContent = dots;
+    var dots = [];
+    for (var d = 0; d < word.length; d++) dots.push("·");
+    wordEl.textContent = dots.join(" ");
+    wordEl.setAttribute("aria-label", word.length + "-letter word");
   } else {
-    wordSpan.textContent = word;
+    wordEl.textContent = word;
+    if (revealed && !found) {
+      var revTag = document.createElement("span");
+      revTag.className = "wl-tag wl-tag-revealed";
+      revTag.textContent = "Revealed";
+      wordEl.appendChild(revTag);
+    }
   }
+  leftCol.appendChild(wordEl);
 
-  var rightSide = document.createElement("div");
-  rightSide.className = "wl-row-right";
+  // Stats subrow (found or revealed words)
+  if (found || revealed) {
+    var statsDiv = document.createElement("div");
+    statsDiv.className = "wl-stats";
 
-  if (!locked) {
-    // % of players who found this word
-    if (playersByWord && totalPlayers > 0) {
-      var count = (playersByWord[word] || []).length;
-      var pct = Math.round((count / totalPlayers) * 100);
-      var pctSpan = document.createElement("span");
-      pctSpan.className = "wl-pct";
-      pctSpan.textContent = pct + "%";
-      rightSide.appendChild(pctSpan);
-    } else {
-      var lenSpan = document.createElement("span");
-      lenSpan.className = "wl-len";
-      lenSpan.textContent = word.length + " letters";
-      rightSide.appendChild(lenSpan);
+    var rankSpan = document.createElement("span");
+    rankSpan.className = "wl-stats-muted";
+    rankSpan.textContent = getScoreLevel(word.length);
+    statsDiv.appendChild(rankSpan);
+
+    // Extra stats for today's target word that the user found (not revealed)
+    if (isToday && isTarget && found && !revealed) {
+      if (attemptCount > 0) {
+        statsDiv.appendChild(document.createTextNode(" · "));
+        var trSpan = document.createElement("span");
+        trSpan.className = "wl-stats-muted";
+        trSpan.textContent = attemptCount + " tr" + (attemptCount !== 1 ? "ies" : "y");
+        statsDiv.appendChild(trSpan);
+      }
+      var elapsed = timerRunning ? activeTimeMs + (Date.now() - timerLastStart) : activeTimeMs;
+      if (elapsed > 0) {
+        statsDiv.appendChild(document.createTextNode(" · "));
+        var tmSpan = document.createElement("span");
+        tmSpan.className = "wl-stats-muted";
+        tmSpan.textContent = formatTime(Math.round(elapsed / 1000));
+        statsDiv.appendChild(tmSpan);
+      }
+      if (hintsUsed > 0) {
+        statsDiv.appendChild(document.createTextNode(" · "));
+        var htSpan = document.createElement("span");
+        htSpan.className = "wl-stats-muted";
+        htSpan.textContent = hintsUsed + " hint" + (hintsUsed !== 1 ? "s" : "");
+        statsDiv.appendChild(htSpan);
+      }
     }
 
-    // (?) dictionary button on revealed words
-    if (revealed) {
-      var defBtn = document.createElement("button");
-      defBtn.className = "wl-def-btn";
-      defBtn.setAttribute("aria-label", "Definition of " + word);
-      defBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8" stroke-width="3"/></svg>';
+    leftCol.appendChild(statsDiv);
+  }
+
+  // Reveal button (locked target word, today only)
+  if (locked && isTarget && isToday) {
+    var revealRow = document.createElement("div");
+    revealRow.className = "wl-reveal-row";
+    var revealBtn = document.createElement("button");
+    revealBtn.className = "wl-reveal-btn";
+    revealBtn.innerHTML = 'Reveal · <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg> 10 tickets';
+    (function(dk, ans, pbw, tp) {
+      revealBtn.addEventListener("click", function(e) {
+        e.stopPropagation();
+        if (ticketCount < 10) { showToast("Not enough tickets to reveal the longest word"); return; }
+        confirmTicketSpend({
+          title: "Reveal Longest Word?",
+          desc: "Spend 10 tickets to reveal today's longest word. You won't be able to score it afterward.",
+          cost: 10,
+        }, function() {
+          ticketCount = Math.max(0, ticketCount - 10);
+          saveTickets();
+          updateTicketDisplay();
+          revealedLongestByDate[dk] = true;
+          saveRevealedLongest();
+          buildScratchAnswers(ans, pbw, true, tp);
+        });
+      });
+    })(dateKey, answers, playersByWord, totalPlayers);
+    revealRow.appendChild(revealBtn);
+    leftCol.appendChild(revealRow);
+  }
+
+  // Definition button (unlocked words)
+  if (!locked) {
+    var defBtn = document.createElement("button");
+    defBtn.className = "wl-def-btn";
+    defBtn.setAttribute("aria-label", "Definition of " + word);
+    defBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8" stroke-width="3"/></svg>';
+    (function(w, r) {
       defBtn.addEventListener("click", function(e) {
         e.stopPropagation();
-        toggleWordDefinition(word, row);
+        toggleWordDefinition(w, r);
       });
-      rightSide.appendChild(defBtn);
-    }
+    })(word, row);
+    leftCol.appendChild(defBtn);
   }
 
-  row.appendChild(wordSpan);
-  row.appendChild(rightSide);
+  // ── RIGHT column ─────────────────────────────────────────────────
+  var rightCol = document.createElement("div");
+  rightCol.className = "wl-right";
 
-  // Tap revealed word → highlight on board for 5 seconds
-  if (revealed) {
-    row.addEventListener("click", function() {
-      highlightWordOnBoard(word);
-    });
+  var barTrack = document.createElement("div");
+  barTrack.className = "wl-bar-track";
+  var barFill = document.createElement("div");
+  barFill.className = "wl-bar-fill" + (found ? " wl-bar-found" : "");
+  barFill.style.width = (pct >= 0 ? Math.max(2, pct) : 0) + "%";
+  barTrack.appendChild(barFill);
+  rightCol.appendChild(barTrack);
+
+  var pctEl = document.createElement("span");
+  if (pct >= 0) {
+    pctEl.className = "wl-pct";
+    pctEl.textContent = pct + "%";
+  } else {
+    pctEl.className = "wl-len";
+    pctEl.textContent = word.length + "lt";
+  }
+  rightCol.appendChild(pctEl);
+
+  row.appendChild(leftCol);
+  row.appendChild(rightCol);
+
+  // Tap unlocked word → highlight on board
+  if (!locked) {
+    row.addEventListener("click", function() { highlightWordOnBoard(word); });
   }
 
   return row;
@@ -6536,14 +6604,132 @@ function buildPlayersSection(players, targetWord) {
   if (!container) return;
   container.innerHTML = "";
 
+  var isToday = lbDayOffset === 0;
+
+  // ── My Stats card (today only, when the user has played) ─────────
+  if (isToday && currentUser && bestScore > 0) {
+    var myCard = document.createElement("div");
+    myCard.className = "my-stats-card";
+    var myHdr = document.createElement("div");
+    myHdr.className = "my-stats-hdr";
+    myHdr.textContent = "Your Score Today";
+    myCard.appendChild(myHdr);
+    var myGrid = document.createElement("div");
+    myGrid.className = "my-stats-grid";
+    var elapsed = timerRunning ? activeTimeMs + (Date.now() - timerLastStart) : activeTimeMs;
+    var myCells = [
+      { val: bestWord || "—", lbl: "Best Word" },
+      { val: getScoreLevel(bestScore), lbl: "Ranking" },
+      { val: attemptCount || "—", lbl: "Tries" },
+      { val: formatTime(Math.round(elapsed / 1000)), lbl: "Time" },
+    ];
+    if (hintsUsed > 0) myCells.push({ val: hintsUsed, lbl: "Hints Used" });
+    myCells.forEach(function(s) {
+      var cell = document.createElement("div");
+      cell.className = "my-stats-cell";
+      cell.innerHTML = '<span class="my-stat-val">' + escHtml(String(s.val)) + '</span><span class="my-stat-lbl">' + escHtml(s.lbl) + '</span>';
+      myGrid.appendChild(cell);
+    });
+    myCard.appendChild(myGrid);
+    container.appendChild(myCard);
+  }
+
+  // ── Friends section (today only) ─────────────────────────────────
+  if (isToday && targetWord && currentUser && userProfile && userProfile.friends && userProfile.friends.length > 0) {
+    var myFriendUids = userProfile.friends;
+    var friendsWhoFound = (players || []).filter(function(p) {
+      return myFriendUids.indexOf(p.uid) !== -1 && (p.word || "").toUpperCase() === targetWord.toUpperCase();
+    });
+    var friendsNotFound = (players || []).filter(function(p) {
+      return myFriendUids.indexOf(p.uid) !== -1 && (p.word || "").toUpperCase() !== targetWord.toUpperCase();
+    });
+
+    if (friendsWhoFound.length > 0 || friendsNotFound.length > 0) {
+      var friendHdr = document.createElement("div");
+      friendHdr.className = "friends-found-hdr";
+      friendHdr.textContent = "Friends";
+      container.appendChild(friendHdr);
+
+      if (friendsWhoFound.length > 0) {
+        var foundSub = document.createElement("div");
+        foundSub.className = "friends-found-sublabel";
+        foundSub.textContent = "Found today's word";
+        container.appendChild(foundSub);
+        friendsWhoFound.forEach(function(p, i) {
+          var color = AVATAR_COLORS[i % AVATAR_COLORS.length];
+          var row = document.createElement("div");
+          row.className = "player-row";
+          row.innerHTML =
+            '<div class="player-avatar" style="background:' + color + '">' + (p.username || "?").charAt(0).toUpperCase() + '</div>' +
+            '<div class="player-info"><div class="player-name">' + escHtml(p.username || "Player") + '</div></div>' +
+            '<div class="player-right"><span class="player-found-badge">Found it!</span></div>';
+          container.appendChild(row);
+        });
+      }
+
+      if (friendsNotFound.length > 0) {
+        var notFoundSub = document.createElement("div");
+        notFoundSub.className = "friends-found-sublabel";
+        notFoundSub.textContent = "Still playing";
+        container.appendChild(notFoundSub);
+        friendsNotFound.forEach(function(p, i) {
+          var color = AVATAR_COLORS[i % AVATAR_COLORS.length];
+          var row = document.createElement("div");
+          row.className = "player-row";
+          row.innerHTML =
+            '<div class="player-avatar" style="background:' + color + '">' + (p.username || "?").charAt(0).toUpperCase() + '</div>' +
+            '<div class="player-info"><div class="player-name">' + escHtml(p.username || "Player") + '</div></div>' +
+            '<div class="player-right">' +
+              '<button class="player-hint-btn">Send hint · <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg> 2</button>' +
+            '</div>';
+          (function(player) {
+            row.querySelector(".player-hint-btn").addEventListener("click", function(e) {
+              e.stopPropagation();
+              sendHintToPlayer(player);
+            });
+          })(p);
+          container.appendChild(row);
+        });
+
+        if (friendsNotFound.length > 1) {
+          var totalCost = friendsNotFound.length * 2;
+          var sendAllRow = document.createElement("div");
+          sendAllRow.className = "friends-send-all-row";
+          var sendAllBtn = document.createElement("button");
+          sendAllBtn.className = "friends-send-all-btn";
+          sendAllBtn.innerHTML = 'Send hint to all ' + friendsNotFound.length + ' · <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg> ' + totalCost;
+          (function(fnf, cost) {
+            sendAllBtn.addEventListener("click", function() {
+              if (ticketCount < cost) { showToast("Not enough tickets"); return; }
+              confirmTicketSpend({
+                title: "Send hint to all?",
+                desc: "Send a hint to all " + fnf.length + " friends still playing. Costs " + cost + " tickets.",
+                cost: cost,
+              }, function() {
+                ticketCount = Math.max(0, ticketCount - cost);
+                saveTickets();
+                updateTicketDisplay();
+                fnf.forEach(function(p) { showToast("Hint sent to " + (p.username || "Player") + "!"); });
+                // TODO: write hint notifications to Firestore for each recipient
+              });
+            });
+          })(friendsNotFound, totalCost);
+          sendAllRow.appendChild(sendAllBtn);
+          container.appendChild(sendAllRow);
+        }
+      }
+    }
+  }
+
   if (!players || !players.length) {
     var empty = document.createElement("div");
     empty.className = "scores-empty";
-    empty.textContent = "No scores yet — be the first!";
+    empty.textContent = isToday ? "No other scores yet today." : "No scores recorded for this day.";
     container.appendChild(empty);
     return;
   }
 
+  // ── Community scores ─────────────────────────────────────────────
   var hdr = document.createElement("div");
   hdr.className = "scores-players-hdr";
   hdr.textContent = "How Everyone Did";
@@ -6574,20 +6760,6 @@ function buildPlayersSection(players, targetWord) {
         '<span class="player-score-badge">' + (p.score || 0) + ' letters</span>' +
         (foundTarget ? '<span class="player-found-badge">Found it!</span>' : '') +
       '</div>';
-
-    // Send hint button for players who haven't found the target
-    if (!foundTarget && targetWord && currentUser && p.uid !== currentUser.uid) {
-      var hintBtn = document.createElement("button");
-      hintBtn.className = "player-hint-btn";
-      hintBtn.innerHTML = 'Hint <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg>';
-      (function(player) {
-        hintBtn.addEventListener("click", function(e) {
-          e.stopPropagation();
-          sendHintToPlayer(player);
-        });
-      })(p);
-      row.querySelector(".player-right").appendChild(hintBtn);
-    }
 
     container.appendChild(row);
   });
@@ -7588,7 +7760,7 @@ function saveState() {
   const elapsed = timerRunning ? activeTimeMs + (Date.now() - timerLastStart) : activeTimeMs;
   try {
     localStorage.setItem(storageKey(), JSON.stringify({
-      bestWord, bestScore, gameCompleted, attemptCount, validAttemptCount, activeTimeMs: elapsed, playedPath, inOneAchieved, foundWords,
+      bestWord, bestScore, gameCompleted, attemptCount, validAttemptCount, hintsUsed, activeTimeMs: elapsed, playedPath, inOneAchieved, foundWords,
     }));
   } catch(_) {}
 }
@@ -7605,6 +7777,7 @@ function loadState() {
     validAttemptCount = s.validAttemptCount || 0;
     activeTimeMs     = s.activeTimeMs  || 0;
     playedPath       = Array.isArray(s.playedPath) ? s.playedPath : [];
+    hintsUsed        = s.hintsUsed || 0;
     inOneAchieved    = s.inOneAchieved || false;
     foundWords       = Array.isArray(s.foundWords) ? s.foundWords : [];
   } catch(_) {}
@@ -7652,6 +7825,12 @@ function loadUnlockedDates() {
 }
 function saveUnlockedDates() {
   try { localStorage.setItem("shukuma-unlocked-dates", JSON.stringify(unlockedDates)); } catch(_) {}
+}
+function loadRevealedLongest() {
+  try { revealedLongestByDate = JSON.parse(localStorage.getItem("shukuma-revealed-longest") || "{}"); } catch(_) { revealedLongestByDate = {}; }
+}
+function saveRevealedLongest() {
+  try { localStorage.setItem("shukuma-revealed-longest", JSON.stringify(revealedLongestByDate)); } catch(_) {}
 }
 
 // ─── Completion cycling messages ───────────────────────────────────────────────
@@ -8165,6 +8344,44 @@ function doDateNavigate(direction) {
       });
     });
   }, 190);
+}
+
+// Swipe left/right on the Scores tab to navigate between days
+function initScoresSwipe() {
+  var scoresTab = document.getElementById("tab-scores");
+  if (!scoresTab) return;
+  var startX = 0, startY = 0, swiping = false;
+  var MIN_SWIPE = 65;
+  scoresTab.addEventListener("touchstart", function(e) {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    swiping = true;
+  }, { passive: true });
+  scoresTab.addEventListener("touchmove", function(e) {
+    if (!swiping) return;
+    var dx = e.touches[0].clientX - startX;
+    var dy = e.touches[0].clientY - startY;
+    if (Math.abs(dy) > Math.abs(dx) * 0.9) { swiping = false; }
+  }, { passive: true });
+  scoresTab.addEventListener("touchend", function(e) {
+    if (!swiping) return;
+    swiping = false;
+    var dx = e.changedTouches[0].clientX - startX;
+    if (dx > MIN_SWIPE && lbDayOffset > -13)      doLbDateNavigate("prev");
+    else if (dx < -MIN_SWIPE && lbDayOffset < 0)  doLbDateNavigate("next");
+  }, { passive: true });
+  scoresTab.addEventListener("touchcancel", function() { swiping = false; }, { passive: true });
+}
+
+function doLbDateNavigate(direction) {
+  if (direction === "prev" && lbDayOffset > -13) {
+    lbDayOffset--; browseOffset = lbDayOffset;
+  } else if (direction === "next" && lbDayOffset < 0) {
+    lbDayOffset++; browseOffset = lbDayOffset;
+  } else return;
+  var dateStr = getDateForOffset(browseOffset);
+  loadBoardForDate(dateStr);
+  loadLeaderboard("date");
 }
 
 // ─── Settings ─────────────────────────────────────────────────────────────────
@@ -9434,6 +9651,8 @@ function initCalendar() {
     renderCalendar(calViewYear, calViewMonth);
     modal.hidden = false;
   }
+  // Expose so the scores date button can open the same calendar
+  window._openCalendar = openCalendar;
 
   function closeCalendar() { modal.hidden = true; }
 
@@ -9497,6 +9716,8 @@ function initCalendar() {
             lbDayOffset  = browseOffset;
             closeCalendar();
             loadBoardForDate(ddmmyy);
+            var scoresTab = document.getElementById("tab-scores");
+            if (scoresTab && !scoresTab.hidden) loadLeaderboard("date");
           };
         })(dayDate));
       }
@@ -9592,6 +9813,7 @@ function init() {
   loadTickets();
   loadAwardTickets();
   loadUnlockedDates();
+  loadRevealedLongest();
   loadCycleMessages();
 
   // Build tiles
