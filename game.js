@@ -7889,6 +7889,16 @@ function initAdmin() {
       var ticketInput = document.getElementById("admin-ticket-input");
       if (ticketInput) ticketInput.value = ticketCount;
       panel.hidden = false;
+      // Refresh backlog and reopen its section
+      var list = document.getElementById("admin-backlog-list");
+      if (list) list.innerHTML = "<p style='color:#bbb;font-size:0.82rem;padding:12px 0'>Loading…</p>";
+      loadBacklog().then(function(items) {
+        _backlogItems = items;
+        renderBacklog(items);
+        expandAdminSection("backlog");
+      }).catch(function(err) {
+        if (list) list.innerHTML = "<p style='color:#c00;font-size:0.82rem;padding:12px 0'>Failed to load backlog: " + (err && err.message ? err.message : err) + "</p>";
+      });
     });
   }
 
@@ -8326,10 +8336,12 @@ function initBacklogAdmin() {
     });
   });
 
-  // Load from Firestore and render
+  // Load from Firestore and render (also refreshed on each panel open)
   loadBacklog().then(function(items) {
     _backlogItems = items;
     renderBacklog(items);
+  }).catch(function(err) {
+    console.warn("Backlog initial load failed:", err);
   });
 }
 
