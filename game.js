@@ -3822,7 +3822,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.50";
+const VERSION = "2.0.51";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
@@ -7726,8 +7726,8 @@ function showToast(msg) {
     document.body.appendChild(toast);
   }
   toast.textContent = msg;
-  // Position over #topbar-word (the "Find today's longest word" area)
-  var wordEl = document.getElementById("topbar-word") || document.getElementById("game-topbar");
+  // Position over the word box (the "Find today's longest word" area)
+  var wordEl = document.getElementById("word-box") || document.getElementById("topbar-word") || document.getElementById("game-topbar");
   if (wordEl) {
     var tr = wordEl.getBoundingClientRect();
     toast.style.top = Math.round(tr.top + tr.height / 2) + "px";
