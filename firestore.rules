@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'matt@uservox.com';
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Users — own doc only, or admin
+    match /users/{uid} {
+      allow read, write: if isSignedIn() && request.auth.uid == uid;
+      allow read, write: if isAdmin();
+    }
+
+    // Scores — own docs only (id starts with uid), or admin
+    match /scores/{scoreId} {
+      allow read, write: if isSignedIn() && scoreId.matches(request.auth.uid + '_.*');
+      allow read, write: if isAdmin();
+    }
+
+    // Config — all signed-in users can read; only admin can write
+    match /config/{doc} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}

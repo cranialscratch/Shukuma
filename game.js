@@ -3822,7 +3822,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.32";
+const VERSION = "2.0.33";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
@@ -5672,22 +5672,32 @@ function resetPastScores() {
   var todayStr = today.getFullYear() + "-" +
     String(today.getMonth() + 1).padStart(2, "0") + "-" +
     String(today.getDate()).padStart(2, "0");
-  if (!confirm(
-    "Send a +10 Ticket notice to all testers on their next login?\n\n" +
-    "Note: Score records must be deleted manually via the Firebase console " +
-    "(Firestore → scores collection → filter dateStr < " + todayStr + ")."
-  )) return;
-  showToast("Sending notice…");
+  if (!confirm("Delete all score records before " + todayStr + " and send a +10 Ticket notice to all testers? This cannot be undone.")) return;
+  showToast("Working…");
 
-  // Write notice to config/testerReset — admin can always write to config,
-  // and all signed-in users can read config docs.
-  db.collection("config").doc("testerReset").set({
+  // Delete past score docs
+  var deleteOld = db.collection("scores").where("dateStr", "<", todayStr).get()
+    .then(function(snap) {
+      if (snap.empty) return;
+      var batches = [];
+      for (var i = 0; i < snap.docs.length; i += 499) {
+        var batch = db.batch();
+        snap.docs.slice(i, i + 499).forEach(function(d) { batch.delete(d.ref); });
+        batches.push(batch.commit());
+      }
+      return Promise.all(batches);
+    });
+
+  // Write notice to config/testerReset — all signed-in users can read config
+  var notifyUsers = db.collection("config").doc("testerReset").set({
     message: "Howdy Tester! — Sorry, we’ve had to make some changes which means you’ve lost previous scores. Please try again and here is a bonus for your troubles.",
     ticketAward: 10,
     setAt: Date.now(),
-  })
+  });
+
+  Promise.all([deleteOld, notifyUsers])
     .then(function() {
-      showToast("Notice queued — testers will see it on next login. Delete past score docs from the Firebase console.");
+      showToast("Done — past scores deleted and tester notice queued for all users.");
     })
     .catch(function(err) {
       showToast("Failed: " + (err && err.message ? err.message : String(err)));
@@ -8337,17 +8347,31 @@ function backlogDelete(id) {
     .catch(function(err) { showToast("Delete failed: " + (err && err.message ? err.message : String(err))); });
 }
 
-function resetAllScores() {
-  // Listing the scores collection requires elevated Firestore rules not available
-  // to the admin user client-side. Delete score records from the Firebase console:
-  // Firestore Database → scores → select all → delete.
-  alert(
-    "Score deletion must be done via the Firebase console:\n\n" +
-    "1. Open Firebase Console → Firestore Database\n" +
-    "2. Select the 'scores' collection\n" +
-    "3. Select all documents and delete\n\n" +
-    "This cannot be done from the game client due to Firestore security rules."
-  );
+async function resetAllScores() {
+  if (!db) { showToast("No database connection."); return; }
+  if (!confirm("Delete ALL score records for ALL players? This cannot be undone.\n\nUse this only to reset tester data after a puzzle reorder.")) return;
+  showToast("Deleting scores…");
+  try {
+    var snap = await db.collection("scores").get();
+    if (snap.empty) { showToast("No score records found."); return; }
+    var total = 0;
+    var batch = db.batch();
+    var batchCount = 0;
+    for (var i = 0; i < snap.docs.length; i++) {
+      batch.delete(snap.docs[i].ref);
+      batchCount++;
+      total++;
+      if (batchCount === 499) {
+        await batch.commit();
+        batch = db.batch();
+        batchCount = 0;
+      }
+    }
+    if (batchCount > 0) await batch.commit();
+    showToast("Deleted " + total + " score records.");
+  } catch(e) {
+    showToast("Error: " + e.message);
+  }
 }
 
 function initBacklogAdmin() {
