@@ -3822,7 +3822,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.45";
+const VERSION = "2.0.47";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
@@ -4495,17 +4495,50 @@ var hapticsEnabled = true;
 var colourTheme   = "default"; // "default" | "protanopia" | "highcontrast"
 var textSize      = "normal";  // "normal" | "large" | "xl"
 
+// Haptic intensity multiplier (1 = normal, admin-adjustable)
+var hapticIntensity = parseFloat(localStorage.getItem("shukuma-haptic-intensity") || "1");
+
 function triggerHaptic(pattern) {
   if (!hapticsEnabled) return;
-  if (!navigator.vibrate) return;
-  if (Array.isArray(pattern)) navigator.vibrate(pattern);
-  else navigator.vibrate(pattern || 8);
+  var scaled = Array.isArray(pattern)
+    ? pattern.map(function(v) { return Math.round(v * hapticIntensity); })
+    : Math.round((pattern || 8) * hapticIntensity);
+  if (navigator.vibrate) {
+    navigator.vibrate(scaled);
+  } else {
+    // iOS fallback — audio micro-click through Web Audio API
+    audioHapticClick(Array.isArray(pattern) ? Math.ceil(pattern.filter(function(_, i) { return i % 2 === 0; }).length) : 1);
+  }
+}
+
+function audioHapticClick(count) {
+  if (!hapticsEnabled) return;
+  try {
+    var AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    var ctx = new AudioCtx();
+    var interval = 60; // ms between clicks
+    for (var i = 0; i < Math.min(count, 20); i++) {
+      (function(idx) {
+        var startT = ctx.currentTime + idx * (interval / 1000);
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = "sine"; osc.frequency.value = 180;
+        gain.gain.setValueAtTime(0.08 * Math.min(hapticIntensity, 2), startT);
+        gain.gain.exponentialRampToValueAtTime(0.0001, startT + 0.018);
+        osc.start(startT); osc.stop(startT + 0.020);
+      })(i);
+    }
+  } catch (e) {}
 }
 
 function applyDarkMode(on) {
   darkMode = on;
   document.documentElement.dataset.theme = on ? "dark" : "";
   localStorage.setItem("shukuma-dark-mode", on ? "1" : "0");
+  var tcMeta = document.getElementById("theme-color-meta");
+  if (tcMeta) tcMeta.content = on ? "#1c1c1e" : "#f2f2f7";
 }
 
 function applyColourTheme(theme) {
@@ -4532,6 +4565,9 @@ function loadUserSettings() {
   document.documentElement.dataset.theme    = darkMode ? "dark" : "";
   document.documentElement.dataset.colour   = colourTheme === "default" ? "" : colourTheme;
   document.documentElement.dataset.textsize = textSize === "normal" ? "" : textSize;
+  // Sync status bar theme-color (Dynamic Island area)
+  var tcMeta = document.getElementById("theme-color-meta");
+  if (tcMeta) tcMeta.content = darkMode ? "#1c1c1e" : "#f2f2f7";
 }
 
 // Attempt + time tracking
@@ -4576,7 +4612,7 @@ var pointerDownTile = null;
 var tapHintShown = false;
 
 // ─── Firebase / auth state ────────────────────────────────────────────────────
-let db = null, fbAuth = null, currentUser = null, userProfile = null;
+let db = null, fbAuth = null, fbStorage = null, currentUser = null, userProfile = null;
 
 const ADMIN_EMAIL = "matt@uservox.com";
 function isAdmin() { return !!(currentUser && currentUser.email === ADMIN_EMAIL); }
@@ -4884,6 +4920,28 @@ function updateDifficultyBadge() {
 function updateTicketDisplay() {
   const el = document.getElementById("ticket-count");
   if (el) el.textContent = ticketCount;
+}
+
+// Aligns #board-controls horizontal padding to the left/right edges of the
+// bottom-row hexagons so icons sit flush with the board's last column.
+function alignBoardControls() {
+  var controls = document.getElementById("board-controls");
+  var svg = document.getElementById("hex-board");
+  if (!controls || !svg || !tiles.length) return;
+  var maxRow = Math.max.apply(null, tiles.map(function(t) { return t.row; }));
+  var bottomTiles = tiles.filter(function(t) { return t.row === maxRow; });
+  var minCol = Math.min.apply(null, bottomTiles.map(function(t) { return t.col; }));
+  var maxCol = Math.max.apply(null, bottomTiles.map(function(t) { return t.col; }));
+  var leftCx  = hexCenter(maxRow, minCol).x;
+  var rightCx = hexCenter(maxRow, maxCol).x;
+  var dims = boardDimensions();
+  var svgRect = svg.getBoundingClientRect();
+  var scaleX = svgRect.width / dims.width;
+  var controlsRect = controls.getBoundingClientRect();
+  var leftPad  = svgRect.left + (leftCx  - HEX_W / 2) * scaleX - controlsRect.left;
+  var rightPad = controlsRect.right - (svgRect.left + (rightCx + HEX_W / 2) * scaleX);
+  controls.style.paddingLeft  = Math.max(4, Math.round(leftPad))  + "px";
+  controls.style.paddingRight = Math.max(4, Math.round(rightPad)) + "px";
 }
 
 // ─── Board construction ───────────────────────────────────────────────────────
@@ -5204,14 +5262,22 @@ function lockValidWord(word) {
   var level = getScoreLevel(len);
   srAnnounce(word.toUpperCase() + " — " + len + " letters, " + level + (foundTarget ? ", today's longest word!" : ""));
 
+  // Rapid-fire haptic: N quick taps for N letters found
+  var wordHapticPattern = [];
+  for (var hi = 0; hi < len; hi++) { wordHapticPattern.push(30); if (hi < len - 1) wordHapticPattern.push(22); }
+  triggerHaptic(wordHapticPattern);
+
   if (isInOne) {
     targetWordFound = true;
     _cycleAttemptCount = attemptCount;
     var inOneMsgs = FLOAT_MSGS.in_one;
     var inOneCheer = inOneMsgs[Math.floor(Math.random() * inOneMsgs.length)];
     showFloatAnim({ type: "valid", score: len, level: "Grandmaster in One!", cheer: inOneCheer });
-    showConfetti();
-    triggerHaptic([100, 50, 100, 50, 200]);
+    // Grandmaster rumble: brief build-up then big pop, then confetti
+    setTimeout(function() {
+      triggerHaptic([20,10,30,10,40,10,60,10,100,30,200]);
+      showConfetti();
+    }, 300);
     setTimeout(function() {
       showToast("🎯 Grandmaster in One! First attempt perfection!");
     }, 1600);
@@ -5223,8 +5289,7 @@ function lockValidWord(word) {
     var msgs = FLOAT_MSGS.target_found;
     var cheer = msgs[Math.floor(Math.random() * msgs.length)];
     showFloatAnim({ type: "valid", score: len, level: level, cheer: cheer });
-    showConfetti();
-    triggerHaptic([100, 50, 100, 50, 200]);
+    setTimeout(function() { triggerHaptic([40,20,80,30,150]); showConfetti(); }, 300);
     setTimeout(function() {
       showToast("🏆 You found today's longest word!");
     }, 1600);
@@ -5264,6 +5329,7 @@ function flashInvalid(customCheer) {
   renderAllTiles();
   updateAnswerArea();
   srAnnounce(customCheer === "Need 4+" ? "Need at least 4 letters" : "Not a valid word");
+  triggerHaptic([55, 30, 55]); // double-thud for invalid
 
   var resetBtn = document.getElementById("reset-btn");
   if (resetBtn) resetBtn.classList.add("is-throbbing");
@@ -5698,6 +5764,7 @@ function loadBoardForDate(ddmmyy) {
   }
   adjacency = buildAdjacency();
   buildBoard();
+  requestAnimationFrame(alignBoardControls);
 
   // Restore played path tiles to indigo
   playedPath.forEach(function(id) { if (tiles[id]) tiles[id].state = "played"; });
@@ -5778,6 +5845,7 @@ function initFirebase() {
     firebase.initializeApp(FIREBASE_CONFIG);
     db = firebase.firestore();
     fbAuth = firebase.auth();
+    if (typeof firebase.storage === "function") fbStorage = firebase.storage();
     fbAuth.onAuthStateChanged(handleAuthChange);
     // Apply server theme for all users — real-time so admin changes propagate live
     db.collection("config").doc("theme").onSnapshot(function(doc) {
@@ -5948,18 +6016,96 @@ function updateAdminAccess() {
   }
 }
 
+// ─── Avatar / initials helpers ────────────────────────────────────────────────
+function getInitials(profile) {
+  var name = (profile && profile.displayName) || (profile && profile.username) || "?";
+  var parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
+
+function renderAvatarEl(el, profile) {
+  if (!el) return;
+  var photoURL = profile && profile.photoURL;
+  if (photoURL) {
+    el.innerHTML = '<img src="' + escHtml(photoURL) + '" alt="Profile photo" class="avatar-photo">';
+    el.style.background = "transparent";
+  } else {
+    el.textContent = getInitials(profile);
+    el.style.background = "";
+  }
+}
+
+function compressImage(file) {
+  return new Promise(function(resolve, reject) {
+    var reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = function(e) {
+      var img = new Image();
+      img.onerror = reject;
+      img.onload = function() {
+        var MAX = 128;
+        var scale = Math.min(MAX / img.width, MAX / img.height, 1);
+        var w = Math.round(img.width * scale) || 128;
+        var h = Math.round(img.height * scale) || 128;
+        var canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        canvas.toBlob(function(blob) {
+          if (blob) resolve(blob); else reject(new Error("Compression failed"));
+        }, "image/jpeg", 0.72);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function uploadAvatar(file) {
+  if (!fbStorage || !currentUser || !db) throw new Error("Not ready");
+  var blob = await compressImage(file);
+  var ref = fbStorage.ref("avatars/" + currentUser.uid);
+  await ref.put(blob, { contentType: "image/jpeg" });
+  var url = await ref.getDownloadURL();
+  await db.collection("users").doc(currentUser.uid).update({ photoURL: url });
+  if (userProfile) userProfile.photoURL = url;
+  return url;
+}
+
+async function deleteAvatar() {
+  if (!fbStorage || !currentUser || !db) return;
+  try { await fbStorage.ref("avatars/" + currentUser.uid).delete(); } catch (e) {}
+  await db.collection("users").doc(currentUser.uid).update({ photoURL: null });
+  if (userProfile) userProfile.photoURL = null;
+}
+
+async function checkUsernameAvailable(username) {
+  if (!db) return true;
+  var snap = await db.collection("users")
+    .where("usernameLower", "==", username.toLowerCase())
+    .limit(1).get();
+  return snap.empty;
+}
+
 // ─── Sign up / in / out ───────────────────────────────────────────────────────
-async function fbSignUp(username, email, password) {
+async function fbSignUp(username, displayName, email, password) {
   if (!fbAuth || !db) throw new Error("Firebase not configured");
   const cred = await fbAuth.createUserWithEmailAndPassword(email, password);
   const uid = cred.user.uid;
   await db.collection("users").doc(uid).set({
-    uid, username: username.trim(), email,
+    uid,
+    username: username.trim(),
+    usernameLower: username.trim().toLowerCase(),
+    displayName: (displayName || "").trim(),
+    email,
+    photoURL: null,
     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     stats: { totalGames: 0, totalScore: 0, bestScore: 0, bestWord: "", currentStreak: 0, bestStreak: 0, lastPlayedDate: "" },
     badges: {},
     tickets: 10,
   });
+  // Send email verification
+  try { await cred.user.sendEmailVerification(); } catch (e) {}
   // Welcome bonus — 10 tickets for new registrations
   ticketCount += 10;
   saveTickets();
@@ -5979,8 +6125,15 @@ async function fbSignInGoogle() {
   const cred = await fbAuth.signInWithPopup(provider);
   if (cred.additionalUserInfo && cred.additionalUserInfo.isNewUser) {
     const uid = cred.user.uid;
+    const gName = cred.user.displayName || "Player";
+    const gUsername = gName.toLowerCase().replace(/\s+/g, "").slice(0, 20);
     await db.collection("users").doc(uid).set({
-      uid, username: cred.user.displayName || "Player", email: cred.user.email,
+      uid,
+      username: gUsername,
+      usernameLower: gUsername.toLowerCase(),
+      displayName: gName,
+      email: cred.user.email,
+      photoURL: cred.user.photoURL || null,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       stats: { totalGames: 0, totalScore: 0, bestScore: 0, bestWord: "", currentStreak: 0, bestStreak: 0, lastPlayedDate: "" },
       badges: {},
@@ -6004,10 +6157,21 @@ async function loadUserData(user) {
     const snap = await db.collection("users").doc(user.uid).get();
     if (snap.exists) {
       userProfile = snap.data();
+      // Back-fill usernameLower for existing accounts that predate the field
+      if (userProfile.username && !userProfile.usernameLower) {
+        db.collection("users").doc(user.uid).update({ usernameLower: userProfile.username.toLowerCase() }).catch(function() {});
+        userProfile.usernameLower = userProfile.username.toLowerCase();
+      }
       checkTesterReset();
     } else {
+      const fallbackUsername = (user.displayName || user.email.split("@")[0]).toLowerCase().replace(/\s+/g, "").slice(0, 20);
       const d = {
-        uid: user.uid, username: user.displayName || user.email.split("@")[0], email: user.email || "",
+        uid: user.uid,
+        username: fallbackUsername,
+        usernameLower: fallbackUsername.toLowerCase(),
+        displayName: user.displayName || "",
+        email: user.email || "",
+        photoURL: user.photoURL || null,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         stats: { totalGames: 0, totalScore: 0, bestScore: 0, bestWord: "", currentStreak: 0, bestStreak: 0, lastPlayedDate: "" },
         badges: {},
@@ -6677,6 +6841,203 @@ function updateUserBtn() {
 var authModalCallback = null;
 var authMode = "signup";
 
+// ─── Edit Profile Modal ───────────────────────────────────────────────────────
+function initEditProfileModal() {
+  var modal = document.getElementById("edit-profile-modal");
+  if (!modal) return;
+
+  document.getElementById("ep-close").addEventListener("click", function() { modal.hidden = true; });
+  document.getElementById("ep-overlay").addEventListener("click", function() { modal.hidden = true; });
+  modal.addEventListener("keydown", function(e) { if (e.key === "Escape") modal.hidden = true; });
+
+  // Avatar upload
+  var photoInput = document.getElementById("ep-photo-input");
+  document.getElementById("ep-change-photo").addEventListener("click", function() { photoInput.click(); });
+  photoInput.addEventListener("change", function() {
+    if (photoInput.files[0]) handleAvatarUpload(photoInput.files[0]);
+  });
+  document.getElementById("ep-remove-photo").addEventListener("click", handleAvatarRemove);
+
+  // Username availability check (debounced)
+  var usernameInput = document.getElementById("ep-username-input");
+  var usernameTimer;
+  usernameInput.addEventListener("input", function() {
+    clearTimeout(usernameTimer);
+    var val = usernameInput.value.trim().toLowerCase();
+    var statusEl = document.getElementById("ep-username-status");
+    if (!val || val === (userProfile && (userProfile.usernameLower || (userProfile.username || "").toLowerCase()))) {
+      statusEl.textContent = ""; statusEl.className = ""; return;
+    }
+    statusEl.textContent = "…"; statusEl.className = "checking";
+    usernameTimer = setTimeout(function() {
+      checkUsernameAvailable(val).then(function(ok) {
+        statusEl.textContent = ok ? "✓" : "✗ taken";
+        statusEl.className = "ep-username-status " + (ok ? "ok" : "taken");
+      }).catch(function() {});
+    }, 600);
+  });
+
+  // Password sub-form toggle
+  document.getElementById("ep-pwd-toggle").addEventListener("click", function() {
+    document.getElementById("ep-pwd-form").hidden = false;
+    this.hidden = true;
+    document.getElementById("ep-pwd-current").focus();
+  });
+  document.getElementById("ep-pwd-cancel").addEventListener("click", function() {
+    document.getElementById("ep-pwd-form").hidden = true;
+    document.getElementById("ep-pwd-toggle").hidden = false;
+    document.getElementById("ep-pwd-error").hidden = true;
+    ["ep-pwd-current","ep-pwd-new","ep-pwd-confirm"].forEach(function(id) {
+      var el = document.getElementById(id); if (el) el.value = "";
+    });
+  });
+  document.getElementById("ep-pwd-save").addEventListener("click", handlePasswordChange);
+  document.getElementById("ep-save-btn").addEventListener("click", handleSaveProfile);
+
+  // Edit button in profile row
+  var editBtn = document.getElementById("edit-profile-btn");
+  if (editBtn) editBtn.addEventListener("click", openEditProfileModal);
+}
+
+function openEditProfileModal() {
+  if (!userProfile || !currentUser) return;
+  var modal = document.getElementById("edit-profile-modal");
+  if (!modal) return;
+  renderAvatarEl(document.getElementById("ep-avatar"), userProfile);
+  document.getElementById("ep-displayname-input").value = userProfile.displayName || "";
+  document.getElementById("ep-username-input").value    = userProfile.username || "";
+  document.getElementById("ep-email-display").textContent = currentUser.email || "";
+  document.getElementById("ep-remove-photo").hidden = !userProfile.photoURL;
+  document.getElementById("ep-error").hidden        = true;
+  document.getElementById("ep-pwd-form").hidden     = true;
+  document.getElementById("ep-pwd-toggle").hidden   = false;
+  document.getElementById("ep-username-status").textContent = "";
+  document.getElementById("ep-username-status").className   = "";
+  ["ep-pwd-current","ep-pwd-new","ep-pwd-confirm"].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = "";
+  });
+  var badge = document.getElementById("ep-email-verified-badge");
+  if (badge) {
+    var isOAuth = currentUser.providerData && currentUser.providerData.some(function(p) { return p.providerId !== "password"; });
+    if (isOAuth || currentUser.emailVerified) {
+      badge.textContent = "✓ Verified"; badge.className = "ep-verified-badge verified";
+    } else {
+      badge.textContent = "Not verified"; badge.className = "ep-verified-badge unverified";
+    }
+  }
+  // Hide password section for OAuth users
+  var isOAuth2 = currentUser.providerData && currentUser.providerData.some(function(p) { return p.providerId !== "password"; });
+  var pwdToggle = document.getElementById("ep-pwd-toggle");
+  if (pwdToggle) pwdToggle.hidden = isOAuth2;
+  modal.hidden = false;
+}
+
+async function handleAvatarUpload(file) {
+  var changeBtn = document.getElementById("ep-change-photo");
+  changeBtn.disabled = true; changeBtn.textContent = "Uploading…";
+  try {
+    await uploadAvatar(file);
+    renderAvatarEl(document.getElementById("ep-avatar"), userProfile);
+    renderAvatarEl(document.getElementById("user-avatar"), userProfile);
+    document.getElementById("ep-remove-photo").hidden = false;
+  } catch (e) {
+    showEpError("Upload failed. Check your connection and try again.");
+  } finally {
+    changeBtn.disabled = false; changeBtn.textContent = "Change Photo";
+    document.getElementById("ep-photo-input").value = "";
+  }
+}
+
+async function handleAvatarRemove() {
+  var removeBtn = document.getElementById("ep-remove-photo");
+  removeBtn.disabled = true;
+  try {
+    await deleteAvatar();
+    renderAvatarEl(document.getElementById("ep-avatar"), userProfile);
+    renderAvatarEl(document.getElementById("user-avatar"), userProfile);
+    removeBtn.hidden = true;
+  } catch (e) {
+    showEpError("Could not remove photo. Try again.");
+  } finally {
+    removeBtn.disabled = false;
+  }
+}
+
+async function handleSaveProfile() {
+  var displayName = document.getElementById("ep-displayname-input").value.trim();
+  var username    = document.getElementById("ep-username-input").value.trim();
+  if (!username || username.length < 2) { showEpError("Username must be at least 2 characters."); return; }
+  if (/\s/.test(username)) { showEpError("Username cannot contain spaces."); return; }
+  var saveBtn = document.getElementById("ep-save-btn");
+  saveBtn.disabled = true; saveBtn.textContent = "Saving…";
+  document.getElementById("ep-error").hidden = true;
+  try {
+    var currentUsernameLower = userProfile.usernameLower || (userProfile.username || "").toLowerCase();
+    if (username.toLowerCase() !== currentUsernameLower) {
+      var available = await checkUsernameAvailable(username);
+      if (!available) { showEpError("That username is already taken. Please choose another."); return; }
+    }
+    await db.collection("users").doc(currentUser.uid).update({
+      displayName: displayName,
+      username:    username,
+      usernameLower: username.toLowerCase(),
+    });
+    if (userProfile) {
+      userProfile.displayName   = displayName;
+      userProfile.username      = username;
+      userProfile.usernameLower = username.toLowerCase();
+    }
+    renderStatsPanel();
+    document.getElementById("edit-profile-modal").hidden = true;
+  } catch (e) {
+    showEpError("Save failed. Please try again.");
+  } finally {
+    saveBtn.disabled = false; saveBtn.textContent = "Save Changes";
+  }
+}
+
+async function handlePasswordChange() {
+  var currentPwd = document.getElementById("ep-pwd-current").value;
+  var newPwd     = document.getElementById("ep-pwd-new").value;
+  var confirmPwd = document.getElementById("ep-pwd-confirm").value;
+  var pwdError   = document.getElementById("ep-pwd-error");
+  pwdError.hidden = true;
+  if (!currentPwd || !newPwd) { showEpPwdError("Please fill in all password fields."); return; }
+  if (newPwd.length < 6)      { showEpPwdError("New password must be at least 6 characters."); return; }
+  if (newPwd !== confirmPwd)  { showEpPwdError("Passwords don't match."); return; }
+  var saveBtn = document.getElementById("ep-pwd-save");
+  saveBtn.disabled = true; saveBtn.textContent = "Updating…";
+  try {
+    var credential = firebase.auth.EmailAuthProvider.credential(currentUser.email, currentPwd);
+    await currentUser.reauthenticateWithCredential(credential);
+    await currentUser.updatePassword(newPwd);
+    document.getElementById("ep-pwd-form").hidden    = true;
+    document.getElementById("ep-pwd-toggle").hidden  = false;
+    ["ep-pwd-current","ep-pwd-new","ep-pwd-confirm"].forEach(function(id) {
+      var el = document.getElementById(id); if (el) el.value = "";
+    });
+    var epErr = document.getElementById("ep-error");
+    epErr.textContent = "Password updated successfully.";
+    epErr.style.background = "#f0fdf4"; epErr.style.borderColor = "#bbf7d0"; epErr.style.color = "#15803d";
+    epErr.hidden = false;
+    setTimeout(function() { epErr.hidden = true; epErr.style.cssText = ""; }, 3000);
+  } catch (e) {
+    showEpPwdError(e.code === "auth/wrong-password" || e.code === "auth/invalid-credential"
+      ? "Current password is incorrect." : "Password update failed. Please try again.");
+  } finally {
+    saveBtn.disabled = false; saveBtn.textContent = "Update Password";
+  }
+}
+
+function showEpError(msg) {
+  var el = document.getElementById("ep-error");
+  el.textContent = msg; el.style.cssText = ""; el.hidden = false;
+}
+function showEpPwdError(msg) {
+  var el = document.getElementById("ep-pwd-error");
+  el.textContent = msg; el.hidden = false;
+}
+
 function initAuthModal() {
   var modal = document.getElementById("auth-modal");
   if (!modal) return;
@@ -6689,6 +7050,21 @@ function initAuthModal() {
   });
   document.getElementById("auth-submit").addEventListener("click", handleAuthSubmit);
   document.getElementById("auth-google").addEventListener("click", handleGoogleSubmit);
+  // Verify screen buttons
+  var resendBtn = document.getElementById("auth-verify-resend");
+  var doneBtn   = document.getElementById("auth-verify-done");
+  if (resendBtn) resendBtn.addEventListener("click", function() {
+    if (!currentUser) return;
+    resendBtn.disabled = true;
+    currentUser.sendEmailVerification().then(function() {
+      resendBtn.textContent = "Sent!";
+      setTimeout(function() { resendBtn.textContent = "Resend email"; resendBtn.disabled = false; }, 3000);
+    }).catch(function() {
+      resendBtn.textContent = "Error — try again";
+      setTimeout(function() { resendBtn.textContent = "Resend email"; resendBtn.disabled = false; }, 3000);
+    });
+  });
+  if (doneBtn) doneBtn.addEventListener("click", function() { hideAuthModal(true); });
   modal.addEventListener("keydown", function(e) {
     if (e.key === "Enter") handleAuthSubmit();
     if (e.key === "Escape") hideAuthModal(false);
@@ -6700,16 +7076,20 @@ function applyAuthMode() {
   var titleEl    = document.getElementById("auth-title");
   var subEl      = document.getElementById("auth-subtitle");
   var userField  = document.getElementById("auth-username");
+  var nameField  = document.getElementById("auth-displayname");
   var submitEl   = document.getElementById("auth-submit");
   var switchBtn  = document.getElementById("auth-switch-mode");
   var pwdInput   = document.getElementById("auth-password");
+  var switchRow  = document.querySelector(".auth-switch-row");
   if (titleEl)   titleEl.textContent   = isSignup ? "Save Your Score" : "Welcome back";
   if (subEl)     subEl.textContent     = isSignup
     ? "Create an account to track your progress and compete with friends."
     : "Sign in to save your score and see the leaderboard.";
-  if (userField) userField.hidden       = !isSignup;
+  if (nameField) nameField.hidden      = !isSignup;
+  if (userField) userField.hidden      = !isSignup;
   if (submitEl)  submitEl.textContent  = isSignup ? "Create Account" : "Sign In";
   if (switchBtn) switchBtn.textContent = isSignup ? "Sign in instead" : "Create an account";
+  if (switchRow) switchRow.firstChild.textContent = isSignup ? "Already have an account? " : "Don't have an account? ";
   if (pwdInput)  pwdInput.autocomplete = isSignup ? "new-password" : "current-password";
   document.getElementById("auth-error").hidden = true;
 }
@@ -6721,10 +7101,14 @@ function showAuthModal(mode, onDone) {
   document.getElementById("auth-email").value    = "";
   document.getElementById("auth-password").value = "";
   document.getElementById("auth-username").value = "";
+  var dn = document.getElementById("auth-displayname"); if (dn) dn.value = "";
   document.getElementById("auth-error").hidden   = true;
+  // Reset verify screen
+  var fc = document.getElementById("auth-form-content"); if (fc) fc.hidden = false;
+  var vs = document.getElementById("auth-verify-screen"); if (vs) vs.hidden = true;
   document.getElementById("auth-modal").hidden   = false;
   setTimeout(function() {
-    var first = authMode === "signup" ? document.getElementById("auth-username") : document.getElementById("auth-email");
+    var first = authMode === "signup" ? document.getElementById("auth-displayname") : document.getElementById("auth-email");
     if (first) first.focus();
   }, 80);
 }
@@ -6739,19 +7123,33 @@ function hideAuthModal(success) {
 }
 
 async function handleAuthSubmit() {
-  var email    = document.getElementById("auth-email").value.trim();
-  var password = document.getElementById("auth-password").value;
-  var username = document.getElementById("auth-username").value.trim();
-  var submitEl = document.getElementById("auth-submit");
+  var email       = document.getElementById("auth-email").value.trim();
+  var password    = document.getElementById("auth-password").value;
+  var username    = document.getElementById("auth-username").value.trim();
+  var displayName = (document.getElementById("auth-displayname") || {value:""}).value.trim();
+  var submitEl    = document.getElementById("auth-submit");
   if (!email || !password) { showAuthError("Please enter your email and password."); return; }
-  if (authMode === "signup" && !username) { showAuthError("Please choose a username."); return; }
+  if (authMode === "signup") {
+    if (!displayName) { showAuthError("Please enter your full name."); return; }
+    if (!username) { showAuthError("Please choose a username."); return; }
+    if (/\s/.test(username)) { showAuthError("Username cannot contain spaces."); return; }
+  }
   submitEl.disabled = true;
   submitEl.textContent = "…";
   document.getElementById("auth-error").hidden = true;
   try {
-    if (authMode === "signup") await fbSignUp(username, email, password);
-    else await fbSignIn(email, password);
-    hideAuthModal(true);
+    if (authMode === "signup") {
+      await fbSignUp(username, displayName, email, password);
+      // Show verification screen instead of closing modal
+      var fc = document.getElementById("auth-form-content"); if (fc) fc.hidden = true;
+      var vemail = document.getElementById("auth-verify-email"); if (vemail) vemail.textContent = email;
+      var vs = document.getElementById("auth-verify-screen"); if (vs) vs.hidden = false;
+      submitEl.disabled = false;
+      submitEl.textContent = "Create Account";
+    } else {
+      await fbSignIn(email, password);
+      hideAuthModal(true);
+    }
   } catch (e) {
     submitEl.disabled = false;
     submitEl.textContent = authMode === "signup" ? "Create Account" : "Sign In";
@@ -6798,11 +7196,32 @@ function renderStatsPanel() {
   inEl.hidden  = false;
 
   var avatarEl = document.getElementById("user-avatar");
-  if (avatarEl) avatarEl.textContent = (userProfile.username || "P")[0].toUpperCase();
+  renderAvatarEl(avatarEl, userProfile);
+
+  var hasDisplayName = !!(userProfile.displayName && userProfile.displayName.trim());
   var nameEl = document.getElementById("user-display-name");
-  if (nameEl) nameEl.textContent = userProfile.username || "Player";
+  if (nameEl) nameEl.textContent = hasDisplayName ? userProfile.displayName : (userProfile.username || "Player");
+  var usernameEl = document.getElementById("user-username-text");
+  if (usernameEl) {
+    usernameEl.textContent = hasDisplayName ? ("@" + (userProfile.username || "")) : "";
+    usernameEl.hidden = !hasDisplayName;
+  }
   var emailEl = document.getElementById("user-email-text");
   if (emailEl) emailEl.textContent = currentUser.email || "";
+
+  // Email verification banner — hide for Google/OAuth users
+  var verifyBanner = document.getElementById("user-verify-banner");
+  if (verifyBanner) {
+    var isOAuth = currentUser.providerData && currentUser.providerData.some(function(p) { return p.providerId !== "password"; });
+    verifyBanner.hidden = currentUser.emailVerified || isOAuth;
+  }
+  var resendVerifyBtn = document.getElementById("user-resend-verify-btn");
+  if (resendVerifyBtn) resendVerifyBtn.onclick = function() {
+    currentUser.sendEmailVerification().then(function() {
+      resendVerifyBtn.textContent = "Sent!";
+      setTimeout(function() { resendVerifyBtn.textContent = "Resend"; }, 3000);
+    }).catch(function() {});
+  };
 
   var s = userProfile.stats || {};
   var totalGames  = s.totalGames || 0;
@@ -6903,11 +7322,14 @@ async function renderFriends() {
       var words = (p.stats && p.stats.totalWords) || 0;
       var row = document.createElement("div");
       row.className = "friend-row";
-      var initial = (p.username || "P")[0].toUpperCase();
+      var avatarHtml = p.photoURL
+        ? '<img src="' + escHtml(p.photoURL) + '" alt="" class="avatar-photo" style="width:100%;height:100%;border-radius:50%;object-fit:cover">'
+        : escHtml(getInitials(p));
+      var displayName = (p.displayName && p.displayName.trim()) ? p.displayName : (p.username || "Player");
       row.innerHTML =
-        '<div class="friend-avatar">' + escHtml(initial) + '</div>' +
+        '<div class="friend-avatar"' + (p.photoURL ? ' style="background:transparent;overflow:hidden"' : '') + '>' + avatarHtml + '</div>' +
         '<div class="friend-info">' +
-          '<div class="friend-name">' + escHtml(p.username || "Player") + '</div>' +
+          '<div class="friend-name">' + escHtml(displayName) + '</div>' +
           '<div class="friend-words">' + words + ' words</div>' +
         '</div>' +
         '<svg class="friend-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>';
@@ -7132,10 +7554,10 @@ function showToast(msg) {
     document.body.appendChild(toast);
   }
   toast.textContent = msg;
-  // Position over the word text area (game-topbar), keeping date/status bar visible
-  var topbar = document.getElementById("game-topbar");
-  if (topbar) {
-    var tr = topbar.getBoundingClientRect();
+  // Position over #topbar-word (the "Find today's longest word" area)
+  var wordEl = document.getElementById("topbar-word") || document.getElementById("game-topbar");
+  if (wordEl) {
+    var tr = wordEl.getBoundingClientRect();
     toast.style.top = Math.round(tr.top + tr.height / 2) + "px";
   }
   if (toast._timer) { clearTimeout(toast._timer); toast._timer = null; }
@@ -7837,6 +8259,7 @@ function initSettings() {
   if (hapticToggle) hapticToggle.addEventListener("change", function() {
     hapticsEnabled = this.checked;
     localStorage.setItem("shukuma-haptics", hapticsEnabled ? "1" : "0");
+    if (hapticsEnabled) triggerHaptic(15); // confirm haptics are working
   });
 
   // Colour theme
@@ -9183,6 +9606,7 @@ function init() {
 
   adjacency = buildAdjacency();
   buildBoard();
+  requestAnimationFrame(alignBoardControls);
 
   // Restore played path tiles to indigo after board is built
   playedPath.forEach(function(id) { if (tiles[id]) tiles[id].state = "played"; });
@@ -9203,6 +9627,7 @@ function init() {
   initLocale();
   initFirebase();
   initAuthModal();
+  initEditProfileModal();
   initInfoPanel();
   initShare();
   initVersionPanel();
@@ -9256,5 +9681,7 @@ if (document.readyState === "loading") {
 } else {
   init();
 }
+
+window.addEventListener("resize", function() { requestAnimationFrame(alignBoardControls); });
 
 })();

@@ -1,0 +1,15 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'matt@uservox.com';
+    }
+    // Avatar images — any signed-in user can read (for friend/leaderboard display),
+    // only the owner can write or delete their own avatar.
+    match /avatars/{uid} {
+      allow read: if request.auth != null;
+      allow write, delete: if request.auth != null && request.auth.uid == uid;
+      allow read, write, delete: if isAdmin();
+    }
+  }
+}

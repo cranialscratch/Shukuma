@@ -3,12 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" id="theme-color-meta" content="#f2f2f7">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Shukuma — Find Today's Longest Word</title>
   <meta name="description" content="Shukuma Wordsearch Mini Game — find the longest connected word on a hexagonal letter board." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2.0.45" />
+  <link rel="stylesheet" href="style.css?v=2.0.47" />
 </head>
 <body>
   <!-- Screen reader live region — JS calls srAnnounce() to update this -->
@@ -226,10 +229,21 @@
               <div id="stats-logged-in" hidden>
 
                 <div id="user-profile-row">
-                  <div id="user-avatar"></div>
+                  <button id="edit-profile-btn" class="user-avatar-btn" aria-label="Edit profile">
+                    <div id="user-avatar"></div>
+                    <span class="avatar-edit-dot" aria-hidden="true">
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                    </span>
+                  </button>
                   <div id="user-info-col">
                     <div id="user-display-name"></div>
+                    <div id="user-username-text"></div>
                     <div id="user-email-text"></div>
+                    <div id="user-verify-banner" hidden>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+                      Email not verified ·
+                      <button id="user-resend-verify-btn">Resend</button>
+                    </div>
                   </div>
                   <button id="signout-btn">Sign out</button>
                 </div>
@@ -489,28 +503,40 @@
     <div id="auth-overlay"></div>
     <div id="auth-card">
       <button id="auth-close" aria-label="Close">✕</button>
-      <div id="auth-icon">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+      <div id="auth-form-content">
+        <div id="auth-icon">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+        </div>
+        <h2 id="auth-title">Save Your Score</h2>
+        <p id="auth-subtitle">Create an account to track your progress and compete with friends.</p>
+        <div id="auth-error" hidden></div>
+        <input id="auth-displayname" type="text" placeholder="Full name (e.g. Jane Smith)" autocomplete="name" maxlength="60" />
+        <input id="auth-username" type="text" placeholder="Choose a username (no spaces)" autocomplete="username" maxlength="20" />
+        <input id="auth-email" type="email" placeholder="Email address" autocomplete="email" />
+        <input id="auth-password" type="password" placeholder="Password (min 6 chars)" autocomplete="new-password" />
+        <button id="auth-submit" class="auth-primary-btn">Create Account</button>
+        <div class="auth-or"><span>or</span></div>
+        <button id="auth-google" class="auth-google-btn">
+          <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+            <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
+            <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" fill="#34A853"/>
+            <path d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71s.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+            <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+          </svg>
+          Continue with Google
+        </button>
+        <button id="auth-guest">Continue without saving</button>
+        <p class="auth-switch-row">Already have an account? <button id="auth-switch-mode" class="auth-link-btn">Sign in instead</button></p>
       </div>
-      <h2 id="auth-title">Save Your Score</h2>
-      <p id="auth-subtitle">Create an account to track your progress and compete with friends.</p>
-      <div id="auth-error" hidden></div>
-      <input id="auth-username" type="text" placeholder="Choose a username" autocomplete="username" maxlength="20" />
-      <input id="auth-email" type="email" placeholder="Email address" autocomplete="email" />
-      <input id="auth-password" type="password" placeholder="Password (min 6 chars)" autocomplete="new-password" />
-      <button id="auth-submit" class="auth-primary-btn">Create Account</button>
-      <div class="auth-or"><span>or</span></div>
-      <button id="auth-google" class="auth-google-btn">
-        <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
-          <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
-          <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" fill="#34A853"/>
-          <path d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71s.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
-          <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
-        </svg>
-        Continue with Google
-      </button>
-      <button id="auth-guest">Continue without saving</button>
-      <p class="auth-switch-row">Already have an account? <button id="auth-switch-mode" class="auth-link-btn">Sign in instead</button></p>
+      <div id="auth-verify-screen" hidden>
+        <div class="auth-verify-icon">
+          <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+        </div>
+        <h3 class="auth-verify-title">Check your email</h3>
+        <p class="auth-verify-text">We sent a verification link to <strong id="auth-verify-email"></strong>. Click it to activate your account.</p>
+        <button id="auth-verify-resend" class="auth-link-btn">Resend email</button>
+        <button id="auth-verify-done" class="auth-primary-btn">Done</button>
+      </div>
     </div>
   </div>
 
@@ -962,11 +988,57 @@
     </div>
   </div>
 
+  <!-- Edit Profile Modal -->
+  <div id="edit-profile-modal" hidden>
+    <div id="ep-overlay"></div>
+    <div id="ep-card">
+      <div id="ep-header">
+        <h3>Edit Profile</h3>
+        <button id="ep-close" aria-label="Close">✕</button>
+      </div>
+      <div id="ep-avatar-section">
+        <div id="ep-avatar"></div>
+        <div id="ep-avatar-actions">
+          <button id="ep-change-photo">Change Photo</button>
+          <button id="ep-remove-photo" hidden>Remove Photo</button>
+        </div>
+        <input id="ep-photo-input" type="file" accept="image/*" hidden aria-label="Choose profile photo">
+      </div>
+      <div id="ep-form">
+        <div id="ep-error" role="alert" hidden></div>
+        <label class="ep-label" for="ep-displayname-input">Full Name</label>
+        <input id="ep-displayname-input" type="text" placeholder="First Last" maxlength="60" autocomplete="name">
+        <label class="ep-label" for="ep-username-input">Username</label>
+        <div class="ep-username-wrap">
+          <span class="ep-at">@</span>
+          <input id="ep-username-input" type="text" placeholder="username" maxlength="20" autocomplete="username">
+          <span id="ep-username-status" aria-live="polite"></span>
+        </div>
+        <div class="ep-field-group">
+          <span class="ep-label">Email</span>
+          <div id="ep-email-display"></div>
+          <span id="ep-email-verified-badge"></span>
+        </div>
+        <button id="ep-save-btn" class="ep-save-btn">Save Changes</button>
+        <button id="ep-pwd-toggle" class="ep-link-btn">Change Password</button>
+      </div>
+      <div id="ep-pwd-form" hidden>
+        <div id="ep-pwd-error" role="alert" hidden></div>
+        <input id="ep-pwd-current" type="password" placeholder="Current password" autocomplete="current-password">
+        <input id="ep-pwd-new" type="password" placeholder="New password (min 6 chars)" autocomplete="new-password">
+        <input id="ep-pwd-confirm" type="password" placeholder="Confirm new password" autocomplete="new-password">
+        <button id="ep-pwd-save">Update Password</button>
+        <button id="ep-pwd-cancel" class="ep-link-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 
-  <script src="game.js?v=2.0.45"></script>
+  <script src="game.js?v=2.0.47"></script>
 </body>
 </html>
