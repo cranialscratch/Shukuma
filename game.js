@@ -3822,11 +3822,77 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.37";
+const VERSION = "2.0.38";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.38",
+    date: "2026-06-29",
+    title: "Backfill: What's New entries for 2.0.32–2.0.37",
+    changes: [
+      "Changelog was not being updated with each release — all missing entries added",
+    ],
+  },
+  {
+    version: "2.0.37",
+    date: "2026-06-29",
+    title: "Tester notice button: inline SVG ticket icon",
+    changes: [
+      "Replaced emoji 🎟 with the same outline SVG ticket icon used on the Share button",
+    ],
+  },
+  {
+    version: "2.0.36",
+    date: "2026-06-29",
+    title: "Tester notice button: ticket icon instead of word",
+    changes: [
+      "Button now reads 'Understood +10 🎟' — ticket symbol instead of the word 'Tickets'",
+    ],
+  },
+  {
+    version: "2.0.35",
+    date: "2026-06-29",
+    title: "Fix: Tester reset clears board before showing notice modal",
+    changes: [
+      "Old scores/words/tiles were still visible behind the modal because the board had already rendered from localStorage",
+      "Two-pass reload: on first detection, wipe all local game state and reload; on second load, board renders fresh, then modal appears",
+      "clearLocalGameState() removes all per-date localStorage keys, share-tracking, unlocked-dates, and puzzle-version",
+    ],
+  },
+  {
+    version: "2.0.34",
+    date: "2026-06-29",
+    title: "Fix: Clear local game state on tester reset",
+    changes: [
+      "Deleting Firestore score docs did not affect localStorage — players still saw old results",
+      "clearLocalGameState() now wipes all shukuma-DDMMYY state keys, share-tracking, and unlocked-dates on reset",
+      "Page reloads after acknowledgment so the player lands on a clean board",
+    ],
+  },
+  {
+    version: "2.0.33",
+    date: "2026-06-29",
+    title: "Fix: Firestore rules grant admin full collection access",
+    changes: [
+      "Added firestore.rules file — admin (matt@uservox.com) can now read/write all scores and users docs",
+      "resetPastScores() fully restored: deletes past score docs + writes config/testerReset notice",
+      "resetAllScores() fully restored: deletes all score docs",
+      "Regular users remain scoped to their own documents only",
+    ],
+  },
+  {
+    version: "2.0.32",
+    date: "2026-06-29",
+    title: "Fix: Tester notice via config/testerReset (not user profile docs)",
+    changes: [
+      "Admin cannot list the users collection, so writing pendingNotice to each user doc failed",
+      "Notice now written to config/testerReset (admin can write config; all users can read config)",
+      "checkTesterReset() reads config/testerReset on login; localStorage testerReset_ackAt tracks acknowledgment",
+      "resetAllScores() temporarily replaced with Firebase console instructions (later restored in 2.0.33)",
+    ],
+  },
   {
     version: "2.0.31",
     date: "2026-06-29",
