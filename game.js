@@ -3822,7 +3822,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.52";
+const VERSION = "2.0.53";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
@@ -7373,13 +7373,21 @@ function renderStatsPanel() {
   var avatarEl = document.getElementById("user-avatar");
   renderAvatarEl(avatarEl, userProfile);
 
-  var hasDisplayName = !!(userProfile.displayName && userProfile.displayName.trim());
+  // @username is the prominent identifier; short name "First L." below
   var nameEl = document.getElementById("user-display-name");
-  if (nameEl) nameEl.textContent = hasDisplayName ? userProfile.displayName : (userProfile.username || "Player");
+  if (nameEl) nameEl.textContent = "@" + (userProfile.username || "player");
+  var dn = (userProfile.displayName || "").trim();
+  var shortName = "";
+  if (dn) {
+    var nameParts = dn.split(/\s+/);
+    shortName = nameParts.length > 1
+      ? nameParts[0] + " " + nameParts[nameParts.length - 1].charAt(0).toUpperCase() + "."
+      : nameParts[0];
+  }
   var usernameEl = document.getElementById("user-username-text");
   if (usernameEl) {
-    usernameEl.textContent = hasDisplayName ? ("@" + (userProfile.username || "")) : "";
-    usernameEl.hidden = !hasDisplayName;
+    usernameEl.textContent = shortName;
+    usernameEl.hidden = !shortName;
   }
   var emailEl = document.getElementById("user-email-text");
   if (emailEl) emailEl.textContent = currentUser.email || "";
@@ -7449,12 +7457,24 @@ function renderStreakWidget(streak, bestStreak) {
   var widget = document.getElementById("streak-widget");
   if (!widget) return;
   var days = getLastSevenDays();
+
+  // Compute streak from local calendar (always matches the dots shown)
+  var localStreak = 0;
+  for (var i = days.length - 1; i >= 0; i--) {
+    if (days[i].played) localStreak++;
+    else break;
+  }
+  var displayStreak = Math.max(streak, localStreak);
+
+  var freezes = (userProfile && userProfile.streakFreezes != null) ? userProfile.streakFreezes : 3;
   var fireSvg = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>';
+  var snowSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><path d="m20 6-8 6-8-6"/><path d="m20 18-8-6-8 6"/><path d="m2 12 4-2-4-2"/><path d="m22 12-4-2 4-2"/></svg>';
+
   var html =
     '<div class="streak-hero">' +
       '<div class="streak-hero-icon">' + fireSvg + '</div>' +
       '<div class="streak-hero-nums">' +
-        '<div class="streak-hero-count">' + streak + '</div>' +
+        '<div class="streak-hero-count">' + displayStreak + '</div>' +
         '<div class="streak-hero-label">Day Streak</div>' +
       '</div>' +
       (bestStreak > 0 ? '<div class="streak-best">Best: ' + bestStreak + '</div>' : '') +
@@ -7468,6 +7488,17 @@ function renderStreakWidget(streak, bestStreak) {
     '</div>';
   });
   html += '</div>';
+
+  // Streak freeze inventory
+  var totalFreezes = 3;
+  var usedFreezes = Math.max(0, totalFreezes - freezes);
+  html += '<div class="streak-freeze-row"><span class="streak-freeze-label">Streak Freezes</span><div class="streak-freeze-icons">';
+  for (var f = 0; f < totalFreezes; f++) {
+    var used = f < usedFreezes;
+    html += '<div class="streak-freeze-icon' + (used ? ' used' : '') + '" title="' + (used ? 'Used' : 'Available') + '">' + snowSvg + '</div>';
+  }
+  html += '</div></div>';
+
   widget.innerHTML = html;
 }
 
