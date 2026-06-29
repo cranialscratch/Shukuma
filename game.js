@@ -3822,7 +3822,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.35";
+const VERSION = "2.0.36";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
@@ -5625,7 +5625,7 @@ function showTesterResetModal(message, ticketAward, setAt) {
   var btn   = document.getElementById("tester-reset-btn");
   if (msgEl) msgEl.textContent = message;
   if (btn) {
-    btn.textContent = "Understood  +" + ticketAward + " Tickets";
+    btn.textContent = "Understood  +" + ticketAward + " 🎟";
     btn.onclick = function() {
       ticketCount += ticketAward;
       saveTickets();
