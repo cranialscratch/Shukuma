@@ -1037,32 +1037,32 @@ html[data-textsize="xl"] {
   padding: 10px 0 4px;
 }
 .wl-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 90px 46px;
   align-items: center;
-  justify-content: space-between;
-  padding: 9px 4px;
+  gap: 10px;
+  padding: 11px 0;
   border-bottom: 1px solid var(--lb-row-border);
-  border-radius: 6px;
   transition: background 0.12s;
 }
 .wl-row.wl-found { cursor: pointer; }
 .wl-row.wl-found:active { background: var(--brand-light); }
 .wl-word {
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: var(--fs-sm);
+  font-weight: 700;
   color: var(--text-primary);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
 }
 .wl-locked .wl-word {
-  color: var(--text-muted);
-  letter-spacing: 0.18em;
-  font-size: 0.8rem;
-  font-weight: 400;
+  filter: blur(5px);
+  user-select: none;
+  -webkit-user-select: none;
 }
 .wl-len {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  flex-shrink: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 .wl-unlock-row {
   padding: 10px 0 4px;
@@ -1231,32 +1231,7 @@ html[data-textsize="xl"] {
   color: var(--text-muted);
   padding: 10px 0 4px;
 }
-.wl-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 4px;
-  border-bottom: 1px solid var(--lb-row-border);
-  cursor: pointer;
-  border-radius: 6px;
-}
-.wl-row.wl-found:active { background: var(--brand-light); }
-.wl-word {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  letter-spacing: 0.04em;
-}
-.wl-locked .wl-word {
-  color: var(--text-muted);
-  letter-spacing: 0.22em;
-  font-weight: 400;
-}
-.wl-len {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
+/* duplicate block — kept minimal to avoid conflicts with primary rules above */
 .wl-locked .wl-len { display: none; }
 .wl-unlock-row {
   padding: 10px 0 6px;
@@ -1382,8 +1357,10 @@ html[data-textsize="xl"] {
 .scores-date-btn:hover { background: rgba(0,0,0,0.05); }
 .scores-date-btn:active { background: rgba(0,0,0,0.09); }
 #lb-date-label {
-  font-weight: 600;
-  font-size: 0.9rem;
+  font-size: var(--fs-xl);
+  font-weight: 800;
+  color: var(--tile-text);
+  letter-spacing: -0.3px;
 }
 
 /* ── Scores tab: word row enhancements ───────────────────────────── */
@@ -1408,34 +1385,34 @@ html[data-textsize="xl"] {
   flex-shrink: 0;
 }
 .wl-bar-track {
-  width: 80px;
-  height: 5px;
-  background: var(--lb-row-border, rgba(0,0,0,0.1));
-  border-radius: 3px;
+  width: 90px;
+  height: 31px;
+  background: rgba(0,0,0,0.09);
+  border-radius: 15.5px;
   overflow: hidden;
   flex-shrink: 0;
 }
 .wl-bar-fill {
   height: 100%;
-  background: var(--text-muted);
-  border-radius: 3px;
-  min-width: 2px;
+  background: rgba(0,0,0,0.18);
+  border-radius: 15.5px;
+  min-width: 8px;
   transition: width 0.4s ease;
 }
 .wl-bar-fill.wl-bar-found { background: var(--brand); }
 .wl-pct {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  min-width: 30px;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--text-primary);
   text-align: right;
-  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
 }
 .wl-stats {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  line-height: 1.3;
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  line-height: 1.4;
 }
-.wl-stats-muted { font-style: italic; }
+.wl-stats-muted { color: var(--text-secondary); }
 .wl-tag {
   display: inline-block;
   font-size: 0.62rem;
@@ -1451,14 +1428,14 @@ html[data-textsize="xl"] {
 .wl-reveal-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border: 1.5px solid var(--brand);
-  border-radius: 16px;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 2px solid var(--brand);
+  border-radius: 20px;
   background: transparent;
   color: var(--brand);
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: var(--fs-sm);
+  font-weight: 700;
   cursor: pointer;
   font-family: inherit;
   -webkit-tap-highlight-color: transparent;
@@ -1467,25 +1444,26 @@ html[data-textsize="xl"] {
 /* Sort controls */
 .wl-sort-bar {
   display: flex;
-  gap: 4px;
-  padding: 6px 0 8px;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0 12px;
 }
-.wl-sort-btn {
-  padding: 4px 10px;
-  border: 1.5px solid var(--lb-row-border);
-  border-radius: 16px;
-  background: none;
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
+.wl-sort-icon { color: var(--text-secondary); flex-shrink: 0; display: flex; align-items: center; }
+.wl-sort-select {
+  flex: 1;
+  font-size: var(--fs-sm);
   font-family: inherit;
-  -webkit-tap-highlight-color: transparent;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--card-bg, #fff);
+  border: 1.5px solid var(--lb-row-border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  -webkit-appearance: auto;
+  appearance: auto;
 }
-.wl-sort-btn.active { border-color: var(--brand); color: var(--brand); background: rgba(124,77,255,0.06); }
-.wl-sort-btn:active { opacity: 0.7; }
+.wl-sort-select:focus { outline: 2px solid var(--brand); outline-offset: 1px; }
 /* My stats card */
 .my-stats-card {
   background: var(--card-bg);
@@ -1495,11 +1473,11 @@ html[data-textsize="xl"] {
   box-shadow: 0 1px 6px rgba(0,0,0,0.07);
 }
 .my-stats-hdr, .friends-found-hdr {
-  font-size: 0.72rem;
+  font-size: var(--fs-sm);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   padding-bottom: 6px;
 }
 .my-stats-hdr { margin-bottom: 2px; }
@@ -1516,14 +1494,14 @@ html[data-textsize="xl"] {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.my-stat-lbl { font-size: 0.65rem; color: var(--text-muted); margin-top: 1px; }
+.my-stat-lbl { font-size: var(--fs-sm); color: var(--text-secondary); margin-top: 2px; }
 .my-stats-cell { display: flex; flex-direction: column; align-items: flex-start; }
 .friends-found-hdr { padding-top: 12px; }
 .friends-found-sublabel {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  padding: 4px 0 2px;
-  font-style: italic;
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  padding: 6px 0 2px;
+  font-weight: 600;
 }
 .friends-send-all-row { padding: 6px 0 10px; }
 .friends-send-all-btn {

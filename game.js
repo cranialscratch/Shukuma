@@ -3822,7 +3822,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.51";
+const VERSION = "2.0.52";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
@@ -6358,24 +6358,32 @@ function buildScratchAnswers(answers, playersByWord, isToday, totalPlayers) {
   // ── Sort controls ────────────────────────────────────────────────
   var sortBar = document.createElement("div");
   sortBar.className = "wl-sort-bar";
-  var SORTS = [
-    { key: "length-desc", label: "Longest" },
-    { key: "length-asc",  label: "Shortest" },
-    { key: "pct-desc",    label: "Most Found" },
-    { key: "pct-asc",     label: "Least Found" },
-  ];
-  SORTS.forEach(function(s) {
-    var btn = document.createElement("button");
-    btn.className = "wl-sort-btn" + (wlSortMode === s.key ? " active" : "");
-    btn.textContent = s.label;
-    (function(key) {
-      btn.addEventListener("click", function() {
-        wlSortMode = key;
-        buildScratchAnswers(answers, playersByWord, isToday, totalPlayers);
-      });
-    })(s.key);
-    sortBar.appendChild(btn);
+  var sortIcon = document.createElement("span");
+  sortIcon.className = "wl-sort-icon";
+  sortIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M7 12h10M11 18h2"/></svg>';
+  sortBar.appendChild(sortIcon);
+  var sortSelect = document.createElement("select");
+  sortSelect.className = "wl-sort-select";
+  sortSelect.setAttribute("aria-label", "Sort words by");
+  [
+    { key: "length-desc", label: "Longest first" },
+    { key: "length-asc",  label: "Shortest first" },
+    { key: "pct-desc",    label: "Most found first" },
+    { key: "pct-asc",     label: "Least found first" },
+  ].forEach(function(s) {
+    var opt = document.createElement("option");
+    opt.value = s.key;
+    opt.textContent = s.label;
+    if (wlSortMode === s.key) opt.selected = true;
+    sortSelect.appendChild(opt);
   });
+  (function(ans, pbw, it, tp) {
+    sortSelect.addEventListener("change", function() {
+      wlSortMode = sortSelect.value;
+      buildScratchAnswers(ans, pbw, it, tp);
+    });
+  })(answers, playersByWord, isToday, totalPlayers);
+  sortBar.appendChild(sortSelect);
   container.appendChild(sortBar);
 
   if (allWords.length === 0) {
@@ -6433,10 +6441,8 @@ function buildWordRow(cfg) {
   var wordEl = document.createElement("div");
   wordEl.className = "wl-word";
   if (locked) {
-    var dots = [];
-    for (var d = 0; d < word.length; d++) dots.push("·");
-    wordEl.textContent = dots.join(" ");
-    wordEl.setAttribute("aria-label", word.length + "-letter word");
+    wordEl.textContent = word; // CSS blur hides it visually; screen reader gets aria-label
+    wordEl.setAttribute("aria-label", word.length + "-letter word, hidden");
   } else {
     wordEl.textContent = word;
     if (revealed && !found) {
@@ -6531,30 +6537,27 @@ function buildWordRow(cfg) {
     leftCol.appendChild(defBtn);
   }
 
-  // ── RIGHT column ─────────────────────────────────────────────────
-  var rightCol = document.createElement("div");
-  rightCol.className = "wl-right";
-
+  // ── BAR + PCT — direct grid children (columns 2 & 3) ────────────
   var barTrack = document.createElement("div");
   barTrack.className = "wl-bar-track";
   var barFill = document.createElement("div");
   barFill.className = "wl-bar-fill" + (found ? " wl-bar-found" : "");
-  barFill.style.width = (pct >= 0 ? Math.max(2, pct) : 0) + "%";
+  barFill.style.width = (pct >= 0 ? Math.max(4, pct) : 0) + "%";
   barTrack.appendChild(barFill);
-  rightCol.appendChild(barTrack);
 
   var pctEl = document.createElement("span");
   if (pct >= 0) {
     pctEl.className = "wl-pct";
     pctEl.textContent = pct + "%";
+    pctEl.title = pct + "% of players who played today found this word";
   } else {
     pctEl.className = "wl-len";
-    pctEl.textContent = word.length + "lt";
+    pctEl.textContent = word.length + "L";
   }
-  rightCol.appendChild(pctEl);
 
   row.appendChild(leftCol);
-  row.appendChild(rightCol);
+  row.appendChild(barTrack);
+  row.appendChild(pctEl);
 
   // Tap unlocked word → highlight on board
   if (!locked) {
@@ -8350,27 +8353,21 @@ function doDateNavigate(direction) {
 function initScoresSwipe() {
   var scoresTab = document.getElementById("tab-scores");
   if (!scoresTab) return;
-  var startX = 0, startY = 0, swiping = false;
-  var MIN_SWIPE = 65;
+  var startX = 0, startY = 0;
+  var MIN_SWIPE = 55;
   scoresTab.addEventListener("touchstart", function(e) {
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
-    swiping = true;
   }, { passive: true });
-  scoresTab.addEventListener("touchmove", function(e) {
-    if (!swiping) return;
-    var dx = e.touches[0].clientX - startX;
-    var dy = e.touches[0].clientY - startY;
-    if (Math.abs(dy) > Math.abs(dx) * 0.9) { swiping = false; }
-  }, { passive: true });
+  // Evaluate on touchend only — avoids conflict with vertical scroll
   scoresTab.addEventListener("touchend", function(e) {
-    if (!swiping) return;
-    swiping = false;
     var dx = e.changedTouches[0].clientX - startX;
-    if (dx > MIN_SWIPE && lbDayOffset > -13)      doLbDateNavigate("prev");
-    else if (dx < -MIN_SWIPE && lbDayOffset < 0)  doLbDateNavigate("next");
+    var dy = e.changedTouches[0].clientY - startY;
+    if (Math.abs(dx) < MIN_SWIPE) return;           // too short
+    if (Math.abs(dy) > Math.abs(dx) * 0.65) return; // too vertical
+    if (dx > 0 && lbDayOffset > -13) doLbDateNavigate("prev");
+    else if (dx < 0 && lbDayOffset < 0) doLbDateNavigate("next");
   }, { passive: true });
-  scoresTab.addEventListener("touchcancel", function() { swiping = false; }, { passive: true });
 }
 
 function doLbDateNavigate(direction) {
