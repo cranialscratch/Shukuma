@@ -3822,7 +3822,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.44";
+const VERSION = "2.0.45";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
@@ -6911,7 +6911,16 @@ async function renderFriends() {
           '<div class="friend-words">' + words + ' words</div>' +
         '</div>' +
         '<svg class="friend-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>';
-      row.addEventListener("click", function() { showPlayerProfile(p, null); });
+      row.addEventListener("click", (function(prof) { return function() {
+        openPlayerProfile({
+          username:      prof.username || "Player",
+          word:          (prof.stats && prof.stats.bestWord)   || "—",
+          score:         (prof.stats && prof.stats.bestScore)  || 0,
+          validAttempts: (prof.stats && prof.stats.totalWords) || undefined,
+          attempts:      (prof.stats && prof.stats.totalWords) || 0,
+          timeSpent:     null,
+        }, null);
+      }; })(p));
       list.appendChild(row);
     });
     if (!list.children.length) {
