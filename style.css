@@ -1951,10 +1951,17 @@ html[data-textsize="xl"] {
 #signout-btn:hover { border-color: var(--brand); color: var(--brand); }
 
 #stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 6px;
+  margin-bottom: 16px;
+}
+#stats-grid .stat-box {
+  flex: 1 1 calc(33% - 6px);
+  min-width: 0;
+}
+#stats-grid .stat-box-wide {
+  flex: 1 1 calc(50% - 4px);
 }
 .stat-box {
   background: var(--stat-box-bg);
@@ -1976,22 +1983,28 @@ html[data-textsize="xl"] {
   margin-top: 5px;
 }
 
-/* ── Badges ──────────────────────────────────────────────────────────── */
+/* ── Badges grid ─────────────────────────────────────────────────────── */
 #badges-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px 6px;
+  margin-bottom: 8px;
 }
 .badge-item {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  width: 68px;
+  cursor: pointer;
+  padding: 6px 2px;
+  border-radius: 12px;
+  transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
 }
+.badge-item:hover, .badge-item:focus-visible { background: rgba(0,0,0,0.04); }
 .badge-hex {
-  width: 52px;
-  height: 60px;
+  width: 54px;
+  height: 54px;
   clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
   background: #f0f0ec;
   display: flex;
@@ -1999,47 +2012,241 @@ html[data-textsize="xl"] {
   justify-content: center;
   transition: background 0.2s;
 }
-.badge-emoji {
-  font-size: 1.6rem;
-  line-height: 1;
-  display: block;
+.badge-hex svg {
+  width: 26px;
+  height: 26px;
+  color: #aaa;
 }
 .badge-item.earned .badge-hex { background: #ede7f6; }
+.badge-item.earned .badge-hex svg { color: var(--brand); }
 .badge-item.locked .badge-hex { filter: grayscale(1); opacity: 0.4; }
 .badge-name {
-  font-size: 1.0625rem;
-  color: #666;
+  font-size: 0.68rem;
+  color: #888;
   text-align: center;
   line-height: 1.2;
+  word-break: break-word;
+  hyphens: auto;
 }
-.badge-item.earned .badge-name { color: var(--brand); font-weight: bold; }
+.badge-item.earned .badge-name { color: var(--brand); font-weight: 600; }
 
-/* ── Recent history ──────────────────────────────────────────────────── */
-#history-list {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+/* ── Stats grid extension ────────────────────────────────────────────── */
+.stat-box-wide {
+  flex: 0 0 calc(50% - 4px);
+  width: calc(50% - 4px);
 }
-.history-row {
+
+/* ── Streak widget ───────────────────────────────────────────────────── */
+#streak-widget {
+  background: var(--word-box-bg);
+  border-radius: 16px;
+  padding: 16px 12px 12px;
+  margin-bottom: 16px;
+}
+.streak-hero {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 1.0625rem;
-  color: #444;
-  padding: 8px 0;
-  border-bottom: 1px solid #f0f0ec;
-  flex-wrap: wrap;
-  row-gap: 0;
+  gap: 12px;
+  margin-bottom: 16px;
 }
-.history-date { color: #aaa; min-width: 52px; }
-.history-score { font-weight: bold; color: var(--brand); min-width: 30px; }
-.history-level { flex: 1; }
-.history-meta {
-  flex-basis: 100%;
-  font-size: 1.0625rem;
-  color: #aaa;
-  padding-bottom: 2px;
+.streak-hero-icon svg {
+  width: 40px;
+  height: 40px;
+  color: #f97316;
 }
+.streak-hero-count {
+  font-size: 2.6rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1;
+}
+.streak-hero-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.streak-best {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: rgba(0,0,0,0.06);
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+.streak-days {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+}
+.streak-day {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.streak-day-flame {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.streak-day.played .streak-day-flame {
+  border-color: #f97316;
+  background: #fff7ed;
+}
+.streak-day.today .streak-day-flame {
+  border-width: 2.5px;
+}
+.streak-day.played .streak-day-flame svg {
+  width: 18px;
+  height: 18px;
+  color: #f97316;
+}
+.streak-day-name {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-transform: uppercase;
+}
+.streak-day.today .streak-day-name {
+  color: var(--brand);
+  font-weight: 700;
+}
+
+/* ── Friends section ─────────────────────────────────────────────────── */
+#friends-section { margin-top: 4px; }
+.section-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  margin-top: 20px;
+}
+.friends-invite-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--brand);
+  background: transparent;
+  color: var(--brand);
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+#friends-list { display: flex; flex-direction: column; gap: 2px; }
+.friend-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 8px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.friend-row:hover { background: rgba(0,0,0,0.04); }
+.friend-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--brand);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.friend-info { flex: 1; }
+.friend-name { font-weight: 600; font-size: var(--fs-sm); color: var(--text-primary); }
+.friend-words { font-size: 0.82rem; color: var(--text-secondary); }
+.friend-chevron { width: 18px; height: 18px; color: var(--text-muted); flex-shrink: 0; }
+.friends-empty { font-size: var(--fs-sm); color: var(--text-secondary); text-align: center; padding: 16px 0; }
+.friends-loading { font-size: var(--fs-sm); color: var(--text-secondary); padding: 12px 0; }
+
+/* ── Badge info modal ────────────────────────────────────────────────── */
+#badge-info-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+#badge-info-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+#badge-info-card {
+  position: relative;
+  background: var(--card-bg);
+  border-radius: 24px;
+  padding: 28px 24px 24px;
+  width: 100%;
+  max-width: 300px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+#badge-info-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 4px;
+}
+.bim-icon {
+  width: 72px;
+  height: 72px;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  background: #ede7f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+.bim-icon svg {
+  width: 36px;
+  height: 36px;
+  color: var(--brand);
+}
+.bim-name {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.bim-desc {
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+.bim-status {
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 5px 14px;
+  border-radius: 20px;
+  margin-top: 4px;
+}
+.bim-status.earned { background: #ede7f6; color: var(--brand); }
+.bim-status.locked { background: rgba(0,0,0,0.06); color: var(--text-secondary); }
 
 /* ── Leaderboard ─────────────────────────────────────────────────────── */
 /* #lb-date-nav removed — date nav now lives in #scores-date-nav (see above) */

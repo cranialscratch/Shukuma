@@ -3822,7 +3822,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.43";
+const VERSION = "2.0.44";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
@@ -4346,17 +4346,30 @@ const FLOAT_MSGS = {
 };
 
 // ─── Badge definitions ────────────────────────────────────────────────────────
+const BADGE_SVGS = {
+  first_word:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V12"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/><path d="M7 9h10a2 2 0 0 1 2 2v1"/><path d="M7 9a2 2 0 0 0-2 2v1"/><circle cx="12" cy="6" r="3"/></svg>',
+  above_average: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+  master:        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>',
+  grandmaster:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.562 3.266a1 1 0 0 1 .876 0L22 8l-10 5L2 8z"/><path d="M22 8v8"/><path d="M2 8v8"/><path d="M12 13v9"/><path d="M4 12.5v4.167a2 2 0 0 0 1.106 1.789l5 2.5a2 2 0 0 0 1.788 0l5-2.5a2 2 0 0 0 1.106-1.789V12.5"/></svg>',
+  streak_3:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>',
+  streak_7:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>',
+  streak_30:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>',
+  games_10:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>',
+  games_50:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>',
+  games_100:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3z"/><path d="M5 3v4"/><path d="M3 5h4"/><path d="M19 17v4"/><path d="M17 19h4"/></svg>',
+};
+
 const BADGES = {
-  first_word:    { icon: "🌱", name: "First Word",    desc: "Complete your first puzzle" },
-  above_average: { icon: "⭐", name: "Word Wizard",    desc: "Score 7 or more letters" },
-  master:        { icon: "🏅", name: "Master",         desc: "Score 11 or more letters" },
-  grandmaster:   { icon: "👑", name: "Grandmaster",    desc: "Score 15 or more letters" },
-  streak_3:      { icon: "🔥", name: "On a Roll",      desc: "3 days in a row" },
-  streak_7:      { icon: "💪", name: "Week Warrior",   desc: "7 days in a row" },
-  streak_30:     { icon: "🏆", name: "Month Champion", desc: "30 days in a row" },
-  games_10:      { icon: "📚", name: "Scholar",        desc: "10 puzzles completed" },
-  games_50:      { icon: "🎓", name: "Academic",       desc: "50 puzzles completed" },
-  games_100:     { icon: "🧙", name: "Centurion",      desc: "100 puzzles completed" },
+  first_word:    { name: "First Word",    desc: "Complete your first puzzle" },
+  above_average: { name: "Word Wizard",   desc: "Score 7 or more letters in a single game" },
+  master:        { name: "Master",        desc: "Score 11 or more letters in a single game" },
+  grandmaster:   { name: "Grandmaster",   desc: "Score 15 or more letters in a single game" },
+  streak_3:      { name: "On a Roll",     desc: "Play 3 days in a row" },
+  streak_7:      { name: "Week Warrior",  desc: "Play 7 days in a row" },
+  streak_30:     { name: "Month Champion",desc: "Play 30 days in a row" },
+  games_10:      { name: "Scholar",       desc: "Complete 10 puzzles" },
+  games_50:      { name: "Academic",      desc: "Complete 50 puzzles" },
+  games_100:     { name: "Centurion",     desc: "Complete 100 puzzles" },
 };
 
 // Puzzle calendar: PUZZLES[0] = June 1 2026, PUZZLES[1] = June 2 2026, …
@@ -6003,6 +6016,15 @@ async function loadUserData(user) {
       userProfile = d;
     }
     renderStatsPanel();
+    // Handle friend invite link
+    var urlParams = new URLSearchParams(window.location.search);
+    var friendUid = urlParams.get("friend");
+    if (friendUid && friendUid !== user.uid) {
+      var alreadyFriends = (userProfile && userProfile.friends && userProfile.friends.includes(friendUid));
+      if (!alreadyFriends) {
+        setTimeout(function() { handleFriendInvite(friendUid); }, 1000);
+      }
+    }
   } catch (e) {
     console.warn("loadUserData:", e.message);
   }
@@ -6047,7 +6069,12 @@ async function submitScore() {
 
     const userRef = db.collection("users").doc(currentUser.uid);
     const upd = { "stats.lastPlayedDate": dateStr, "stats.currentStreak": streak, "stats.bestStreak": bestStreakSoFar };
-    if (!existing.exists) { upd["stats.totalGames"] = firebase.firestore.FieldValue.increment(1); upd["stats.totalScore"] = firebase.firestore.FieldValue.increment(bestScore); }
+    if (!existing.exists) {
+      upd["stats.totalGames"] = firebase.firestore.FieldValue.increment(1);
+      upd["stats.totalScore"] = firebase.firestore.FieldValue.increment(bestScore);
+      upd["stats.totalWords"] = firebase.firestore.FieldValue.increment(validAttemptCount);
+      upd["stats.totalTimeSecs"] = firebase.firestore.FieldValue.increment(Math.round(elapsed / 1000));
+    }
     if (bestScore > ((userProfile && userProfile.stats && userProfile.stats.bestScore) || 0)) { upd["stats.bestScore"] = bestScore; upd["stats.bestWord"] = bestWord; }
     batch.update(userRef, upd);
 
@@ -6633,7 +6660,7 @@ function computeNewBadges(score, streak, totalGames, existing) {
 
 function showBadgeToast(badgeId) {
   var b = BADGES[badgeId];
-  if (b) showToast("Badge unlocked: " + b.icon + " " + b.name + "!");
+  if (b) showToast("Badge unlocked: " + b.name + "!");
 }
 
 // ─── User button ──────────────────────────────────────────────────────────────
@@ -6778,19 +6805,149 @@ function renderStatsPanel() {
   if (emailEl) emailEl.textContent = currentUser.email || "";
 
   var s = userProfile.stats || {};
-  var totalGames = s.totalGames || 0;
-  var topScore   = s.bestScore  || 0;
-  var streak     = s.currentStreak || 0;
-  var avg        = totalGames > 0 ? Math.round((s.totalScore || 0) / totalGames) : 0;
+  var totalGames  = s.totalGames || 0;
+  var topScore    = s.bestScore  || 0;
+  var streak      = s.currentStreak || 0;
+  var avg         = totalGames > 0 ? Math.round((s.totalScore || 0) / totalGames) : 0;
+  var totalWords  = s.totalWords || 0;
+  var totalTimeSec = s.totalTimeSecs || 0;
 
   function setVal(id, v) { var el = document.getElementById(id); if (el) el.textContent = v; }
   setVal("stat-games",  totalGames);
   setVal("stat-best",   topScore);
-  setVal("stat-streak", streak + "🔥");
   setVal("stat-avg",    avg);
+  setVal("stat-total-words", totalWords > 0 ? totalWords : "—");
+  setVal("stat-total-time",  totalTimeSec > 0 ? formatTotalTime(totalTimeSec) : "—");
 
+  renderStreakWidget(streak, s.bestStreak || 0);
   renderBadges(userProfile.badges || {});
-  loadRecentHistory();
+  renderFriends();
+}
+
+function formatTotalTime(secs) {
+  if (!secs || secs < 60) return secs + "s";
+  var m = Math.floor(secs / 60);
+  if (m < 60) return m + " min";
+  var h = Math.floor(m / 60);
+  var rem = m % 60;
+  return h + "h " + (rem > 0 ? rem + "m" : "");
+}
+
+function getLastSevenDays() {
+  var result = [];
+  var DAY_NAMES = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  for (var i = 6; i >= 0; i--) {
+    var d = new Date();
+    d.setDate(d.getDate() - i);
+    var dd = String(d.getDate()).padStart(2, "0");
+    var mm = String(d.getMonth() + 1).padStart(2, "0");
+    var yy = String(d.getFullYear()).slice(-2);
+    var key = dd + mm + yy;
+    var stored = null;
+    try { stored = JSON.parse(localStorage.getItem("shukuma-" + key) || "null"); } catch (_) {}
+    var played = !!(stored && (stored.bestScore > 0 || stored.gameCompleted));
+    result.push({ key: key, dayName: DAY_NAMES[d.getDay()], played: played, isToday: i === 0 });
+  }
+  return result;
+}
+
+function renderStreakWidget(streak, bestStreak) {
+  var widget = document.getElementById("streak-widget");
+  if (!widget) return;
+  var days = getLastSevenDays();
+  var fireSvg = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>';
+  var html =
+    '<div class="streak-hero">' +
+      '<div class="streak-hero-icon">' + fireSvg + '</div>' +
+      '<div class="streak-hero-nums">' +
+        '<div class="streak-hero-count">' + streak + '</div>' +
+        '<div class="streak-hero-label">Day Streak</div>' +
+      '</div>' +
+      (bestStreak > 0 ? '<div class="streak-best">Best: ' + bestStreak + '</div>' : '') +
+    '</div>' +
+    '<div class="streak-days">';
+  days.forEach(function(d) {
+    var cls = "streak-day" + (d.played ? " played" : "") + (d.isToday ? " today" : "");
+    html += '<div class="' + cls + '">' +
+      '<div class="streak-day-flame">' + (d.played ? fireSvg : '') + '</div>' +
+      '<div class="streak-day-name">' + d.dayName + '</div>' +
+    '</div>';
+  });
+  html += '</div>';
+  widget.innerHTML = html;
+}
+
+async function renderFriends() {
+  var section = document.getElementById("friends-section");
+  var list = document.getElementById("friends-list");
+  if (!section || !list) return;
+  section.hidden = !currentUser;
+  if (!currentUser) return;
+
+  var myFriends = (userProfile && userProfile.friends) || [];
+  if (!myFriends.length) {
+    list.innerHTML = '<p class="friends-empty">No friends connected yet. Invite someone to play!</p>';
+    return;
+  }
+  list.innerHTML = '<div class="friends-loading">Loading...</div>';
+
+  try {
+    var profiles = await Promise.all(myFriends.map(function(uid) {
+      return db.collection("users").doc(uid).get().then(function(snap) {
+        return snap.exists ? Object.assign({ uid: uid }, snap.data()) : null;
+      }).catch(function() { return null; });
+    }));
+
+    list.innerHTML = "";
+    profiles.filter(Boolean).forEach(function(p) {
+      var words = (p.stats && p.stats.totalWords) || 0;
+      var row = document.createElement("div");
+      row.className = "friend-row";
+      var initial = (p.username || "P")[0].toUpperCase();
+      row.innerHTML =
+        '<div class="friend-avatar">' + escHtml(initial) + '</div>' +
+        '<div class="friend-info">' +
+          '<div class="friend-name">' + escHtml(p.username || "Player") + '</div>' +
+          '<div class="friend-words">' + words + ' words</div>' +
+        '</div>' +
+        '<svg class="friend-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>';
+      row.addEventListener("click", function() { showPlayerProfile(p, null); });
+      list.appendChild(row);
+    });
+    if (!list.children.length) {
+      list.innerHTML = '<p class="friends-empty">No friends connected yet.</p>';
+    }
+  } catch (e) {
+    list.innerHTML = '<p class="friends-empty">Could not load friends.</p>';
+  }
+}
+
+function inviteFriend() {
+  if (!currentUser) { showAuthModal("signup"); return; }
+  var url = window.location.origin + window.location.pathname + "?friend=" + currentUser.uid;
+  if (navigator.share) {
+    navigator.share({ title: "Play Shukuma!", text: "Join me on Shukuma — find today's longest word!", url: url }).catch(function() {});
+  } else if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(function() { showToast("Invite link copied!"); }).catch(function() { showToast(url); });
+  } else {
+    showToast("Share: " + url);
+  }
+}
+
+async function handleFriendInvite(inviterUid) {
+  if (!currentUser || !db || currentUser.uid === inviterUid) return;
+  try {
+    await db.collection("users").doc(currentUser.uid).update({
+      friends: firebase.firestore.FieldValue.arrayUnion(inviterUid)
+    });
+    await db.collection("users").doc(inviterUid).update({
+      friends: firebase.firestore.FieldValue.arrayUnion(currentUser.uid)
+    });
+    showToast("You are now connected as friends!");
+    await loadUserData(currentUser);
+  } catch (e) {
+    console.warn("handleFriendInvite:", e.message);
+  }
 }
 
 function renderBadges(earned) {
@@ -6802,14 +6959,37 @@ function renderBadges(earned) {
     var isEarned = !!earned[id];
     var item = document.createElement("div");
     item.className = "badge-item " + (isEarned ? "earned" : "locked");
-    item.title = b.name + ": " + b.desc;
+    item.setAttribute("role", "button");
+    item.setAttribute("tabindex", "0");
+    item.setAttribute("aria-label", b.name + (isEarned ? " — earned" : " — locked"));
     item.innerHTML =
       '<div class="badge-hex">' +
-        '<span class="badge-emoji">' + b.icon + '</span>' +
+        (BADGE_SVGS[id] || "") +
       '</div>' +
-      '<div class="badge-name">' + b.name + '</div>';
+      '<div class="badge-name">' + escHtml(b.name) + '</div>';
+    item.addEventListener("click", function() { showBadgeInfoModal(id, isEarned); });
+    item.addEventListener("keydown", function(e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); showBadgeInfoModal(id, isEarned); } });
     grid.appendChild(item);
   });
+}
+
+function showBadgeInfoModal(badgeId, isEarned) {
+  var b = BADGES[badgeId];
+  if (!b) return;
+  var modal = document.getElementById("badge-info-modal");
+  if (!modal) return;
+  var icon = modal.querySelector(".bim-icon");
+  var name = modal.querySelector(".bim-name");
+  var desc = modal.querySelector(".bim-desc");
+  var status = modal.querySelector(".bim-status");
+  if (icon) icon.innerHTML = BADGE_SVGS[badgeId] || "";
+  if (name) name.textContent = b.name;
+  if (desc) desc.textContent = b.desc;
+  if (status) {
+    status.textContent = isEarned ? "Earned" : "Not yet earned";
+    status.className = "bim-status " + (isEarned ? "earned" : "locked");
+  }
+  modal.hidden = false;
 }
 
 async function loadRecentHistory() {
@@ -7704,6 +7884,20 @@ function initSettings() {
     }).catch(function(e) {
       showToast("Error: " + e.message);
     });
+  });
+
+  var inviteBtn = document.getElementById("friends-invite-btn");
+  if (inviteBtn) inviteBtn.addEventListener("click", inviteFriend);
+
+  var bimClose = document.getElementById("badge-info-close");
+  if (bimClose) bimClose.addEventListener("click", function() {
+    var modal = document.getElementById("badge-info-modal");
+    if (modal) modal.hidden = true;
+  });
+  var bimOverlay = document.getElementById("badge-info-overlay");
+  if (bimOverlay) bimOverlay.addEventListener("click", function() {
+    var modal = document.getElementById("badge-info-modal");
+    if (modal) modal.hidden = true;
   });
 }
 

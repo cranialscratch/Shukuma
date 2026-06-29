@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2.0.43" />
+  <link rel="stylesheet" href="style.css?v=2.0.44" />
 </head>
 <body>
   <!-- Screen reader live region — JS calls srAnnounce() to update this -->
@@ -216,7 +216,9 @@
             <div id="tab-stats" class="tab-panel" role="tabpanel" hidden>
 
               <div id="stats-logged-out">
-                <div class="stats-cta-icon">🏆</div>
+                <div class="stats-cta-icon">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+                </div>
                 <p class="stats-cta-text">Sign in to track your progress, earn badges, and compete with friends.</p>
                 <button id="stats-signin-btn" class="brand-btn">Sign In / Create Account</button>
               </div>
@@ -233,17 +235,42 @@
                 </div>
 
                 <div id="stats-grid">
-                  <div class="stat-box"><div class="stat-val" id="stat-games">—</div><div class="stat-lbl">Games</div></div>
-                  <div class="stat-box"><div class="stat-val" id="stat-best">—</div><div class="stat-lbl">Best</div></div>
-                  <div class="stat-box"><div class="stat-val" id="stat-streak">—</div><div class="stat-lbl">Streak</div></div>
-                  <div class="stat-box"><div class="stat-val" id="stat-avg">—</div><div class="stat-lbl">Average</div></div>
+                  <div class="stat-box" role="button" tabindex="0" aria-label="Games played">
+                    <div class="stat-val" id="stat-games">—</div><div class="stat-lbl">Games</div>
+                  </div>
+                  <div class="stat-box" role="button" tabindex="0" aria-label="Best word length">
+                    <div class="stat-val" id="stat-best">—</div><div class="stat-lbl">Best</div>
+                  </div>
+                  <div class="stat-box" role="button" tabindex="0" aria-label="Average score">
+                    <div class="stat-val" id="stat-avg">—</div><div class="stat-lbl">Average</div>
+                  </div>
+                  <div class="stat-box stat-box-wide" role="button" tabindex="0" aria-label="Total words found all time">
+                    <div class="stat-val" id="stat-total-words">—</div><div class="stat-lbl">All-Time Words</div>
+                  </div>
+                  <div class="stat-box stat-box-wide" role="button" tabindex="0" aria-label="Total time played all time">
+                    <div class="stat-val" id="stat-total-time">—</div><div class="stat-lbl">All-Time Time</div>
+                  </div>
                 </div>
 
+                <!-- Streak widget -->
+                <div class="section-label">Streak</div>
+                <div id="streak-widget"></div>
+
+                <!-- Badges -->
                 <div class="section-label">Badges</div>
                 <div id="badges-grid"></div>
 
-                <div class="section-label" style="margin-top:14px">Recent Games</div>
-                <div id="history-list"></div>
+                <!-- Friends -->
+                <div id="friends-section" hidden>
+                  <div class="section-label-row">
+                    <span class="section-label" style="margin:0">Friends</span>
+                    <button id="friends-invite-btn" class="friends-invite-btn">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                      Invite Friend
+                    </button>
+                  </div>
+                  <div id="friends-list"></div>
+                </div>
 
               </div>
 
@@ -369,6 +396,20 @@
 
   </div><!-- /app -->
 
+  <!-- Badge info popup -->
+  <div id="badge-info-modal" hidden>
+    <div id="badge-info-overlay"></div>
+    <div id="badge-info-card">
+      <button id="badge-info-close" aria-label="Close">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="bim-icon"></div>
+      <div class="bim-name"></div>
+      <div class="bim-desc"></div>
+      <div class="bim-status"></div>
+    </div>
+  </div>
+
   <!-- Player list modal (tap avatar stack → see who scored this word) -->
   <div id="player-modal" hidden>
     <div id="player-modal-overlay"></div>
@@ -448,7 +489,9 @@
     <div id="auth-overlay"></div>
     <div id="auth-card">
       <button id="auth-close" aria-label="Close">✕</button>
-      <div id="auth-icon">🎯</div>
+      <div id="auth-icon">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+      </div>
       <h2 id="auth-title">Save Your Score</h2>
       <p id="auth-subtitle">Create an account to track your progress and compete with friends.</p>
       <div id="auth-error" hidden></div>
@@ -924,6 +967,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
-  <script src="game.js?v=2.0.43"></script>
+  <script src="game.js?v=2.0.44"></script>
 </body>
 </html>
