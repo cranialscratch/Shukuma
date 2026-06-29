@@ -2801,19 +2801,26 @@ html[data-theme="dark"] .settings-toggle { background: #48484a; }
 
 /* ── Submit button ──────────────────────────────────────────────────── */
 #submit-btn {
-  padding: 10px 20px;
-  border-radius: 20px;
-  border: 2px solid var(--brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(100% - 32px);
+  margin: 6px 16px 0;
+  padding: 0 20px;
+  height: 44px;
+  border-radius: 22px;
+  border: none;
   background: var(--brand);
   color: #ffffff;
-  font-size: var(--fs-sm);
+  font-size: 1rem;
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
-  transition: opacity 0.15s;
-  min-height: 44px;
+  letter-spacing: 0.02em;
+  transition: opacity 0.15s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
 }
-#submit-btn:active { opacity: 0.8; }
+#submit-btn:active { opacity: 0.85; transform: scale(0.98); }
 
 .colour-theme-grid {
   display: flex;
