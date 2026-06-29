@@ -3822,7 +3822,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.33";
+const VERSION = "2.0.34";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
@@ -5636,16 +5636,35 @@ function showTesterResetModal(message, ticketAward, setAt) {
           tickets: ticketCount,
         }).catch(function() {});
       }
-      // Mark this notice as acknowledged in localStorage
+      // Mark this notice as acknowledged and reload so the board is fresh
       try { localStorage.setItem("testerReset_ackAt", String(setAt)); } catch(e) {}
       modal.hidden = true;
       showToast("+" + ticketAward + " tickets added. Thanks for your patience!");
+      // Reload after a brief delay so the player sees the clean board
+      setTimeout(function() { window.location.reload(); }, 1500);
     };
   }
   modal.hidden = false;
 }
 
-// Check config/testerReset and show notice if not yet acknowledged
+// Wipe all per-date game state from localStorage (shukuma-DDMMYY keys,
+// unlocked-dates, and share-tracking). Called on tester reset before the
+// modal appears so players see a clean slate immediately.
+function clearLocalGameState() {
+  var toRemove = [];
+  for (var i = 0; i < localStorage.length; i++) {
+    var k = localStorage.key(i);
+    if (!k) continue;
+    if (/^shukuma-\d{6}$/.test(k)) toRemove.push(k);      // per-date state
+    if (/^sharedToday-/.test(k))   toRemove.push(k);       // share tracking
+  }
+  toRemove.forEach(function(k) { localStorage.removeItem(k); });
+  localStorage.removeItem("shukuma-unlocked-dates");
+  localStorage.removeItem("shukuma-puzzle-version"); // force re-check on next load
+}
+
+// Check config/testerReset and show notice if not yet acknowledged.
+// Also clears local game state so players see fresh puzzles immediately.
 async function checkTesterReset() {
   if (!db) return;
   try {
@@ -5656,6 +5675,8 @@ async function checkTesterReset() {
     var setAt = data.setAt;
     var ackAt = localStorage.getItem("testerReset_ackAt");
     if (ackAt && Number(ackAt) >= setAt) return; // already acknowledged
+    // Wipe local state before showing modal so board is already fresh
+    clearLocalGameState();
     showTesterResetModal(
       data.message || "Howdy Tester! — Sorry, we've had to reset some data. Here's a bonus for your trouble.",
       data.ticketAward || 10,
