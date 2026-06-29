@@ -761,6 +761,7 @@
           <button class="admin-btn admin-btn-secondary" id="admin-apply-btn">Apply &amp; save theme</button>
           <button class="admin-btn admin-btn-secondary" id="admin-reset-btn">Reset to CSS defaults</button>
           <button class="admin-btn admin-btn-danger" id="admin-clear-storage-btn">Clear all local data</button>
+          <button class="admin-btn admin-btn-danger" id="admin-reset-all-scores-btn">Reset all player scores (testers)</button>
         </div>
       </div>
 
@@ -798,6 +799,73 @@
         </div>
       </div>
 
+      <!-- ── Development Backlog ──────────────────────────────────── -->
+      <div class="admin-section">
+        <h3>Development Backlog</h3>
+        <p class="admin-mode-note">Track bugs and improvements. Blocked items have dependency notes. Items are stored in Firestore and shared across devices.</p>
+        <div class="admin-backlog-toolbar">
+          <select id="admin-backlog-filter-status" class="admin-backlog-select">
+            <option value="">All statuses</option>
+            <option value="open">Open</option>
+            <option value="in-progress">In Progress</option>
+            <option value="blocked">Blocked</option>
+            <option value="done">Done</option>
+          </select>
+          <select id="admin-backlog-filter-cat" class="admin-backlog-select">
+            <option value="">All types</option>
+            <option value="bug">Bugs</option>
+            <option value="improvement">Improvements</option>
+            <option value="feature">Features</option>
+          </select>
+          <button class="admin-btn" id="admin-backlog-add-btn" style="margin-left:auto;white-space:nowrap">+ Add Item</button>
+        </div>
+        <div id="admin-backlog-form" style="display:none;margin-top:12px;padding:12px;background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:8px;">
+          <input type="hidden" id="admin-backlog-editing-id" value="" />
+          <div class="admin-row">
+            <label style="min-width:72px;font-size:0.85rem">Title</label>
+            <input type="text" id="admin-backlog-title" style="flex:1;padding:6px 8px;border:1.5px solid #ddd;border-radius:6px;font-size:0.9rem;font-family:inherit" />
+          </div>
+          <div class="admin-row" style="flex-wrap:wrap;gap:8px">
+            <label style="min-width:72px;font-size:0.85rem">Type</label>
+            <select id="admin-backlog-category" class="admin-backlog-select">
+              <option value="bug">Bug</option>
+              <option value="improvement">Improvement</option>
+              <option value="feature">Feature</option>
+            </select>
+            <label style="min-width:52px;font-size:0.85rem;margin-left:8px">Priority</label>
+            <select id="admin-backlog-priority" class="admin-backlog-select">
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+            <label style="min-width:52px;font-size:0.85rem;margin-left:8px">Status</label>
+            <select id="admin-backlog-status" class="admin-backlog-select">
+              <option value="open">Open</option>
+              <option value="in-progress">In Progress</option>
+              <option value="blocked">Blocked</option>
+              <option value="done">Done</option>
+            </select>
+          </div>
+          <div class="admin-row" id="admin-backlog-blocked-row" style="display:none">
+            <label style="min-width:72px;font-size:0.85rem">Blocked by</label>
+            <input type="text" id="admin-backlog-blocked-by" style="flex:1;padding:6px 8px;border:1.5px solid #ddd;border-radius:6px;font-size:0.85rem;font-family:inherit" placeholder="e.g. push notification system" />
+          </div>
+          <div class="admin-row">
+            <label style="min-width:72px;font-size:0.85rem">Notes</label>
+            <textarea id="admin-backlog-notes" rows="2" style="flex:1;padding:6px 8px;border:1.5px solid #ddd;border-radius:6px;font-size:0.85rem;font-family:inherit;resize:vertical"></textarea>
+          </div>
+          <div class="admin-row">
+            <label style="min-width:72px;font-size:0.85rem">Branch</label>
+            <input type="text" id="admin-backlog-branch" style="flex:1;padding:6px 8px;border:1.5px solid #ddd;border-radius:6px;font-size:0.85rem;font-family:inherit" placeholder="e.g. fix/ticket-icon" />
+          </div>
+          <div class="admin-actions" style="margin-top:8px">
+            <button class="admin-btn" id="admin-backlog-save-btn">Save</button>
+            <button class="admin-btn admin-btn-secondary" id="admin-backlog-cancel-btn">Cancel</button>
+          </div>
+        </div>
+        <div id="admin-backlog-list" style="margin-top:8px"></div>
+      </div>
+
     </div>
   </div>
 
@@ -824,6 +892,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
-  <script src="game.js?v=2.0.25"></script>
+  <script src="game.js?v=2.0.26"></script>
 </body>
 </html>

@@ -3822,9 +3822,21 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.25";
+const VERSION = "2.0.26";
+// Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
+const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.26",
+    date: "2026-06-29",
+    title: "Admin Backlog + Puzzle State Reset",
+    changes: [
+      "Added Development Backlog section to admin panel — 24 tracked items across bugs, improvements, and future features stored in Firestore",
+      "Auto-clears stale local day-state when puzzle order changes (PUZZLE_ORDER_VERSION check on startup)",
+      "Added admin 'Reset all player scores' button to batch-delete all Firestore score records (tester utility)",
+    ],
+  },
   {
     version: "2.0.25",
     date: "2026-06-29",
@@ -6565,6 +6577,21 @@ function showToast(msg) {
 function currentDateStr() { return browsedDateStr || getDateString(); }
 function storageKey() { return "shukuma-" + currentDateStr(); }
 
+// Clears all per-date localStorage entries when the puzzle order has changed.
+// Called once at startup before loadState() — ensures players never see a
+// stale score from a puzzle that now sits on a different calendar day.
+function checkPuzzleVersion() {
+  var stored = localStorage.getItem("shukuma-puzzle-version");
+  if (stored === PUZZLE_ORDER_VERSION) return;
+  var toRemove = [];
+  for (var i = 0; i < localStorage.length; i++) {
+    var k = localStorage.key(i);
+    if (k && /^shukuma-\d{4}-\d{2}-\d{2}$/.test(k)) toRemove.push(k);
+  }
+  toRemove.forEach(function(k) { localStorage.removeItem(k); });
+  localStorage.setItem("shukuma-puzzle-version", PUZZLE_ORDER_VERSION);
+}
+
 function saveState() {
   const elapsed = timerRunning ? activeTimeMs + (Date.now() - timerLastStart) : activeTimeMs;
   try {
@@ -7693,6 +7720,38 @@ function runAdminAudit() {
   setTimeout(processBatch, 0);
 }
 
+// ── Development Backlog — initial seed data ─────────────────────────────────
+var INITIAL_BACKLOG_ITEMS = [
+  // Bugs — standalone, immediately actionable
+  { id:"BLG-001", title:"Ticket icon size to be kept fixed for user total", category:"bug", status:"open", priority:"medium", blockedBy:"", notes:"Icon grows/shrinks with ticket number length. Should be fixed width regardless of digit count.", branch:"" },
+  { id:"BLG-002", title:"Hint disables when today's word is visibly selected", category:"bug", status:"open", priority:"medium", blockedBy:"", notes:"Show toast 'No Hint Needed — You Found Today’s Word' instead of triggering a hint.", branch:"" },
+  { id:"BLG-003", title:"Retracing to single starting letter treated as manual clear", category:"bug", status:"open", priority:"low", blockedBy:"", notes:"If player traces back to only the starting tile, treat as a clear (not a word attempt). Board resets silently.", branch:"" },
+  { id:"BLG-004", title:"Toast message position: over played word area, not over date", category:"bug", status:"open", priority:"low", blockedBy:"", notes:"Move toast anchor so it appears above the played word text area and does not obscure the date display.", branch:"" },
+  { id:"BLG-005", title:"Share message uses correct award and copy for that day’s puzzle", category:"bug", status:"open", priority:"medium", blockedBy:"", notes:"When sharing a previous day, award label and message body should reflect that day’s result, not today’s.", branch:"" },
+  // Improvements — standalone
+  { id:"BLG-006", title:"'You found N words' messaging while playing non-longest words", category:"improvement", status:"open", priority:"medium", blockedBy:"", notes:"After submitting a valid but shorter word, cycle in 'You have found a total of N words'. Messaging must account for whether the longest word has already been found to stay supportive and non-confusing.", branch:"" },
+  { id:"BLG-007", title:"Idle 30s swipe hint animation (once per session)", category:"improvement", status:"open", priority:"low", blockedBy:"", notes:"After 30s idle: show 'Swipe right/left to move between days' with animated pointing finger (right→left, 3 loops). Grey text in the space between board bottom and pill bar. Show only once per session.", branch:"" },
+  { id:"BLG-008", title:"First-visit popup when arriving on a previous day", category:"improvement", status:"open", priority:"medium", blockedBy:"", notes:"Message: 'Replay any day — Play for fun. Find all the words. Tickets are awarded only on the puzzle’s publication date.' Single button: Replay.", branch:"" },
+  { id:"BLG-009", title:"'Words to Discover' becomes 'Reveal All' with confirmation flow", category:"improvement", status:"open", priority:"medium", blockedBy:"", notes:"Button label changes to 'Reveal All'. Opens modal: 'Free after finding today’s longest word, or −10 Tickets.' Buttons: 'Reveal for free' / 'Reveal −10 Tickets' / Cancel.", branch:"" },
+  { id:"BLG-010", title:"Hide date and nav arrows in score sheet reduced view", category:"improvement", status:"open", priority:"medium", blockedBy:"", notes:"In reduced view, date and navigation arrows are hidden. Swipe left/right and tapping date in main game area still work as shortcuts. On full-page expand, date appears identically to main game area.", branch:"" },
+  { id:"BLG-011", title:"Score card cycling messages in reduced view", category:"improvement", status:"open", priority:"medium", blockedBy:"", notes:"Cycle: 'Swipe left/right to move between days'; 'Tap the date to jump to any day'; 'You found today’s word in N attempts'; 'You found a total of N words'; 'Share and challenge your friends'. Maintain consistent wording with existing messages.", branch:"" },
+  { id:"BLG-012", title:"All in-game messages manageable in admin area", category:"improvement", status:"open", priority:"medium", blockedBy:"", notes:"Expand the admin message editor to cover all message types and sequences, not just completion messages.", branch:"" },
+  // Design Polish — from plan, not yet implemented
+  { id:"BLG-013", title:"Remove Joyall brand header from game card", category:"improvement", status:"open", priority:"medium", blockedBy:"", notes:"Remove <header id='brand-header'>. Add compensating top padding so board breathes. Board takes full card width from the top.", branch:"" },
+  { id:"BLG-014", title:"Replace ℹ emoji info button with outline SVG icon", category:"improvement", status:"open", priority:"low", blockedBy:"", notes:"iOS renders ℹ as a blue rounded-square glyph. Replace with SVG circle-i outline (stroke, no fill).", branch:"" },
+  { id:"BLG-015", title:"Replace ↺ emoji reset button with SVG undo-arrow icon", category:"improvement", status:"open", priority:"low", blockedBy:"", notes:"Emoji renders inconsistently across platforms. Replace with clean SVG counterclockwise arrow.", branch:"" },
+  { id:"BLG-016", title:"Idle hint: pulse 3–4 connected adjacent tiles instead of all tiles", category:"improvement", status:"open", priority:"low", blockedBy:"", notes:"Build a short connected chain starting from a random neutral tile. Stagger the pulse across chain tiles (130ms delay each). Guides player without overwhelming the board.", branch:"" },
+  { id:"BLG-017", title:"Font size increases: prompt, answer text, score value, ticket badge", category:"improvement", status:"open", priority:"low", blockedBy:"", notes:"game-prompt: 0.78→0.9rem, allow 2 lines. answer-text: 1.2→1.5rem. score-value: 1.8→2.4rem. score-level: 0.7→0.8rem. ticket-badge: 0.8→0.9rem.", branch:"" },
+  { id:"BLG-018", title:"Tile letter font size increase (20→22)", category:"improvement", status:"open", priority:"low", blockedBy:"", notes:"In buildTile() SVG, increase font-size attribute from 20 to 22.", branch:"" },
+  // Features — blocked on systems not yet built
+  { id:"BLG-019", title:"Push 24h after first play: 'Ready to find today’s longest word?'", category:"feature", status:"blocked", priority:"medium", blockedBy:"Push notification system", notes:"Opens today’s puzzle when notification is tapped.", branch:"" },
+  { id:"BLG-020", title:"Push notification when a friend achieves Grandmaster in One", category:"feature", status:"blocked", priority:"low", blockedBy:"Push notifications + friend/social system", notes:"Encourages player to play when a friend achieves the top award.", branch:"" },
+  { id:"BLG-021", title:"Allow player to heart a friend’s daily award", category:"feature", status:"blocked", priority:"medium", blockedBy:"Friend/social system", notes:"", branch:"" },
+  { id:"BLG-022", title:"Show friend hasn’t played; send them a free hint for −2 Tickets", category:"feature", status:"blocked", priority:"medium", blockedBy:"Friend/social system", notes:"Encourages friend engagement via hint gifting.", branch:"" },
+  { id:"BLG-023", title:"Send Extend Streak token to a friend who’s run out", category:"feature", status:"blocked", priority:"medium", blockedBy:"Friend system + push notifications", notes:"−10 Tickets to send. In-app toast tells the player if they missed the push.", branch:"" },
+  { id:"BLG-024", title:"Push at 23:00 to save N-day streak before midnight", category:"feature", status:"blocked", priority:"medium", blockedBy:"Push notification system", notes:"Triggered when player hasn’t played that day and their streak is at risk of breaking.", branch:"" },
+];
+
 function initAdmin() {
   var panel = document.getElementById("admin-panel");
   if (!panel) return;
@@ -7922,6 +7981,223 @@ function initAdmin() {
   var auditCancelBtn = document.getElementById("admin-audit-cancel-btn");
   if (auditRunBtn) auditRunBtn.addEventListener("click", runAdminAudit);
   if (auditCancelBtn) auditCancelBtn.addEventListener("click", function() { _auditCancel = true; });
+
+  var resetAllScoresBtn = document.getElementById("admin-reset-all-scores-btn");
+  if (resetAllScoresBtn) resetAllScoresBtn.addEventListener("click", resetAllScores);
+
+  // ── Development Backlog ─────────────────────────────────────────────────
+  initBacklogAdmin();
+}
+
+// ── Development Backlog — state ─────────────────────────────────────────────
+var _backlogItems = [];
+var _backlogFilterStatus = "";
+var _backlogFilterCat = "";
+
+function loadBacklog() {
+  if (!db) return Promise.resolve([]);
+  return db.collection("config").doc("backlog").get().then(function(snap) {
+    if (!snap.exists || !(snap.data().items || []).length) return seedInitialBacklog();
+    return snap.data().items;
+  });
+}
+
+function seedInitialBacklog() {
+  var now = Date.now();
+  var items = INITIAL_BACKLOG_ITEMS.map(function(item) {
+    return Object.assign({}, item, { createdAt: now });
+  });
+  return db.collection("config").doc("backlog").set({ items: items }).then(function() { return items; });
+}
+
+function saveBacklog(items) {
+  if (!db) return Promise.resolve();
+  return db.collection("config").doc("backlog").set({ items: items });
+}
+
+function renderBacklog(items) {
+  var list = document.getElementById("admin-backlog-list");
+  if (!list) return;
+
+  var filtered = items.filter(function(item) {
+    if (_backlogFilterStatus && item.status !== _backlogFilterStatus) return false;
+    if (_backlogFilterCat && item.category !== _backlogFilterCat) return false;
+    return true;
+  });
+
+  var statusOrder = { "in-progress": 0, "open": 1, "blocked": 2, "done": 3 };
+  var priorityOrder = { "high": 0, "medium": 1, "low": 2 };
+  filtered.sort(function(a, b) {
+    var sd = (statusOrder[a.status] || 0) - (statusOrder[b.status] || 0);
+    if (sd !== 0) return sd;
+    return (priorityOrder[a.priority] || 1) - (priorityOrder[b.priority] || 1);
+  });
+
+  if (!filtered.length) {
+    list.innerHTML = "<p style='color:#999;font-size:0.82rem;text-align:center;padding:20px 0'>No items match this filter.</p>";
+    return;
+  }
+
+  var STATUS_LABELS  = { "open": "Open", "in-progress": "In Progress", "blocked": "Blocked", "done": "Done" };
+  var CAT_LABELS     = { "bug": "Bug", "improvement": "Improvement", "feature": "Feature" };
+  var PRI_LABELS     = { "high": "High", "medium": "Med", "low": "Low" };
+
+  list.innerHTML = filtered.map(function(item) {
+    var isDone = item.status === "done";
+    var blockedNote = (item.status === "blocked" && item.blockedBy)
+      ? "<div class='admin-backlog-blocked-note'>⛔ Requires: " + item.blockedBy.replace(/</g, "&lt;") + "</div>"
+      : "";
+    var branchNote = item.branch
+      ? "<div class='admin-backlog-branch'>⎇ " + item.branch.replace(/</g, "&lt;") + "</div>"
+      : "";
+    var notesNote = item.notes
+      ? "<div class='admin-backlog-notes-text'>" + item.notes.replace(/</g, "&lt;") + "</div>"
+      : "";
+    var doneLabel = isDone ? "Reopen" : "Done ✓";
+    return "<div class='admin-backlog-item" + (isDone ? " is-done" : "") + "' data-id='" + item.id + "'>" +
+      "<div class='admin-backlog-item-body'>" +
+        "<div class='admin-backlog-item-title'>" + item.title.replace(/</g, "&lt;") + "</div>" +
+        "<div class='admin-backlog-badges'>" +
+          "<span class='admin-backlog-badge badge-status-" + item.status + "'>" + (STATUS_LABELS[item.status] || item.status) + "</span>" +
+          "<span class='admin-backlog-badge badge-cat-" + item.category + "'>" + (CAT_LABELS[item.category] || item.category) + "</span>" +
+          "<span class='admin-backlog-badge badge-priority-" + item.priority + "'>" + (PRI_LABELS[item.priority] || item.priority) + "</span>" +
+        "</div>" +
+        blockedNote + branchNote + notesNote +
+      "</div>" +
+      "<div class='admin-backlog-item-actions'>" +
+        "<button class='admin-backlog-action-btn' data-action='edit' data-id='" + item.id + "'>Edit</button>" +
+        "<button class='admin-backlog-action-btn done-btn' data-action='toggle-done' data-id='" + item.id + "'>" + doneLabel + "</button>" +
+        "<button class='admin-backlog-action-btn danger' data-action='delete' data-id='" + item.id + "'>Delete</button>" +
+      "</div>" +
+    "</div>";
+  }).join("");
+
+  list.querySelectorAll("[data-action]").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      var action = btn.getAttribute("data-action");
+      var id = btn.getAttribute("data-id");
+      if (action === "edit")        backlogOpenEdit(id);
+      else if (action === "toggle-done") backlogToggleDone(id);
+      else if (action === "delete") backlogDelete(id);
+    });
+  });
+}
+
+function backlogOpenEdit(id) {
+  var item = id ? _backlogItems.find(function(i) { return i.id === id; }) : null;
+  var form = document.getElementById("admin-backlog-form");
+  if (!form) return;
+  document.getElementById("admin-backlog-editing-id").value = id || "";
+  document.getElementById("admin-backlog-title").value = item ? item.title : "";
+  document.getElementById("admin-backlog-category").value = item ? item.category : "bug";
+  document.getElementById("admin-backlog-status").value = item ? item.status : "open";
+  document.getElementById("admin-backlog-priority").value = item ? item.priority : "medium";
+  document.getElementById("admin-backlog-blocked-by").value = item ? (item.blockedBy || "") : "";
+  document.getElementById("admin-backlog-notes").value = item ? (item.notes || "") : "";
+  document.getElementById("admin-backlog-branch").value = item ? (item.branch || "") : "";
+  var blockedRow = document.getElementById("admin-backlog-blocked-row");
+  if (blockedRow) blockedRow.style.display = (item && item.status === "blocked") ? "" : "none";
+  form.style.display = "";
+  document.getElementById("admin-backlog-title").focus();
+}
+
+function backlogToggleDone(id) {
+  var item = _backlogItems.find(function(i) { return i.id === id; });
+  if (!item) return;
+  item.status = item.status === "done" ? "open" : "done";
+  saveBacklog(_backlogItems).then(function() { renderBacklog(_backlogItems); });
+}
+
+function backlogDelete(id) {
+  if (!confirm("Delete this backlog item?")) return;
+  _backlogItems = _backlogItems.filter(function(i) { return i.id !== id; });
+  saveBacklog(_backlogItems).then(function() { renderBacklog(_backlogItems); });
+}
+
+async function resetAllScores() {
+  if (!db) { showToast("No database connection."); return; }
+  if (!confirm("Delete ALL score records for ALL players? This cannot be undone.\n\nUse this only to reset tester data after a puzzle reorder.")) return;
+  showToast("Deleting scores…");
+  try {
+    var snap = await db.collection("scores").get();
+    if (snap.empty) { showToast("No score records found."); return; }
+    // Firestore batch limit is 500 writes
+    var total = 0;
+    var batch = db.batch();
+    var batchCount = 0;
+    for (var i = 0; i < snap.docs.length; i++) {
+      batch.delete(snap.docs[i].ref);
+      batchCount++;
+      total++;
+      if (batchCount === 499) {
+        await batch.commit();
+        batch = db.batch();
+        batchCount = 0;
+      }
+    }
+    if (batchCount > 0) await batch.commit();
+    showToast("Deleted " + total + " score records.");
+  } catch(e) {
+    showToast("Error: " + e.message);
+  }
+}
+
+function initBacklogAdmin() {
+  var addBtn      = document.getElementById("admin-backlog-add-btn");
+  var form        = document.getElementById("admin-backlog-form");
+  var saveBtn     = document.getElementById("admin-backlog-save-btn");
+  var cancelBtn   = document.getElementById("admin-backlog-cancel-btn");
+  var statusFilter = document.getElementById("admin-backlog-filter-status");
+  var catFilter   = document.getElementById("admin-backlog-filter-cat");
+  var statusSelect = document.getElementById("admin-backlog-status");
+  var blockedRow  = document.getElementById("admin-backlog-blocked-row");
+
+  if (addBtn) addBtn.addEventListener("click", function() { backlogOpenEdit(null); });
+  if (cancelBtn) cancelBtn.addEventListener("click", function() { if (form) form.style.display = "none"; });
+  if (statusSelect) statusSelect.addEventListener("change", function() {
+    if (blockedRow) blockedRow.style.display = this.value === "blocked" ? "" : "none";
+  });
+  if (statusFilter) statusFilter.addEventListener("change", function() {
+    _backlogFilterStatus = this.value;
+    renderBacklog(_backlogItems);
+  });
+  if (catFilter) catFilter.addEventListener("change", function() {
+    _backlogFilterCat = this.value;
+    renderBacklog(_backlogItems);
+  });
+  if (saveBtn) saveBtn.addEventListener("click", function() {
+    var editingId = document.getElementById("admin-backlog-editing-id").value;
+    var title = (document.getElementById("admin-backlog-title").value || "").trim();
+    if (!title) { showToast("Please enter a title."); return; }
+    var existing = editingId ? _backlogItems.find(function(i) { return i.id === editingId; }) : null;
+    var newItem = {
+      id: editingId || ("BLG-" + String(Date.now()).slice(-6)),
+      title: title,
+      category: document.getElementById("admin-backlog-category").value,
+      status: document.getElementById("admin-backlog-status").value,
+      priority: document.getElementById("admin-backlog-priority").value,
+      blockedBy: document.getElementById("admin-backlog-blocked-by").value.trim(),
+      notes: document.getElementById("admin-backlog-notes").value.trim(),
+      branch: document.getElementById("admin-backlog-branch").value.trim(),
+      createdAt: existing ? (existing.createdAt || Date.now()) : Date.now(),
+    };
+    if (editingId) {
+      _backlogItems = _backlogItems.map(function(i) { return i.id === editingId ? newItem : i; });
+    } else {
+      _backlogItems.push(newItem);
+    }
+    saveBacklog(_backlogItems).then(function() {
+      renderBacklog(_backlogItems);
+      if (form) form.style.display = "none";
+      showToast(editingId ? "Item updated." : "Item added.");
+    });
+  });
+
+  // Load from Firestore and render
+  loadBacklog().then(function(items) {
+    _backlogItems = items;
+    renderBacklog(items);
+  });
 }
 
 async function seedDemoData() {
@@ -8152,6 +8428,7 @@ function initBlurReveal() {
 function init() {
   loadUserSettings();
   buildColours();
+  checkPuzzleVersion(); // clear stale day state if puzzle order changed
   puzzle = getTodaysPuzzle();
   loadState();
   loadTickets();
