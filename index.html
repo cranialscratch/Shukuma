@@ -823,26 +823,28 @@
           </select>
           <button class="admin-btn" id="admin-backlog-add-btn" style="margin-left:auto;white-space:nowrap">+ Add Item</button>
         </div>
-        <div id="admin-backlog-form" style="display:none;margin-top:12px;padding:12px;background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:8px;">
+        <div id="admin-backlog-form" style="display:none">
           <input type="hidden" id="admin-backlog-editing-id" value="" />
           <div class="admin-row">
-            <label style="min-width:72px;font-size:0.85rem">Title</label>
-            <input type="text" id="admin-backlog-title" style="flex:1;padding:6px 8px;border:1.5px solid #ddd;border-radius:6px;font-size:0.9rem;font-family:inherit" />
+            <label>Title</label>
+            <input type="text" id="admin-backlog-title" placeholder="Item title" />
           </div>
-          <div class="admin-row" style="flex-wrap:wrap;gap:8px">
-            <label style="min-width:72px;font-size:0.85rem">Type</label>
+          <div class="admin-row">
+            <label>Type</label>
             <select id="admin-backlog-category" class="admin-backlog-select">
               <option value="bug">Bug</option>
               <option value="improvement">Improvement</option>
               <option value="feature">Feature</option>
             </select>
-            <label style="min-width:52px;font-size:0.85rem;margin-left:8px">Priority</label>
+            <label style="margin-left:8px">Priority</label>
             <select id="admin-backlog-priority" class="admin-backlog-select">
               <option value="high">High</option>
               <option value="medium">Medium</option>
               <option value="low">Low</option>
             </select>
-            <label style="min-width:52px;font-size:0.85rem;margin-left:8px">Status</label>
+          </div>
+          <div class="admin-row">
+            <label>Status</label>
             <select id="admin-backlog-status" class="admin-backlog-select">
               <option value="open">Open</option>
               <option value="in-progress">In Progress</option>
@@ -851,18 +853,18 @@
             </select>
           </div>
           <div class="admin-row" id="admin-backlog-blocked-row" style="display:none">
-            <label style="min-width:72px;font-size:0.85rem">Blocked by</label>
-            <input type="text" id="admin-backlog-blocked-by" style="flex:1;padding:6px 8px;border:1.5px solid #ddd;border-radius:6px;font-size:0.85rem;font-family:inherit" placeholder="e.g. push notification system" />
+            <label>Blocked by</label>
+            <input type="text" id="admin-backlog-blocked-by" placeholder="e.g. push notification system" />
           </div>
           <div class="admin-row">
-            <label style="min-width:72px;font-size:0.85rem">Notes</label>
-            <textarea id="admin-backlog-notes" rows="2" style="flex:1;padding:6px 8px;border:1.5px solid #ddd;border-radius:6px;font-size:0.85rem;font-family:inherit;resize:vertical"></textarea>
+            <label>Notes</label>
+            <textarea id="admin-backlog-notes" rows="5" placeholder="Context, observations, acceptance criteria…"></textarea>
           </div>
           <div class="admin-row">
-            <label style="min-width:72px;font-size:0.85rem">Branch</label>
-            <input type="text" id="admin-backlog-branch" style="flex:1;padding:6px 8px;border:1.5px solid #ddd;border-radius:6px;font-size:0.85rem;font-family:inherit" placeholder="e.g. fix/ticket-icon" />
+            <label>Branch</label>
+            <input type="text" id="admin-backlog-branch" placeholder="e.g. fix/ticket-icon" />
           </div>
-          <div class="admin-actions" style="margin-top:8px">
+          <div class="admin-actions">
             <button class="admin-btn" id="admin-backlog-save-btn">Save</button>
             <button class="admin-btn admin-btn-secondary" id="admin-backlog-cancel-btn">Cancel</button>
           </div>
@@ -896,6 +898,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
-  <script src="game.js?v=2.0.28"></script>
+  <script src="game.js?v=2.0.29"></script>
 </body>
 </html>

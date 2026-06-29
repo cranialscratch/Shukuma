@@ -3822,11 +3822,24 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.28";
+const VERSION = "2.0.29";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.29",
+    date: "2026-06-29",
+    title: "Admin UX — Full-Page Tabs + Backlog Form Fix",
+    changes: [
+      "Admin sections now show one at a time as full-page tabs (nav pills switch between them) — no more collapsing accordion",
+      "Admin content area scrolls independently so the nav bar stays fixed at top",
+      "Backlog edit form enlarged: taller notes textarea (5 rows), larger inputs, full-width layout",
+      "Fixed: backlog save errors now surface as a toast instead of failing silently",
+      "Fixed: all backlog mutations (save, toggle-done, delete) have error handling",
+      "Added BLG-029: Hint sequence improvement (rotate through letters, not always first)",
+    ],
+  },
   {
     version: "2.0.28",
     date: "2026-06-29",
@@ -7778,6 +7791,7 @@ var INITIAL_BACKLOG_ITEMS = [
   { id:"BLG-026", title:"X close icon placed correctly at right of header bar", category:"bug", status:"in-progress", priority:"high", blockedBy:"", notes:"Added explicit grid-column placement: title in column 2 (1fr), button in column 3 (44px right). Was auto-placed into wrong columns.", branch:"fix/panel-headers" },
   { id:"BLG-027", title:"Scores reduced view closes when tapping above score card", category:"improvement", status:"in-progress", priority:"medium", blockedBy:"", notes:"pointerdown listener on document; closes sheet when tap y-position is above sheet.getBoundingClientRect().top.", branch:"fix/panel-headers" },
   { id:"BLG-028", title:"Scores reduced view closes on swipe-down of header bar", category:"improvement", status:"in-progress", priority:"medium", blockedBy:"", notes:"Extended initBackPanelDrag touchend: swipe down from reduced view (not full-screen) calls closeSheet().", branch:"fix/panel-headers" },
+  { id:"BLG-029", title:"Hint sequence — rotate letter hints in order, not always first letter", category:"improvement", status:"open", priority:"medium", blockedBy:"", notes:"Each time the player asks for a hint, show the next unselected letter in sequence (1st letter first, then 2nd, etc.). Currently the hint always reveals the first letter regardless of how many times it has been tapped.", branch:"" },
 ];
 
 var ADMIN_SECTIONS = [
@@ -7798,39 +7812,14 @@ function expandAdminSection(id) {
   var panel   = document.getElementById("admin-panel");
   if (!content) return;
   content.querySelectorAll(".admin-section").forEach(function(sec) {
-    if (sec.dataset.section === id) {
-      sec.classList.remove("admin-collapsed");
-    } else {
-      sec.classList.add("admin-collapsed");
-    }
+    sec.style.display = (sec.dataset.section === id) ? "" : "none";
   });
   if (nav) {
     nav.querySelectorAll(".admin-nav-btn").forEach(function(btn) {
       btn.classList.toggle("active", btn.dataset.section === id);
     });
   }
-  // Scroll panel so the expanded section is just below the sticky header
-  var target = content.querySelector(".admin-section[data-section='" + id + "']");
-  if (target && panel) {
-    setTimeout(function() {
-      var headerH = (document.getElementById("admin-header") || {}).offsetHeight || 0;
-      panel.scrollTo({ top: target.offsetTop - headerH - 8, behavior: "smooth" });
-    }, 40);
-  }
-}
-
-function toggleAdminSection(sec) {
-  var nav = document.getElementById("admin-nav");
-  if (sec.classList.contains("admin-collapsed")) {
-    expandAdminSection(sec.dataset.section);
-  } else {
-    sec.classList.add("admin-collapsed");
-    if (nav) {
-      nav.querySelectorAll(".admin-nav-btn").forEach(function(btn) {
-        if (btn.dataset.section === sec.dataset.section) btn.classList.remove("active");
-      });
-    }
-  }
+  if (panel) panel.scrollTo({ top: 0, behavior: "instant" });
 }
 
 function initAdminNav() {
@@ -7838,26 +7827,12 @@ function initAdminNav() {
   var nav     = document.getElementById("admin-nav");
   if (!content || !nav) return;
 
-  // Assign data-section, wrap body content, wire h3 toggle
+  // Assign data-section and hide all sections initially
   content.querySelectorAll(".admin-section").forEach(function(sec, i) {
     var def = ADMIN_SECTIONS[i];
     if (!def) return;
     sec.dataset.section = def.id;
-
-    var h3 = sec.querySelector(":scope > h3");
-    if (!h3) return;
-
-    var body = document.createElement("div");
-    body.className = "admin-section-body";
-    var node = h3.nextSibling;
-    while (node) {
-      var next = node.nextSibling;
-      body.appendChild(node);
-      node = next;
-    }
-    sec.appendChild(body);
-    h3.addEventListener("click", function() { toggleAdminSection(sec); });
-    sec.classList.add("admin-collapsed");
+    sec.style.display = "none";
   });
 
   // Build nav pills
@@ -8248,13 +8223,15 @@ function backlogToggleDone(id) {
   var item = _backlogItems.find(function(i) { return i.id === id; });
   if (!item) return;
   item.status = item.status === "done" ? "open" : "done";
-  saveBacklog(_backlogItems).then(function() { renderBacklog(_backlogItems); });
+  saveBacklog(_backlogItems).then(function() { renderBacklog(_backlogItems); })
+    .catch(function(err) { showToast("Save failed: " + (err && err.message ? err.message : String(err))); });
 }
 
 function backlogDelete(id) {
   if (!confirm("Delete this backlog item?")) return;
   _backlogItems = _backlogItems.filter(function(i) { return i.id !== id; });
-  saveBacklog(_backlogItems).then(function() { renderBacklog(_backlogItems); });
+  saveBacklog(_backlogItems).then(function() { renderBacklog(_backlogItems); })
+    .catch(function(err) { showToast("Delete failed: " + (err && err.message ? err.message : String(err))); });
 }
 
 async function resetAllScores() {
@@ -8333,6 +8310,8 @@ function initBacklogAdmin() {
       renderBacklog(_backlogItems);
       if (form) form.style.display = "none";
       showToast(editingId ? "Item updated." : "Item added.");
+    }).catch(function(err) {
+      showToast("Save failed: " + (err && err.message ? err.message : String(err)));
     });
   });
 

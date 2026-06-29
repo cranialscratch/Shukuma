@@ -2475,8 +2475,7 @@ html, body {
   inset: 0;
   z-index: 2000;
   background: #f2f2f7;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -2486,9 +2485,7 @@ html, body {
   padding-top: env(safe-area-inset-top, 0px);
   display: flex;
   flex-direction: column;
-  position: sticky;
-  top: 0;
-  z-index: 1;
+  flex-shrink: 0;
 }
 #admin-header-top {
   display: flex;
@@ -2536,10 +2533,11 @@ html, body {
   color: #fff;
 }
 #admin-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
   padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
 }
 /* ── Preset theme pills ──────────────────────────────────────────────── */
@@ -2678,27 +2676,8 @@ html, body {
   text-transform: uppercase;
   letter-spacing: 0.7px;
   color: rgba(0,0,0,0.4);
-  margin: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  cursor: pointer;
-  padding-bottom: 12px;
-  user-select: none;
+  margin: 0 0 14px;
 }
-.admin-section h3::after {
-  content: "▾";
-  font-size: 0.85rem;
-  transition: transform 0.2s;
-}
-.admin-collapsed h3::after { transform: rotate(-90deg); }
-.admin-collapsed h3 { padding-bottom: 0; }
-.admin-section-body {
-  overflow: hidden;
-  max-height: 3000px;
-  transition: max-height 0.3s ease;
-}
-.admin-collapsed .admin-section-body { max-height: 0; }
 .admin-row {
   display: flex;
   align-items: center;
@@ -2788,6 +2767,53 @@ html, body {
 }
 .audit-flag-short { background: #fee2e2; color: #b91c1c; }
 .audit-flag-longer { background: #fef3c7; color: #92400e; }
+
+/* ── Backlog form (full-width, larger inputs) ───────────────────────────── */
+#admin-backlog-form {
+  background: #fff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 16px;
+  margin-top: 14px;
+}
+#admin-backlog-form .admin-row {
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: unset;
+  padding: 10px 0;
+}
+#admin-backlog-form label {
+  min-width: 68px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #444;
+}
+#admin-backlog-form input[type="text"],
+#admin-backlog-form textarea,
+#admin-backlog-form select {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1.5px solid #ddd;
+  border-radius: 7px;
+  font-size: 0.93rem;
+  font-family: inherit;
+  min-width: 0;
+}
+#admin-backlog-form textarea {
+  min-height: 100px;
+  resize: vertical;
+  line-height: 1.45;
+}
+#admin-backlog-form .admin-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+#admin-backlog-form .admin-btn {
+  flex: 1;
+  padding: 12px;
+  font-size: 0.95rem;
+}
 
 /* ── Development Backlog ────────────────────────────────────────────────── */
 .admin-backlog-toolbar {
