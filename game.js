@@ -3822,11 +3822,22 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.30";
+const VERSION = "2.0.31";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.31",
+    date: "2026-06-29",
+    title: "Fix: Tester notice now delivered via user profile (not config doc)",
+    changes: [
+      "Root cause: config/testerReset was not readable by non-admin users due to Firestore security rules",
+      "Fix: resetPastScores() now writes pendingNotice directly onto each user's own profile document — users always have read access to their own doc",
+      "checkTesterReset() removed; notice is instead detected inside loadUserData() where the profile is already fetched",
+      "Acknowledging the notice clears pendingNotice from Firestore (no localStorage key needed)",
+    ],
+  },
   {
     version: "2.0.30",
     date: "2026-06-29",
@@ -5601,26 +5612,13 @@ function handleAuthChange(user) {
   updateAdminAccess();
   if (user) {
     loadUserData(user);
-    checkTesterReset();
   } else {
     userProfile = null;
     renderStatsPanel();
   }
 }
 
-function checkTesterReset() {
-  if (!db) return;
-  db.collection("config").doc("testerReset").get().then(function(snap) {
-    if (!snap.exists) return;
-    var data = snap.data();
-    if (!data.active) return;
-    var ackKey = "shukuma-tester-reset-ack";
-    if (localStorage.getItem(ackKey) === String(data.setAt)) return;
-    showTesterResetModal(data.message, data.ticketAward || 10, ackKey, data.setAt);
-  }).catch(function() {});
-}
-
-function showTesterResetModal(message, ticketAward, ackKey, setAt) {
+function showTesterResetModal(message, ticketAward, uid) {
   var modal = document.getElementById("tester-reset-modal");
   if (!modal) return;
   var msgEl = document.getElementById("tester-reset-message");
@@ -5632,12 +5630,12 @@ function showTesterResetModal(message, ticketAward, ackKey, setAt) {
       ticketCount += ticketAward;
       saveTickets();
       updateTicketDisplay();
-      if (db && currentUser) {
-        db.collection("users").doc(currentUser.uid)
-          .set({ tickets: ticketCount }, { merge: true })
-          .catch(function() {});
+      if (db && uid) {
+        db.collection("users").doc(uid).update({
+          pendingNotice: firebase.firestore.FieldValue.delete(),
+          tickets: ticketCount,
+        }).catch(function() {});
       }
-      localStorage.setItem(ackKey, String(setAt));
       modal.hidden = true;
       showToast("+" + ticketAward + " tickets added. Thanks for your patience!");
     };
@@ -5651,32 +5649,46 @@ function resetPastScores() {
   var todayStr = today.getFullYear() + "-" +
     String(today.getMonth() + 1).padStart(2, "0") + "-" +
     String(today.getDate()).padStart(2, "0");
-  if (!confirm("Delete all score records dated before " + todayStr + " for all users, and send the tester notice? This cannot be undone.")) return;
-  showToast("Resetting past scores…");
-  db.collection("scores").where("dateStr", "<", todayStr).get()
+  if (!confirm("Delete all score records dated before " + todayStr + " for all users and queue a +10 ticket notice for each tester? This cannot be undone.")) return;
+  showToast("Working…");
+
+  var notice = {
+    message: "Howdy Tester! - Sorry, we’ve had to make some changes which means you’ve lost previous scores. Please try again and here is a bonus for your troubles",
+    ticketAward: 10,
+    setAt: Date.now(),
+  };
+
+  // Delete past scores
+  var deleteOld = db.collection("scores").where("dateStr", "<", todayStr).get()
     .then(function(snap) {
-      var docs = snap.docs;
-      if (!docs.length) return Promise.resolve();
-      var BATCH_SIZE = 499;
+      if (snap.empty) return;
       var batches = [];
-      for (var i = 0; i < docs.length; i += BATCH_SIZE) {
+      for (var i = 0; i < snap.docs.length; i += 499) {
         var batch = db.batch();
-        docs.slice(i, i + BATCH_SIZE).forEach(function(doc) { batch.delete(doc.ref); });
+        snap.docs.slice(i, i + 499).forEach(function(d) { batch.delete(d.ref); });
         batches.push(batch.commit());
       }
       return Promise.all(batches);
-    })
+    });
+
+  // Write pendingNotice onto every user document (users always have access to their own doc)
+  var notifyUsers = db.collection("users").get()
+    .then(function(snap) {
+      if (snap.empty) return;
+      var batches = [];
+      for (var i = 0; i < snap.docs.length; i += 499) {
+        var batch = db.batch();
+        snap.docs.slice(i, i + 499).forEach(function(d) {
+          batch.update(d.ref, { pendingNotice: notice });
+        });
+        batches.push(batch.commit());
+      }
+      return Promise.all(batches);
+    });
+
+  Promise.all([deleteOld, notifyUsers])
     .then(function() {
-      var setAt = Date.now();
-      return db.collection("config").doc("testerReset").set({
-        active: true,
-        ticketAward: 10,
-        setAt: setAt,
-        message: "Howdy Tester! - Sorry, we’ve had to make some changes which means you’ve lost previous scores. Please try again and here is a bonus for your troubles",
-      });
-    })
-    .then(function() {
-      showToast("Past scores cleared. Tester notice is now active for all users.");
+      showToast("Done — past scores cleared and tester notice queued for all users.");
     })
     .catch(function(err) {
       showToast("Reset failed: " + (err && err.message ? err.message : String(err)));
@@ -5748,6 +5760,10 @@ async function loadUserData(user) {
     const snap = await db.collection("users").doc(user.uid).get();
     if (snap.exists) {
       userProfile = snap.data();
+      if (userProfile.pendingNotice) {
+        var n = userProfile.pendingNotice;
+        showTesterResetModal(n.message, n.ticketAward || 10, user.uid);
+      }
     } else {
       const d = {
         uid: user.uid, username: user.displayName || user.email.split("@")[0], email: user.email || "",
