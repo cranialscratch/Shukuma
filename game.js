@@ -3822,7 +3822,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.34";
+const VERSION = "2.0.35";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
@@ -5636,12 +5636,13 @@ function showTesterResetModal(message, ticketAward, setAt) {
           tickets: ticketCount,
         }).catch(function() {});
       }
-      // Mark this notice as acknowledged and reload so the board is fresh
-      try { localStorage.setItem("testerReset_ackAt", String(setAt)); } catch(e) {}
+      // Mark fully acknowledged and clean up the two-pass flag
+      try {
+        localStorage.setItem("testerReset_ackAt", String(setAt));
+        localStorage.removeItem("testerReset_clearedAt");
+      } catch(e) {}
       modal.hidden = true;
       showToast("+" + ticketAward + " tickets added. Thanks for your patience!");
-      // Reload after a brief delay so the player sees the clean board
-      setTimeout(function() { window.location.reload(); }, 1500);
     };
   }
   modal.hidden = false;
@@ -5664,7 +5665,9 @@ function clearLocalGameState() {
 }
 
 // Check config/testerReset and show notice if not yet acknowledged.
-// Also clears local game state so players see fresh puzzles immediately.
+// Two-pass flow to ensure the board renders fresh before the modal appears:
+//   Pass 1 — detect unacknowledged reset: wipe localStorage, set clearedAt, reload
+//   Pass 2 — after reload with empty localStorage: board renders fresh, show modal
 async function checkTesterReset() {
   if (!db) return;
   try {
@@ -5673,15 +5676,27 @@ async function checkTesterReset() {
     var data = snap.data();
     if (!data || !data.setAt) return;
     var setAt = data.setAt;
+
+    // Already fully acknowledged — nothing to do
     var ackAt = localStorage.getItem("testerReset_ackAt");
-    if (ackAt && Number(ackAt) >= setAt) return; // already acknowledged
-    // Wipe local state before showing modal so board is already fresh
+    if (ackAt && Number(ackAt) >= setAt) return;
+
+    // Pass 2: local state was already cleared on a previous load — show modal on fresh board
+    var clearedAt = localStorage.getItem("testerReset_clearedAt");
+    if (clearedAt && Number(clearedAt) >= setAt) {
+      showTesterResetModal(
+        data.message || "Howdy Tester! — Sorry, we've had to reset some data. Here's a bonus for your trouble.",
+        data.ticketAward || 10,
+        setAt
+      );
+      return;
+    }
+
+    // Pass 1: first detection — wipe all local game state then reload so the
+    // board renders from scratch before we show the modal
     clearLocalGameState();
-    showTesterResetModal(
-      data.message || "Howdy Tester! — Sorry, we've had to reset some data. Here's a bonus for your trouble.",
-      data.ticketAward || 10,
-      setAt
-    );
+    localStorage.setItem("testerReset_clearedAt", String(setAt));
+    window.location.reload();
   } catch(e) {
     // silently ignore — non-fatal
   }
