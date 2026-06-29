@@ -3822,11 +3822,23 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.41";
+const VERSION = "2.0.42";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.42",
+    date: "2026-06-29",
+    title: "Polish: Toast over word area, floats inside hex, min-4 as float",
+    changes: [
+      "Toasts now appear over the word text area (topbar) so the game date and iOS status bar remain visible",
+      "Wrong/neutral float messages now display inside a hexagon tile (red for wrong, cream for neutral) at 18px — no more bare floating text",
+      'Already Found float: font size raised to 18px to match minimum',
+      "Minimum 4-letter rejection now shows as a hex float (\"Need 4+\") instead of a top-screen toast",
+      "Float level and cheer labels raised from 0.8/0.85rem to 17px minimum",
+    ],
+  },
   {
     version: "2.0.41",
     date: "2026-06-29",
@@ -4313,13 +4325,9 @@ const CHANGELOG = [
 // ─── Float animation messages ─────────────────────────────────────────────────
 const FLOAT_MSGS = {
   short: [
-    "Keep Trying!", "Almost there…", "Build it up!", "Keep going!",
-    "Add more letters!", "You can do it!", "Don't stop now!",
+    "Keep Going!", "Build it up!", "Add more!",
   ],
-  wrong: [
-    "Try Again!", "Not a word!", "Keep hunting!", "Almost!",
-    "Give it another go!", "So close!", "Not this time!",
-  ],
+  wrong: ["Try Again!", "Not a Word!", "Keep Going!", "So Close!", "Almost!", "Nope!"],
   valid: {
     "Below Average": ["Nice start!", "Good try!", "Getting there!", "Keep it up!"],
     "Average":       ["Solid!", "Good word!", "Nice one!", "Well done!"],
@@ -5043,7 +5051,7 @@ async function onPointerUp(e) {
     lastTileEntered = null;
     pointerDownTile = null;
     if (selectedPath.length === 0) return;
-    if (selectedPath.length < 4) { showToast("Minimum 4 letters"); flashInvalid(); return; }
+    if (selectedPath.length < 4) { flashInvalid("Need 4+"); return; }
     if (!targetWordFound) attemptCount++;
     var validWord = validateWord(selectedPath);
     if (validWord) {
@@ -5218,8 +5226,7 @@ function lockValidWord(word) {
   }, 1800);
 }
 
-function flashInvalid() {
-  var pathLen = selectedPath.length;
+function flashInvalid(customCheer) {
   selectedPath.forEach(id => { tiles[id].state = "invalid"; });
   renderAllTiles();
   updateAnswerArea();
@@ -5227,9 +5234,9 @@ function flashInvalid() {
   var resetBtn = document.getElementById("reset-btn");
   if (resetBtn) resetBtn.classList.add("is-throbbing");
 
-  var msgs = pathLen < 3 ? FLOAT_MSGS.short : FLOAT_MSGS.wrong;
-  var cheer = msgs[Math.floor(Math.random() * msgs.length)];
-  showFloatAnim({ type: pathLen < 3 ? "neutral" : "wrong", cheer: cheer });
+  var wrongs = FLOAT_MSGS.wrong;
+  var cheer = customCheer || wrongs[Math.floor(Math.random() * wrongs.length)];
+  showFloatAnim({ type: "wrong", cheer: cheer });
 
   setTimeout(function() {
     if (resetBtn) resetBtn.classList.remove("is-throbbing");
@@ -6903,6 +6910,12 @@ function showToast(msg) {
     document.body.appendChild(toast);
   }
   toast.textContent = msg;
+  // Position over the word text area (game-topbar), keeping date/status bar visible
+  var topbar = document.getElementById("game-topbar");
+  if (topbar) {
+    var tr = topbar.getBoundingClientRect();
+    toast.style.top = Math.round(tr.top + tr.height / 2) + "px";
+  }
   if (toast._timer) { clearTimeout(toast._timer); toast._timer = null; }
   toast.classList.add("visible");
   toast._timer = setTimeout(function() { toast.classList.remove("visible"); toast._timer = null; }, 5000);
@@ -7143,7 +7156,41 @@ function showFloatAnim(opts) {
       '<span class="float-level">' + escHtml(opts.level || "") + '</span>' +
       '<span class="float-cheer">' + escHtml(opts.cheer || "") + '</span>';
   } else {
-    inner.innerHTML = '<span class="float-cheer">' + escHtml(opts.cheer || "") + '</span>';
+    // wrong / neutral: hex with text inside at ≥17px
+    var r3 = 52, cx3 = 60, cy3 = 62;
+    var pts3 = [];
+    for (var i3 = 0; i3 < 6; i3++) {
+      var ang3 = (Math.PI / 180) * (60 * i3 - 30);
+      pts3.push((cx3 + r3 * Math.cos(ang3)).toFixed(1) + "," + (cy3 + r3 * Math.sin(ang3)).toFixed(1));
+    }
+    var isWrong = (opts.type === "wrong");
+    var hexFill   = isWrong ? "var(--tile-invalid,#d9534f)"        : "var(--tile-neutral,#e8dfc8)";
+    var hexStroke = isWrong ? "var(--tile-invalid-stroke,#a02020)" : "var(--tile-neutral-stroke,#c8b098)";
+    var hexText   = isWrong ? "#ffffff"                            : "var(--tile-text,#1a0a00)";
+    var cheer3 = opts.cheer || "";
+    // Split into 1-2 lines so text fits inside the hex at 18px
+    var lines3 = [];
+    if (cheer3.length <= 9) {
+      lines3 = [cheer3];
+    } else {
+      var mid3 = Math.floor(cheer3.length / 2);
+      var sp3 = cheer3.lastIndexOf(" ", mid3);
+      if (sp3 <= 0) sp3 = cheer3.indexOf(" ");
+      lines3 = sp3 > 0 ? [cheer3.substring(0, sp3), cheer3.substring(sp3 + 1)] : [cheer3];
+    }
+    var lineH3 = 22;
+    var startY3 = cy3 - ((lines3.length - 1) * lineH3) / 2;
+    var textEls3 = lines3.map(function(line, li) {
+      return '<text x="' + cx3 + '" y="' + (startY3 + li * lineH3).toFixed(1) + '" font-family="Inter,sans-serif" font-size="18" font-weight="800" text-anchor="middle" dominant-baseline="middle" fill="' + hexText + '">' + escHtml(line) + '</text>';
+    }).join("");
+    inner.innerHTML =
+      '<svg class="float-hex-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 124" width="120" height="124" aria-hidden="true">' +
+        '<defs><filter id="fh-shadow-wr" x="-30%" y="-30%" width="160%" height="160%">' +
+          '<feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="rgba(0,0,0,0.25)"/>' +
+        '</filter></defs>' +
+        '<polygon points="' + pts3.join(" ") + '" fill="' + hexFill + '" stroke="' + hexStroke + '" stroke-width="2.5" filter="url(#fh-shadow-wr)"/>' +
+        textEls3 +
+      '</svg>';
   }
 
   wrapper.appendChild(inner);
@@ -7172,8 +7219,8 @@ function showAlreadyFoundAnim() {
         '<feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="rgba(0,0,0,0.25)"/>' +
       '</filter></defs>' +
       '<polygon points="' + pts.join(" ") + '" fill="var(--tile-neutral,#e8dfc8)" stroke="var(--tile-neutral-stroke,#c8b098)" stroke-width="2.5" filter="url(#fh-shadow-af)"/>' +
-      '<text x="60" y="50" font-family="Inter,sans-serif" font-size="15" font-weight="800" text-anchor="middle" dominant-baseline="middle" fill="var(--tile-text,#1a0a00)">Already</text>' +
-      '<text x="60" y="70" font-family="Inter,sans-serif" font-size="15" font-weight="800" text-anchor="middle" dominant-baseline="middle" fill="var(--tile-text,#1a0a00)">Found</text>' +
+      '<text x="60" y="51" font-family="Inter,sans-serif" font-size="18" font-weight="800" text-anchor="middle" dominant-baseline="middle" fill="var(--tile-text,#1a0a00)">Already</text>' +
+      '<text x="60" y="73" font-family="Inter,sans-serif" font-size="18" font-weight="800" text-anchor="middle" dominant-baseline="middle" fill="var(--tile-text,#1a0a00)">Found</text>' +
     '</svg>';
   wrapper.appendChild(inner);
   container.appendChild(wrapper);

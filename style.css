@@ -583,23 +583,20 @@ html, body {
 }
 
 .float-level {
-  font-size: 0.8rem;
+  font-size: 17px;
   font-weight: 800;
-  color: rgba(255,255,255,0.92);
+  color: rgba(255,255,255,0.95);
   text-transform: uppercase;
-  letter-spacing: 0.13em;
-  text-shadow: 0 1px 6px rgba(0,0,0,0.45);
+  letter-spacing: 0.12em;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.55);
 }
 
 .float-cheer {
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: rgba(255,255,255,0.78);
-  text-shadow: 0 1px 6px rgba(0,0,0,0.4);
+  font-size: 17px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.9);
+  text-shadow: 0 1px 8px rgba(0,0,0,0.5);
 }
-
-.float-type-wrong   .float-cheer { color: #ef4444; }
-.float-type-neutral .float-cheer { color: rgba(0,0,0,0.4); }
 
 /* ── Throb animation ────────────────────────────────────────────────── */
 @keyframes throb {
@@ -652,18 +649,18 @@ html, body {
 }
 #version-tag:hover, #version-tag:focus { color: var(--brand); outline: none; }
 
-/* ── Toast (push-notification style, top of screen) ────────────────── */
+/* ── Toast — positioned over the word text area (game-topbar) by JS ─── */
 #toast {
   position: fixed;
-  top: calc(env(safe-area-inset-top, 20px) + 10px);
+  top: 50%; /* fallback; JS overrides with topbar centre */
   left: 50%;
-  transform: translateX(-50%) translateY(-12px);
-  max-width: min(340px, calc(100vw - 32px));
+  transform: translateX(-50%) translateY(calc(-50% - 12px));
+  max-width: min(320px, calc(100vw - 32px));
   width: max-content;
   background: rgba(28, 28, 32, 0.94);
   color: #fff;
-  padding: 13px 20px;
-  border-radius: 16px;
+  padding: 11px 18px;
+  border-radius: 14px;
   font-size: 1.0625rem;
   font-weight: 500;
   line-height: 1.35;
@@ -680,7 +677,7 @@ html, body {
 }
 #toast.visible {
   opacity: 1;
-  transform: translateX(-50%) translateY(0);
+  transform: translateX(-50%) translateY(-50%);
 }
 
 /* ── Pull-to-refresh ────────────────────────────────────────────────── */
