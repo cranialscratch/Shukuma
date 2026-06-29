@@ -3822,11 +3822,22 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.39";
+const VERSION = "2.0.40";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.40",
+    date: "2026-06-29",
+    title: "Fix: Blank tile works for all words + Motion permission asked once",
+    changes: [
+      "Blank tile API fallback: when WORDS set misses the word (e.g. KISS, VAST), all 26 letter substitutions are now tried via dictionary API — blank tiles now work for any valid English word",
+      "lockValidWord: blank tile now shows its resolved letter (e.g. S in KISS) instead of ★ after a valid word is locked",
+      "Motion/orientation permission (iOS): stored in localStorage so the dialog only appears once ever, not on every visit",
+      "Rules: blank tile now described as 'a tile showing ★ counts as any letter'",
+    ],
+  },
   {
     version: "2.0.39",
     date: "2026-06-29",
@@ -4589,6 +4600,23 @@ function buildAdjacency() {
   return adj;
 }
 
+// Returns all words formed by substituting each blank with a–z (26^blanks total)
+function getBlankCandidates(path) {
+  var base = path.map(function(id) { return tiles[id].letter.toLowerCase(); });
+  var blankPos = [];
+  base.forEach(function(l, i) { if (l === "") blankPos.push(i); });
+  var candidates = [];
+  function gen(bi, arr) {
+    if (bi === blankPos.length) { candidates.push(arr.join("")); return; }
+    for (var c = 97; c <= 122; c++) {
+      arr[blankPos[bi]] = String.fromCharCode(c);
+      gen(bi + 1, arr.slice());
+    }
+  }
+  gen(0, base.slice());
+  return candidates;
+}
+
 // ─── Word validation ──────────────────────────────────────────────────────────
 function validateWord(path) {
   const letters = path.map(id => tiles[id].letter.toLowerCase());
@@ -5011,11 +5039,24 @@ async function onPointerUp(e) {
       lockValidWord(validWord); return;
     }
     var hasBlanks = selectedPath.some(function(id) { return tiles[id].blank; });
-    if (!hasBlanks && selectedPath.length >= 3) {
+    var answerEl = document.getElementById("answer-text");
+    if (hasBlanks && selectedPath.length >= 3) {
+      // Try all blank substitutions via API (WORDS alone misses many common words)
+      isChecking = true;
+      if (answerEl) answerEl.classList.add("checking");
+      var resolved = null;
+      var candidates = getBlankCandidates(selectedPath);
+      for (var ci = 0; ci < candidates.length && !resolved; ci++) {
+        if (OFFENSIVE_WORDS.has(candidates[ci])) continue;
+        try { if (await checkDictionaryAPI(candidates[ci])) resolved = candidates[ci]; } catch (_) {}
+      }
+      isChecking = false;
+      if (answerEl) answerEl.classList.remove("checking");
+      if (resolved) { lockValidWord(resolved); return; }
+    } else if (!hasBlanks && selectedPath.length >= 3) {
       var word = selectedPath.map(function(id) { return tiles[id].letter.toLowerCase(); }).join("");
       if (OFFENSIVE_WORDS.has(word)) { flashInvalid(); return; }
       isChecking = true;
-      var answerEl = document.getElementById("answer-text");
       if (answerEl) answerEl.classList.add("checking");
       var found = false;
       try { found = await checkDictionaryAPI(word); } catch (_) {}
@@ -5090,7 +5131,10 @@ function lockValidWord(word) {
   var isInOne = isFirstAttempt && targetLen > 0 && selectedPath.length >= targetLen && !browsedDateStr;
 
   validAttemptCount++;
-  selectedPath.forEach(id => { tiles[id].state = "valid"; });
+  selectedPath.forEach(function(id, i) {
+    tiles[id].state = "valid";
+    if (tiles[id].blank) tiles[id]._resolvedLetter = word[i] || "";
+  });
   renderAllTiles();
   const len = selectedPath.length;
   foundWords.push(word.toUpperCase());
@@ -5189,17 +5233,29 @@ async function submitTappedWord() {
     lockValidWord(validWord); return;
   }
   var hasBlanks = selectedPath.some(function(id) { return tiles[id].blank; });
-  if (!hasBlanks && selectedPath.length >= 3) {
-    var word = selectedPath.map(function(id) { return tiles[id].letter.toLowerCase(); }).join("");
-    if (OFFENSIVE_WORDS.has(word)) { flashInvalid(); return; }
+  var answerEl2 = document.getElementById("answer-text");
+  if (hasBlanks && selectedPath.length >= 3) {
     isChecking = true;
-    var answerEl = document.getElementById("answer-text");
-    if (answerEl) answerEl.classList.add("checking");
-    var found = false;
-    try { found = await checkDictionaryAPI(word); } catch (_) {}
+    if (answerEl2) answerEl2.classList.add("checking");
+    var resolved2 = null;
+    var candidates2 = getBlankCandidates(selectedPath);
+    for (var ci2 = 0; ci2 < candidates2.length && !resolved2; ci2++) {
+      if (OFFENSIVE_WORDS.has(candidates2[ci2])) continue;
+      try { if (await checkDictionaryAPI(candidates2[ci2])) resolved2 = candidates2[ci2]; } catch (_) {}
+    }
     isChecking = false;
-    if (answerEl) answerEl.classList.remove("checking");
-    if (found) { lockValidWord(word); return; }
+    if (answerEl2) answerEl2.classList.remove("checking");
+    if (resolved2) { lockValidWord(resolved2); return; }
+  } else if (!hasBlanks && selectedPath.length >= 3) {
+    var word2 = selectedPath.map(function(id) { return tiles[id].letter.toLowerCase(); }).join("");
+    if (OFFENSIVE_WORDS.has(word2)) { flashInvalid(); return; }
+    isChecking = true;
+    if (answerEl2) answerEl2.classList.add("checking");
+    var found2 = false;
+    try { found2 = await checkDictionaryAPI(word2); } catch (_) {}
+    isChecking = false;
+    if (answerEl2) answerEl2.classList.remove("checking");
+    if (found2) { lockValidWord(word2); return; }
   }
   flashInvalid();
 }
@@ -7297,13 +7353,23 @@ function initShakeDetect() {
 
   if (typeof DeviceMotionEvent !== "undefined") {
     if (typeof DeviceMotionEvent.requestPermission === "function") {
-      // iOS 13+ — request on the first user tap to avoid a cold popup
-      document.addEventListener("touchend", function requestOnce() {
+      var motionPerm = localStorage.getItem("deviceMotionPermission");
+      if (motionPerm === "granted") {
+        // Previously granted — re-request silently (iOS won't show dialog again)
         DeviceMotionEvent.requestPermission()
           .then(function(r) { if (r === "granted") window.addEventListener("devicemotion", onMotion, { passive: true }); })
           .catch(function() {});
-        document.removeEventListener("touchend", requestOnce);
-      }, { once: true });
+      } else if (motionPerm !== "denied") {
+        // Not yet asked — wait for first user tap, then request once
+        document.addEventListener("touchend", function requestOnce() {
+          DeviceMotionEvent.requestPermission()
+            .then(function(r) {
+              localStorage.setItem("deviceMotionPermission", r);
+              if (r === "granted") window.addEventListener("devicemotion", onMotion, { passive: true });
+            })
+            .catch(function() {});
+        }, { once: true });
+      }
     } else {
       window.addEventListener("devicemotion", onMotion, { passive: true });
     }
