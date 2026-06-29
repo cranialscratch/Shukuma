@@ -472,8 +472,11 @@
   <!-- Admin Panel -->
   <div id="admin-panel" hidden>
     <div id="admin-header">
-      <h2>Theme Admin</h2>
-      <button id="admin-close" aria-label="Close admin">✕</button>
+      <div id="admin-header-top">
+        <h2>Admin</h2>
+        <button id="admin-close" aria-label="Close admin">✕</button>
+      </div>
+      <nav id="admin-nav" aria-label="Admin sections"></nav>
     </div>
     <div id="admin-content">
 
@@ -501,6 +504,7 @@
 
       <!-- ── Colour Palette: side-by-side Light | Dark ────────────── -->
       <div class="admin-section">
+        <h3>Colour Palette</h3>
         <div class="palette-header">
           <span></span>
           <span class="palette-mode-label">☀ Light</span>
@@ -892,6 +896,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
-  <script src="game.js?v=2.0.27"></script>
+  <script src="game.js?v=2.0.28"></script>
 </body>
 </html>

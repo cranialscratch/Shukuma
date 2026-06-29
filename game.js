@@ -3822,11 +3822,22 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.27";
+const VERSION = "2.0.28";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.28",
+    date: "2026-06-29",
+    title: "Admin Navigation Redesign — Sticky Nav Pills + Collapsible Sections",
+    changes: [
+      "Admin panel now has a sticky nav bar with 9 section pills (Themes, Palette, Typography, Saved, Tickets, Messages, Data, Audit, Backlog)",
+      "Each section collapses to a compact header; tapping a nav pill or section heading expands it",
+      "Opens to Backlog by default for quick access to tracked tasks",
+      "Colour Palette section now has a heading to match all other sections",
+    ],
+  },
   {
     version: "2.0.27",
     date: "2026-06-29",
@@ -7769,6 +7780,101 @@ var INITIAL_BACKLOG_ITEMS = [
   { id:"BLG-028", title:"Scores reduced view closes on swipe-down of header bar", category:"improvement", status:"in-progress", priority:"medium", blockedBy:"", notes:"Extended initBackPanelDrag touchend: swipe down from reduced view (not full-screen) calls closeSheet().", branch:"fix/panel-headers" },
 ];
 
+var ADMIN_SECTIONS = [
+  { id: "themes",     label: "Themes"     },
+  { id: "palette",    label: "Palette"    },
+  { id: "typography", label: "Typography" },
+  { id: "saved",      label: "Saved"      },
+  { id: "tickets",    label: "Tickets"    },
+  { id: "messages",   label: "Messages"   },
+  { id: "data",       label: "Data"       },
+  { id: "audit",      label: "Audit"      },
+  { id: "backlog",    label: "Backlog"    },
+];
+
+function expandAdminSection(id) {
+  var nav     = document.getElementById("admin-nav");
+  var content = document.getElementById("admin-content");
+  var panel   = document.getElementById("admin-panel");
+  if (!content) return;
+  content.querySelectorAll(".admin-section").forEach(function(sec) {
+    if (sec.dataset.section === id) {
+      sec.classList.remove("admin-collapsed");
+    } else {
+      sec.classList.add("admin-collapsed");
+    }
+  });
+  if (nav) {
+    nav.querySelectorAll(".admin-nav-btn").forEach(function(btn) {
+      btn.classList.toggle("active", btn.dataset.section === id);
+    });
+  }
+  // Scroll panel so the expanded section is just below the sticky header
+  var target = content.querySelector(".admin-section[data-section='" + id + "']");
+  if (target && panel) {
+    setTimeout(function() {
+      var headerH = (document.getElementById("admin-header") || {}).offsetHeight || 0;
+      panel.scrollTo({ top: target.offsetTop - headerH - 8, behavior: "smooth" });
+    }, 40);
+  }
+}
+
+function toggleAdminSection(sec) {
+  var nav = document.getElementById("admin-nav");
+  if (sec.classList.contains("admin-collapsed")) {
+    expandAdminSection(sec.dataset.section);
+  } else {
+    sec.classList.add("admin-collapsed");
+    if (nav) {
+      nav.querySelectorAll(".admin-nav-btn").forEach(function(btn) {
+        if (btn.dataset.section === sec.dataset.section) btn.classList.remove("active");
+      });
+    }
+  }
+}
+
+function initAdminNav() {
+  var content = document.getElementById("admin-content");
+  var nav     = document.getElementById("admin-nav");
+  if (!content || !nav) return;
+
+  // Assign data-section, wrap body content, wire h3 toggle
+  content.querySelectorAll(".admin-section").forEach(function(sec, i) {
+    var def = ADMIN_SECTIONS[i];
+    if (!def) return;
+    sec.dataset.section = def.id;
+
+    var h3 = sec.querySelector(":scope > h3");
+    if (!h3) return;
+
+    var body = document.createElement("div");
+    body.className = "admin-section-body";
+    var node = h3.nextSibling;
+    while (node) {
+      var next = node.nextSibling;
+      body.appendChild(node);
+      node = next;
+    }
+    sec.appendChild(body);
+    h3.addEventListener("click", function() { toggleAdminSection(sec); });
+    sec.classList.add("admin-collapsed");
+  });
+
+  // Build nav pills
+  nav.innerHTML = "";
+  ADMIN_SECTIONS.forEach(function(def) {
+    var btn = document.createElement("button");
+    btn.className = "admin-nav-btn";
+    btn.dataset.section = def.id;
+    btn.textContent = def.label;
+    btn.addEventListener("click", function() { expandAdminSection(def.id); });
+    nav.appendChild(btn);
+  });
+
+  // Open Backlog by default
+  expandAdminSection("backlog");
+}
+
 function initAdmin() {
   var panel = document.getElementById("admin-panel");
   if (!panel) return;
@@ -8001,6 +8107,9 @@ function initAdmin() {
 
   var resetAllScoresBtn = document.getElementById("admin-reset-all-scores-btn");
   if (resetAllScoresBtn) resetAllScoresBtn.addEventListener("click", resetAllScores);
+
+  // ── Admin Nav (accordion + sticky pills) ───────────────────────────────
+  initAdminNav();
 
   // ── Development Backlog ─────────────────────────────────────────────────
   initBacklogAdmin();
