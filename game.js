@@ -3822,11 +3822,22 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.40";
+const VERSION = "2.0.41";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.41",
+    date: "2026-06-29",
+    title: "Fix: API locale, 4-letter minimum, parallel blank lookups",
+    changes: [
+      "Dictionary API: fixed locale code from 'en_US'/'en_GB' to 'en' — all prior API calls returned 404 due to wrong language code; blank tile validation now actually works",
+      "Minimum word length raised to 4 letters — submitting fewer shows shake animation + 'Minimum 4 letters' notice",
+      "Blank tile candidate checks now run in parallel (all 26 substitutions at once) instead of sequentially — much faster validation",
+      "Word definition lookups also fixed to use 'en' locale",
+    ],
+  },
   {
     version: "2.0.40",
     date: "2026-06-29",
@@ -4650,7 +4661,7 @@ async function checkDictionaryAPI(word) {
   if (apiCache.has(key)) return apiCache.get(key);
   if (OFFENSIVE_WORDS.has(key)) { apiCache.set(key, false); return false; }
   try {
-    var resp = await fetch("https://api.dictionaryapi.dev/api/v2/entries/" + selectedLocale + "/" + key);
+    var resp = await fetch("https://api.dictionaryapi.dev/api/v2/entries/en/" + key);
     if (resp.ok) { apiCache.set(key, true); return true; }
   } catch (_) {}
   apiCache.set(key, false);
@@ -5032,6 +5043,7 @@ async function onPointerUp(e) {
     lastTileEntered = null;
     pointerDownTile = null;
     if (selectedPath.length === 0) return;
+    if (selectedPath.length < 4) { showToast("Minimum 4 letters"); flashInvalid(); return; }
     if (!targetWordFound) attemptCount++;
     var validWord = validateWord(selectedPath);
     if (validWord) {
@@ -5040,20 +5052,19 @@ async function onPointerUp(e) {
     }
     var hasBlanks = selectedPath.some(function(id) { return tiles[id].blank; });
     var answerEl = document.getElementById("answer-text");
-    if (hasBlanks && selectedPath.length >= 3) {
-      // Try all blank substitutions via API (WORDS alone misses many common words)
+    if (hasBlanks) {
+      // Try all blank substitutions via API in parallel
       isChecking = true;
       if (answerEl) answerEl.classList.add("checking");
-      var resolved = null;
-      var candidates = getBlankCandidates(selectedPath);
-      for (var ci = 0; ci < candidates.length && !resolved; ci++) {
-        if (OFFENSIVE_WORDS.has(candidates[ci])) continue;
-        try { if (await checkDictionaryAPI(candidates[ci])) resolved = candidates[ci]; } catch (_) {}
-      }
+      var candidates = getBlankCandidates(selectedPath).filter(function(c) { return !OFFENSIVE_WORDS.has(c); });
+      var results = await Promise.all(candidates.map(function(c) {
+        return checkDictionaryAPI(c).then(function(ok) { return ok ? c : null; }).catch(function() { return null; });
+      }));
+      var resolved = results.find(Boolean) || null;
       isChecking = false;
       if (answerEl) answerEl.classList.remove("checking");
       if (resolved) { lockValidWord(resolved); return; }
-    } else if (!hasBlanks && selectedPath.length >= 3) {
+    } else {
       var word = selectedPath.map(function(id) { return tiles[id].letter.toLowerCase(); }).join("");
       if (OFFENSIVE_WORDS.has(word)) { flashInvalid(); return; }
       isChecking = true;
@@ -5108,7 +5119,7 @@ async function onPointerUp(e) {
 
   selectedPath.push(tileId);
   processWordState();
-  if (selectedPath.length >= 3 && !tapHintShown) {
+  if (selectedPath.length >= 4 && !tapHintShown) {
     tapHintShown = true;
     showToast("Tap the last letter again to check your word");
   }
@@ -5227,6 +5238,7 @@ function flashInvalid() {
 }
 
 async function submitTappedWord() {
+  if (selectedPath.length < 4) { showToast("Minimum 4 letters"); flashInvalid(); return; }
   var validWord = validateWord(selectedPath);
   if (validWord) {
     if (OFFENSIVE_WORDS.has(validWord.toLowerCase())) { flashInvalid(); return; }
@@ -5234,19 +5246,19 @@ async function submitTappedWord() {
   }
   var hasBlanks = selectedPath.some(function(id) { return tiles[id].blank; });
   var answerEl2 = document.getElementById("answer-text");
-  if (hasBlanks && selectedPath.length >= 3) {
+  if (hasBlanks) {
+    // Try all blank substitutions via API in parallel
     isChecking = true;
     if (answerEl2) answerEl2.classList.add("checking");
-    var resolved2 = null;
-    var candidates2 = getBlankCandidates(selectedPath);
-    for (var ci2 = 0; ci2 < candidates2.length && !resolved2; ci2++) {
-      if (OFFENSIVE_WORDS.has(candidates2[ci2])) continue;
-      try { if (await checkDictionaryAPI(candidates2[ci2])) resolved2 = candidates2[ci2]; } catch (_) {}
-    }
+    var candidates2 = getBlankCandidates(selectedPath).filter(function(c) { return !OFFENSIVE_WORDS.has(c); });
+    var results2 = await Promise.all(candidates2.map(function(c) {
+      return checkDictionaryAPI(c).then(function(ok) { return ok ? c : null; }).catch(function() { return null; });
+    }));
+    var resolved2 = results2.find(Boolean) || null;
     isChecking = false;
     if (answerEl2) answerEl2.classList.remove("checking");
     if (resolved2) { lockValidWord(resolved2); return; }
-  } else if (!hasBlanks && selectedPath.length >= 3) {
+  } else {
     var word2 = selectedPath.map(function(id) { return tiles[id].letter.toLowerCase(); }).join("");
     if (OFFENSIVE_WORDS.has(word2)) { flashInvalid(); return; }
     isChecking = true;
@@ -5696,8 +5708,7 @@ async function fetchDefinition(word) {
   var key = word.toLowerCase();
   if (defCache[key] !== undefined) return defCache[key];
   try {
-    var locale = (typeof selectedLocale !== "undefined" ? selectedLocale : "en_GB");
-    var resp = await fetch("https://api.dictionaryapi.dev/api/v2/entries/" + locale + "/" + key);
+    var resp = await fetch("https://api.dictionaryapi.dev/api/v2/entries/en/" + key);
     if (!resp.ok) { defCache[key] = null; return null; }
     var data = await resp.json();
     var meaning = data &&
@@ -6277,8 +6288,7 @@ function toggleWordDefinition(word, rowEl) {
   if (cached) { panel.innerHTML = cached; return; }
 
   var key = word.toLowerCase();
-  var locale = (typeof selectedLocale !== "undefined" ? selectedLocale : "en_GB");
-  fetch("https://api.dictionaryapi.dev/api/v2/entries/" + locale + "/" + encodeURIComponent(key))
+  fetch("https://api.dictionaryapi.dev/api/v2/entries/en/" + encodeURIComponent(key))
     .then(function(r) { return r.json(); })
     .then(function(data) {
       if (!Array.isArray(data) || !data[0]) throw new Error("no data");
