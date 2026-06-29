@@ -765,7 +765,8 @@
           <button class="admin-btn admin-btn-secondary" id="admin-apply-btn">Apply &amp; save theme</button>
           <button class="admin-btn admin-btn-secondary" id="admin-reset-btn">Reset to CSS defaults</button>
           <button class="admin-btn admin-btn-danger" id="admin-clear-storage-btn">Clear all local data</button>
-          <button class="admin-btn admin-btn-danger" id="admin-reset-all-scores-btn">Reset all player scores (testers)</button>
+          <button class="admin-btn admin-btn-danger" id="admin-reset-past-scores-btn">Reset past day scores + send tester notice</button>
+          <button class="admin-btn admin-btn-danger" id="admin-reset-all-scores-btn">Reset ALL player scores (testers)</button>
         </div>
       </div>
 
@@ -875,6 +876,16 @@
     </div>
   </div>
 
+  <!-- Tester Reset Notice -->
+  <div id="tester-reset-modal" hidden role="dialog" aria-modal="true" aria-labelledby="tester-reset-message">
+    <div id="tester-reset-overlay"></div>
+    <div id="tester-reset-card">
+      <div id="tester-reset-icon">👋</div>
+      <p id="tester-reset-message"></p>
+      <button id="tester-reset-btn" class="tester-reset-cta"></button>
+    </div>
+  </div>
+
   <!-- Calendar date picker modal -->
   <div id="calendar-modal" hidden>
     <div id="calendar-overlay"></div>
@@ -898,6 +909,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
-  <script src="game.js?v=2.0.29"></script>
+  <script src="game.js?v=2.0.30"></script>
 </body>
 </html>

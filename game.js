@@ -3822,11 +3822,23 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.29";
+const VERSION = "2.0.30";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.30",
+    date: "2026-06-29",
+    title: "Tester Reset Notice — Past Scores Cleared + Ticket Bonus",
+    changes: [
+      "Admin: 'Reset past day scores' button deletes all Firestore score records dated before today",
+      "After reset, a Firestore flag activates a tester notice for all users on next load",
+      "Modal shows a personalised apology message with a '+10 Tickets' CTA button",
+      "Tapping the button awards 10 tickets, persists to Firestore, and marks the notice as seen",
+      "Notice only shows once per reset event (keyed by timestamp in localStorage)",
+    ],
+  },
   {
     version: "2.0.29",
     date: "2026-06-29",
@@ -5589,10 +5601,86 @@ function handleAuthChange(user) {
   updateAdminAccess();
   if (user) {
     loadUserData(user);
+    checkTesterReset();
   } else {
     userProfile = null;
     renderStatsPanel();
   }
+}
+
+function checkTesterReset() {
+  if (!db) return;
+  db.collection("config").doc("testerReset").get().then(function(snap) {
+    if (!snap.exists) return;
+    var data = snap.data();
+    if (!data.active) return;
+    var ackKey = "shukuma-tester-reset-ack";
+    if (localStorage.getItem(ackKey) === String(data.setAt)) return;
+    showTesterResetModal(data.message, data.ticketAward || 10, ackKey, data.setAt);
+  }).catch(function() {});
+}
+
+function showTesterResetModal(message, ticketAward, ackKey, setAt) {
+  var modal = document.getElementById("tester-reset-modal");
+  if (!modal) return;
+  var msgEl = document.getElementById("tester-reset-message");
+  var btn   = document.getElementById("tester-reset-btn");
+  if (msgEl) msgEl.textContent = message;
+  if (btn) {
+    btn.textContent = "Understood  +" + ticketAward + " Tickets";
+    btn.onclick = function() {
+      ticketCount += ticketAward;
+      saveTickets();
+      updateTicketDisplay();
+      if (db && currentUser) {
+        db.collection("users").doc(currentUser.uid)
+          .set({ tickets: ticketCount }, { merge: true })
+          .catch(function() {});
+      }
+      localStorage.setItem(ackKey, String(setAt));
+      modal.hidden = true;
+      showToast("+" + ticketAward + " tickets added. Thanks for your patience!");
+    };
+  }
+  modal.hidden = false;
+}
+
+function resetPastScores() {
+  if (!db) { showToast("Firestore not available."); return; }
+  var today = new Date();
+  var todayStr = today.getFullYear() + "-" +
+    String(today.getMonth() + 1).padStart(2, "0") + "-" +
+    String(today.getDate()).padStart(2, "0");
+  if (!confirm("Delete all score records dated before " + todayStr + " for all users, and send the tester notice? This cannot be undone.")) return;
+  showToast("Resetting past scores…");
+  db.collection("scores").where("dateStr", "<", todayStr).get()
+    .then(function(snap) {
+      var docs = snap.docs;
+      if (!docs.length) return Promise.resolve();
+      var BATCH_SIZE = 499;
+      var batches = [];
+      for (var i = 0; i < docs.length; i += BATCH_SIZE) {
+        var batch = db.batch();
+        docs.slice(i, i + BATCH_SIZE).forEach(function(doc) { batch.delete(doc.ref); });
+        batches.push(batch.commit());
+      }
+      return Promise.all(batches);
+    })
+    .then(function() {
+      var setAt = Date.now();
+      return db.collection("config").doc("testerReset").set({
+        active: true,
+        ticketAward: 10,
+        setAt: setAt,
+        message: "Howdy Tester! - Sorry, we’ve had to make some changes which means you’ve lost previous scores. Please try again and here is a bonus for your troubles",
+      });
+    })
+    .then(function() {
+      showToast("Past scores cleared. Tester notice is now active for all users.");
+    })
+    .catch(function(err) {
+      showToast("Reset failed: " + (err && err.message ? err.message : String(err)));
+    });
 }
 
 function updateAdminAccess() {
@@ -8089,6 +8177,9 @@ function initAdmin() {
   var auditCancelBtn = document.getElementById("admin-audit-cancel-btn");
   if (auditRunBtn) auditRunBtn.addEventListener("click", runAdminAudit);
   if (auditCancelBtn) auditCancelBtn.addEventListener("click", function() { _auditCancel = true; });
+
+  var resetPastScoresBtn = document.getElementById("admin-reset-past-scores-btn");
+  if (resetPastScoresBtn) resetPastScoresBtn.addEventListener("click", resetPastScores);
 
   var resetAllScoresBtn = document.getElementById("admin-reset-all-scores-btn");
   if (resetAllScoresBtn) resetAllScoresBtn.addEventListener("click", resetAllScores);

@@ -2949,6 +2949,62 @@ html[data-colour="highcontrast"] {
   .stat-card-value { font-size: 2rem; }
 }
 
+/* ── Tester reset notice modal ───────────────────────────────────────── */
+#tester-reset-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+#tester-reset-modal[hidden] { display: none; }
+#tester-reset-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+#tester-reset-card {
+  position: relative;
+  background: white;
+  border-radius: 20px;
+  padding: 32px 24px 24px;
+  max-width: 340px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.35);
+}
+#tester-reset-icon {
+  font-size: 2.5rem;
+  margin-bottom: 14px;
+  line-height: 1;
+}
+#tester-reset-message {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #1a1a2e;
+  margin: 0 0 24px;
+}
+.tester-reset-cta {
+  display: block;
+  width: 100%;
+  padding: 15px 20px;
+  background: var(--brand, #7c4dff);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: opacity 0.15s;
+}
+.tester-reset-cta:active { opacity: 0.8; }
+
 /* ── Calendar date picker modal ──────────────────────────────────────── */
 #calendar-modal {
   position: fixed;
