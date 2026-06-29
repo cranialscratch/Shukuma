@@ -3822,7 +3822,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.31";
+const VERSION = "2.0.32";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
@@ -5618,7 +5618,7 @@ function handleAuthChange(user) {
   }
 }
 
-function showTesterResetModal(message, ticketAward, uid) {
+function showTesterResetModal(message, ticketAward, setAt) {
   var modal = document.getElementById("tester-reset-modal");
   if (!modal) return;
   var msgEl = document.getElementById("tester-reset-message");
@@ -5630,17 +5630,40 @@ function showTesterResetModal(message, ticketAward, uid) {
       ticketCount += ticketAward;
       saveTickets();
       updateTicketDisplay();
-      if (db && uid) {
-        db.collection("users").doc(uid).update({
-          pendingNotice: firebase.firestore.FieldValue.delete(),
+      // Persist ticket count to user's own Firestore doc (always allowed)
+      if (db && currentUser) {
+        db.collection("users").doc(currentUser.uid).update({
           tickets: ticketCount,
         }).catch(function() {});
       }
+      // Mark this notice as acknowledged in localStorage
+      try { localStorage.setItem("testerReset_ackAt", String(setAt)); } catch(e) {}
       modal.hidden = true;
       showToast("+" + ticketAward + " tickets added. Thanks for your patience!");
     };
   }
   modal.hidden = false;
+}
+
+// Check config/testerReset and show notice if not yet acknowledged
+async function checkTesterReset() {
+  if (!db) return;
+  try {
+    var snap = await db.collection("config").doc("testerReset").get();
+    if (!snap.exists) return;
+    var data = snap.data();
+    if (!data || !data.setAt) return;
+    var setAt = data.setAt;
+    var ackAt = localStorage.getItem("testerReset_ackAt");
+    if (ackAt && Number(ackAt) >= setAt) return; // already acknowledged
+    showTesterResetModal(
+      data.message || "Howdy Tester! — Sorry, we've had to reset some data. Here's a bonus for your trouble.",
+      data.ticketAward || 10,
+      setAt
+    );
+  } catch(e) {
+    // silently ignore — non-fatal
+  }
 }
 
 function resetPastScores() {
@@ -5649,49 +5672,25 @@ function resetPastScores() {
   var todayStr = today.getFullYear() + "-" +
     String(today.getMonth() + 1).padStart(2, "0") + "-" +
     String(today.getDate()).padStart(2, "0");
-  if (!confirm("Delete all score records dated before " + todayStr + " for all users and queue a +10 ticket notice for each tester? This cannot be undone.")) return;
-  showToast("Working…");
+  if (!confirm(
+    "Send a +10 Ticket notice to all testers on their next login?\n\n" +
+    "Note: Score records must be deleted manually via the Firebase console " +
+    "(Firestore → scores collection → filter dateStr < " + todayStr + ")."
+  )) return;
+  showToast("Sending notice…");
 
-  var notice = {
-    message: "Howdy Tester! - Sorry, we’ve had to make some changes which means you’ve lost previous scores. Please try again and here is a bonus for your troubles",
+  // Write notice to config/testerReset — admin can always write to config,
+  // and all signed-in users can read config docs.
+  db.collection("config").doc("testerReset").set({
+    message: "Howdy Tester! — Sorry, we’ve had to make some changes which means you’ve lost previous scores. Please try again and here is a bonus for your troubles.",
     ticketAward: 10,
     setAt: Date.now(),
-  };
-
-  // Delete past scores
-  var deleteOld = db.collection("scores").where("dateStr", "<", todayStr).get()
-    .then(function(snap) {
-      if (snap.empty) return;
-      var batches = [];
-      for (var i = 0; i < snap.docs.length; i += 499) {
-        var batch = db.batch();
-        snap.docs.slice(i, i + 499).forEach(function(d) { batch.delete(d.ref); });
-        batches.push(batch.commit());
-      }
-      return Promise.all(batches);
-    });
-
-  // Write pendingNotice onto every user document (users always have access to their own doc)
-  var notifyUsers = db.collection("users").get()
-    .then(function(snap) {
-      if (snap.empty) return;
-      var batches = [];
-      for (var i = 0; i < snap.docs.length; i += 499) {
-        var batch = db.batch();
-        snap.docs.slice(i, i + 499).forEach(function(d) {
-          batch.update(d.ref, { pendingNotice: notice });
-        });
-        batches.push(batch.commit());
-      }
-      return Promise.all(batches);
-    });
-
-  Promise.all([deleteOld, notifyUsers])
+  })
     .then(function() {
-      showToast("Done — past scores cleared and tester notice queued for all users.");
+      showToast("Notice queued — testers will see it on next login. Delete past score docs from the Firebase console.");
     })
     .catch(function(err) {
-      showToast("Reset failed: " + (err && err.message ? err.message : String(err)));
+      showToast("Failed: " + (err && err.message ? err.message : String(err)));
     });
 }
 
@@ -5760,10 +5759,7 @@ async function loadUserData(user) {
     const snap = await db.collection("users").doc(user.uid).get();
     if (snap.exists) {
       userProfile = snap.data();
-      if (userProfile.pendingNotice) {
-        var n = userProfile.pendingNotice;
-        showTesterResetModal(n.message, n.ticketAward || 10, user.uid);
-      }
+      checkTesterReset();
     } else {
       const d = {
         uid: user.uid, username: user.displayName || user.email.split("@")[0], email: user.email || "",
@@ -8341,32 +8337,17 @@ function backlogDelete(id) {
     .catch(function(err) { showToast("Delete failed: " + (err && err.message ? err.message : String(err))); });
 }
 
-async function resetAllScores() {
-  if (!db) { showToast("No database connection."); return; }
-  if (!confirm("Delete ALL score records for ALL players? This cannot be undone.\n\nUse this only to reset tester data after a puzzle reorder.")) return;
-  showToast("Deleting scores…");
-  try {
-    var snap = await db.collection("scores").get();
-    if (snap.empty) { showToast("No score records found."); return; }
-    // Firestore batch limit is 500 writes
-    var total = 0;
-    var batch = db.batch();
-    var batchCount = 0;
-    for (var i = 0; i < snap.docs.length; i++) {
-      batch.delete(snap.docs[i].ref);
-      batchCount++;
-      total++;
-      if (batchCount === 499) {
-        await batch.commit();
-        batch = db.batch();
-        batchCount = 0;
-      }
-    }
-    if (batchCount > 0) await batch.commit();
-    showToast("Deleted " + total + " score records.");
-  } catch(e) {
-    showToast("Error: " + e.message);
-  }
+function resetAllScores() {
+  // Listing the scores collection requires elevated Firestore rules not available
+  // to the admin user client-side. Delete score records from the Firebase console:
+  // Firestore Database → scores → select all → delete.
+  alert(
+    "Score deletion must be done via the Firebase console:\n\n" +
+    "1. Open Firebase Console → Firestore Database\n" +
+    "2. Select the 'scores' collection\n" +
+    "3. Select all documents and delete\n\n" +
+    "This cannot be done from the game client due to Firestore security rules."
+  );
 }
 
 function initBacklogAdmin() {
