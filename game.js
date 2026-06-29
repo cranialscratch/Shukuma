@@ -3822,11 +3822,23 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.26";
+const VERSION = "2.0.27";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.27",
+    date: "2026-06-29",
+    title: "Panel Header UX + Score Sheet Dismiss",
+    changes: [
+      "Panel headings (Rules, Scores, Profile, Settings) larger and better spaced: 0.78rem → 1.05rem, tighter letter-spacing",
+      "X close button now correctly placed in the right column of the header grid",
+      "Scores reduced view dismisses when tapping anywhere above the score card",
+      "Scores reduced view dismisses on swipe-down of the header bar",
+      "Backlog BLG-025–028 added; loadBacklog() auto-merges new seed items into Firestore",
+    ],
+  },
   {
     version: "2.0.26",
     date: "2026-06-29",
@@ -7750,6 +7762,11 @@ var INITIAL_BACKLOG_ITEMS = [
   { id:"BLG-022", title:"Show friend hasn’t played; send them a free hint for −2 Tickets", category:"feature", status:"blocked", priority:"medium", blockedBy:"Friend/social system", notes:"Encourages friend engagement via hint gifting.", branch:"" },
   { id:"BLG-023", title:"Send Extend Streak token to a friend who’s run out", category:"feature", status:"blocked", priority:"medium", blockedBy:"Friend system + push notifications", notes:"−10 Tickets to send. In-app toast tells the player if they missed the push.", branch:"" },
   { id:"BLG-024", title:"Push at 23:00 to save N-day streak before midnight", category:"feature", status:"blocked", priority:"medium", blockedBy:"Push notification system", notes:"Triggered when player hasn’t played that day and their streak is at risk of breaking.", branch:"" },
+  // Panel header / sheet UX fixes
+  { id:"BLG-025", title:"Panel headings larger and better spaced (Rules, Scores, Profile, Settings)", category:"bug", status:"in-progress", priority:"high", blockedBy:"", notes:"font-size 0.78rem → 1.05rem, letter-spacing 0.13em → 0.07em, heading row padding increased.", branch:"fix/panel-headers" },
+  { id:"BLG-026", title:"X close icon placed correctly at right of header bar", category:"bug", status:"in-progress", priority:"high", blockedBy:"", notes:"Added explicit grid-column placement: title in column 2 (1fr), button in column 3 (44px right). Was auto-placed into wrong columns.", branch:"fix/panel-headers" },
+  { id:"BLG-027", title:"Scores reduced view closes when tapping above score card", category:"improvement", status:"in-progress", priority:"medium", blockedBy:"", notes:"pointerdown listener on document; closes sheet when tap y-position is above sheet.getBoundingClientRect().top.", branch:"fix/panel-headers" },
+  { id:"BLG-028", title:"Scores reduced view closes on swipe-down of header bar", category:"improvement", status:"in-progress", priority:"medium", blockedBy:"", notes:"Extended initBackPanelDrag touchend: swipe down from reduced view (not full-screen) calls closeSheet().", branch:"fix/panel-headers" },
 ];
 
 function initAdmin() {
@@ -7998,7 +8015,14 @@ function loadBacklog() {
   if (!db) return Promise.resolve([]);
   return db.collection("config").doc("backlog").get().then(function(snap) {
     if (!snap.exists || !(snap.data().items || []).length) return seedInitialBacklog();
-    return snap.data().items;
+    var items = snap.data().items;
+    // Merge any new items from INITIAL_BACKLOG_ITEMS that aren't in Firestore yet
+    var existingIds = new Set(items.map(function(i) { return i.id; }));
+    var toAdd = INITIAL_BACKLOG_ITEMS.filter(function(i) { return !existingIds.has(i.id); });
+    if (!toAdd.length) return items;
+    var now = Date.now();
+    var merged = items.concat(toAdd.map(function(item) { return Object.assign({}, item, { createdAt: now }); }));
+    return db.collection("config").doc("backlog").set({ items: merged }).then(function() { return merged; });
   });
 }
 
@@ -8385,16 +8409,31 @@ function initBackPanelDrag() {
 
   headerEl.addEventListener("touchend", function() {
     if (movedY < -40) {
-      // Swipe up → full screen: clear inline top so CSS top:0 takes effect
+      // Swipe up → full screen
       backEl.style.top = "";
       backEl.classList.add("full-screen");
-    } else if (movedY > 40 && backEl.classList.contains("full-screen")) {
-      // Swipe down → collapse back to partial: restore saved inline top
-      backEl.classList.remove("full-screen");
-      backEl.style.top = partialTop;
+    } else if (movedY > 40) {
+      if (backEl.classList.contains("full-screen")) {
+        // Swipe down from full screen → collapse to reduced view
+        backEl.classList.remove("full-screen");
+        backEl.style.top = partialTop;
+      } else {
+        // Swipe down from reduced view → close the sheet entirely
+        closeSheet();
+      }
     }
     startY = 0; movedY = 0;
   });
+}
+
+// Tap anywhere above the reduced score sheet to close it
+function initSheetDismiss() {
+  document.addEventListener("pointerdown", function(e) {
+    var sheet = document.getElementById("game-back");
+    if (!sheet || !sheet.classList.contains("open") || sheet.classList.contains("full-screen")) return;
+    var rect = sheet.getBoundingClientRect();
+    if (e.clientY < rect.top) closeSheet();
+  }, { passive: true });
 }
 
 // ─── Blur-reveal touch fix ────────────────────────────────────────────────────
@@ -8480,6 +8519,7 @@ function init() {
   initPlayerModals();
   initCalendar();
   initBackPanelDrag();
+  initSheetDismiss();
   initBlurReveal();
   // initScratchReveal replaced by buildWordRow tap-to-reveal system
 
