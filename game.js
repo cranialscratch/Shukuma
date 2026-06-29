@@ -3822,11 +3822,24 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.38";
+const VERSION = "2.0.39";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.39",
+    date: "2026-06-29",
+    title: "Fix: Admin notice and score deletion fully decoupled",
+    changes: [
+      "sendTesterNotice(): writes config/testerReset independently — success/fail reported on its own",
+      "resetAllScores(): separate button, deletes all score docs, no longer coupled to notice",
+      "Previous bug: Promise.all coupled both ops so a score-deletion failure silently blocked the notice write",
+      "Previous bug: score deletion query used wrong field ('dateStr') — docs actually store 'date' (DDMMYY format)",
+      "Removed duplicate resetAllScores() definition",
+      "Admin buttons now labelled '1. Send tester notice' and '2. Delete ALL score records'",
+    ],
+  },
   {
     version: "2.0.38",
     date: "2026-06-29",
@@ -5771,42 +5784,47 @@ async function checkTesterReset() {
   }
 }
 
-function resetPastScores() {
-  if (!db) { showToast("Firestore not available."); return; }
-  var today = new Date();
-  var todayStr = today.getFullYear() + "-" +
-    String(today.getMonth() + 1).padStart(2, "0") + "-" +
-    String(today.getDate()).padStart(2, "0");
-  if (!confirm("Delete all score records before " + todayStr + " and send a +10 Ticket notice to all testers? This cannot be undone.")) return;
-  showToast("Working…");
-
-  // Delete past score docs
-  var deleteOld = db.collection("scores").where("dateStr", "<", todayStr).get()
-    .then(function(snap) {
-      if (snap.empty) return;
-      var batches = [];
-      for (var i = 0; i < snap.docs.length; i += 499) {
-        var batch = db.batch();
-        snap.docs.slice(i, i + 499).forEach(function(d) { batch.delete(d.ref); });
-        batches.push(batch.commit());
-      }
-      return Promise.all(batches);
-    });
-
-  // Write notice to config/testerReset — all signed-in users can read config
-  var notifyUsers = db.collection("config").doc("testerReset").set({
+// Sends notice only — writes to config/testerReset which all signed-in users
+// can read on next load. Independent of score deletion so it always succeeds.
+function sendTesterNotice() {
+  if (!db) { showToast("No database."); return; }
+  if (!confirm("Send a ‘+10 ticket’ notice to all testers? They will see it on next login.")) return;
+  db.collection("config").doc("testerReset").set({
     message: "Howdy Tester! — Sorry, we’ve had to make some changes which means you’ve lost previous scores. Please try again and here is a bonus for your troubles.",
     ticketAward: 10,
     setAt: Date.now(),
-  });
+  })
+    .then(function() { showToast("Notice sent — testers will see it on next login."); })
+    .catch(function(err) { showToast("Notice failed: " + (err && err.message ? err.message : String(err))); });
+}
 
-  Promise.all([deleteOld, notifyUsers])
-    .then(function() {
-      showToast("Done — past scores deleted and tester notice queued for all users.");
-    })
-    .catch(function(err) {
-      showToast("Failed: " + (err && err.message ? err.message : String(err)));
-    });
+// Deletes ALL score documents — independent of notice so one failure doesn’t
+// block the other. Score docs use field ‘date’ in DDMMYY format.
+async function resetAllScores() {
+  if (!db) { showToast("No database connection."); return; }
+  if (!confirm("Delete ALL score records for ALL players? This cannot be undone.")) return;
+  showToast("Deleting scores…");
+  try {
+    var snap = await db.collection("scores").get();
+    if (snap.empty) { showToast("No score records found."); return; }
+    var total = 0;
+    var batch = db.batch();
+    var batchCount = 0;
+    for (var i = 0; i < snap.docs.length; i++) {
+      batch.delete(snap.docs[i].ref);
+      batchCount++;
+      total++;
+      if (batchCount === 499) {
+        await batch.commit();
+        batch = db.batch();
+        batchCount = 0;
+      }
+    }
+    if (batchCount > 0) await batch.commit();
+    showToast("Deleted " + total + " score records.");
+  } catch(e) {
+    showToast("Score deletion failed: " + e.message);
+  }
 }
 
 function updateAdminAccess() {
@@ -8305,8 +8323,8 @@ function initAdmin() {
   if (auditRunBtn) auditRunBtn.addEventListener("click", runAdminAudit);
   if (auditCancelBtn) auditCancelBtn.addEventListener("click", function() { _auditCancel = true; });
 
-  var resetPastScoresBtn = document.getElementById("admin-reset-past-scores-btn");
-  if (resetPastScoresBtn) resetPastScoresBtn.addEventListener("click", resetPastScores);
+  var sendNoticeBtn = document.getElementById("admin-reset-past-scores-btn");
+  if (sendNoticeBtn) sendNoticeBtn.addEventListener("click", sendTesterNotice);
 
   var resetAllScoresBtn = document.getElementById("admin-reset-all-scores-btn");
   if (resetAllScoresBtn) resetAllScoresBtn.addEventListener("click", resetAllScores);
@@ -8450,33 +8468,6 @@ function backlogDelete(id) {
   _backlogItems = _backlogItems.filter(function(i) { return i.id !== id; });
   saveBacklog(_backlogItems).then(function() { renderBacklog(_backlogItems); })
     .catch(function(err) { showToast("Delete failed: " + (err && err.message ? err.message : String(err))); });
-}
-
-async function resetAllScores() {
-  if (!db) { showToast("No database connection."); return; }
-  if (!confirm("Delete ALL score records for ALL players? This cannot be undone.\n\nUse this only to reset tester data after a puzzle reorder.")) return;
-  showToast("Deleting scores…");
-  try {
-    var snap = await db.collection("scores").get();
-    if (snap.empty) { showToast("No score records found."); return; }
-    var total = 0;
-    var batch = db.batch();
-    var batchCount = 0;
-    for (var i = 0; i < snap.docs.length; i++) {
-      batch.delete(snap.docs[i].ref);
-      batchCount++;
-      total++;
-      if (batchCount === 499) {
-        await batch.commit();
-        batch = db.batch();
-        batchCount = 0;
-      }
-    }
-    if (batchCount > 0) await batch.commit();
-    showToast("Deleted " + total + " score records.");
-  } catch(e) {
-    showToast("Error: " + e.message);
-  }
 }
 
 function initBacklogAdmin() {
