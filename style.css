@@ -85,6 +85,17 @@
 /* Prevent CSS display rules from overriding HTML hidden attribute */
 [hidden] { display: none !important; }
 
+/* Screen-reader only — visually hidden but announced */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
 html, body {
   height: 100%;
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -103,6 +114,28 @@ html, body {
   --fs-xl:   1.25rem;
   --fs-2xl:  1.5rem;
   --fs-3xl:  2.4rem;
+}
+
+/* ── Text size overrides ────────────────────────────────────────────── */
+html[data-textsize="large"] {
+  --fs-xs:   1.1875rem;
+  --fs-sm:   1.1875rem;
+  --fs-base: 1.1875rem;
+  --fs-md:   1.1875rem;
+  --fs-lg:   1.25rem;
+  --fs-xl:   1.4rem;
+  --fs-2xl:  1.75rem;
+  --fs-3xl:  2.75rem;
+}
+html[data-textsize="xl"] {
+  --fs-xs:   1.375rem;
+  --fs-sm:   1.375rem;
+  --fs-base: 1.375rem;
+  --fs-md:   1.375rem;
+  --fs-lg:   1.5rem;
+  --fs-xl:   1.75rem;
+  --fs-2xl:  2.1rem;
+  --fs-3xl:  3.2rem;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2396,6 +2429,45 @@ html, body {
 .settings-toggle:checked { background: var(--brand); }
 .settings-toggle:checked::after { transform: translateX(18px); }
 
+/* ── Text size selector ─────────────────────────────────────────────── */
+.text-size-grid {
+  display: flex;
+  gap: 8px;
+}
+.text-size-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: 12px;
+  border: 2px solid rgba(0,0,0,0.12);
+  background: rgba(0,0,0,0.04);
+  color: rgba(0,0,0,0.6);
+  font-family: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  min-height: 48px;
+}
+.text-size-btn:nth-child(1) { font-size: 1rem; }
+.text-size-btn:nth-child(2) { font-size: 1.25rem; }
+.text-size-btn:nth-child(3) { font-size: 1.6rem; }
+.text-size-btn.active { border-color: var(--brand); color: var(--brand); }
+
+/* ── Submit button ──────────────────────────────────────────────────── */
+#submit-btn {
+  padding: 10px 20px;
+  border-radius: 20px;
+  border: 2px solid var(--brand);
+  background: var(--brand);
+  color: #ffffff;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  min-height: 44px;
+}
+#submit-btn:active { opacity: 0.8; }
+
 .colour-theme-grid {
   display: flex;
   gap: 8px;
@@ -2925,18 +2997,40 @@ html[data-colour="protanopia"] {
   --tile-selected-stroke:#6d3fd1;
 }
 html[data-colour="highcontrast"] {
+  /* Board / page surfaces */
+  --board-bg:            #000000;
+  --page-bg:             #000000;
+  --card-bg:             #111111;
+  --sheet-bg:            #000000;
+  --word-box-bg:         #111111;
+  --stat-box-bg:         #111111;
+  /* Text */
+  --text-primary:        #ffffff;
+  --text-secondary:      #eeeeee;
+  --text-muted:          #cccccc;
+  --prompt-color:        #cccccc;
+  /* Icons */
+  --icon-color:          #ffffff;
+  /* Brand */
+  --brand:               #ffff00;
+  --brand-dark:          #cccc00;
+  --brand-light:         #333300;
+  /* Leaderboard */
+  --lb-row-border:       #333333;
+  /* Tiles */
   --tile-neutral:        #ffffff;
   --tile-neutral-stroke: #000000;
+  --tile-blank:          #eeeeee;
   --tile-text:           #000000;
   --tile-valid:          #00cc00;
   --tile-valid-stroke:   #007700;
   --tile-invalid:        #ff0000;
   --tile-invalid-stroke: #880000;
-  --tile-selected:       #8b00ff;
-  --tile-selected-stroke:#5500aa;
+  --tile-selected:       #ffff00;
+  --tile-selected-stroke:#aaaa00;
   --tile-played:         #00ff00;
   --tile-played-stroke:  #007700;
-  --tile-text-light:     #ffffff;
+  --tile-text-light:     #000000;
 }
 
 /* ── Responsive ─────────────────────────────────────────────────────── */
@@ -3149,6 +3243,8 @@ html[data-theme="dark"] .settings-section { border-bottom-color: rgba(255,255,25
 html[data-theme="dark"] .settings-toggle { background: rgba(255,255,255,0.2); }
 html[data-theme="dark"] .colour-theme-btn { border-color: rgba(255,255,255,0.18); color: rgba(255,255,255,0.65); }
 html[data-theme="dark"] .colour-theme-btn.active { border-color: var(--brand); color: var(--brand); }
+html[data-theme="dark"] .text-size-btn { border-color: rgba(255,255,255,0.18); color: rgba(255,255,255,0.65); background: rgba(255,255,255,0.05); }
+html[data-theme="dark"] .text-size-btn.active { border-color: var(--brand); color: var(--brand); }
 html[data-theme="dark"] .settings-action-btn { border-color: rgba(255,255,255,0.15); color: rgba(255,255,255,0.75); background: rgba(255,255,255,0.05); }
 html[data-theme="dark"] .settings-action-btn:hover { background: rgba(255,255,255,0.1); }
 html[data-theme="dark"] #settings-version-label { color: rgba(255,255,255,0.25); }

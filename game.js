@@ -3822,7 +3822,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.42";
+const VERSION = "2.0.43";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
@@ -4480,6 +4480,7 @@ var darkMode      = false;
 var soundEnabled  = true;
 var hapticsEnabled = true;
 var colourTheme   = "default"; // "default" | "protanopia" | "highcontrast"
+var textSize      = "normal";  // "normal" | "large" | "xl"
 
 function triggerHaptic(pattern) {
   if (!hapticsEnabled) return;
@@ -4502,13 +4503,22 @@ function applyColourTheme(theme) {
   renderAllTiles();
 }
 
+function applyTextSize(size) {
+  textSize = size || "normal";
+  document.documentElement.dataset.textsize = textSize === "normal" ? "" : textSize;
+  localStorage.setItem("shukuma-text-size", textSize);
+}
+
 function loadUserSettings() {
-  darkMode       = localStorage.getItem("shukuma-dark-mode") === "1";
+  var savedDark  = localStorage.getItem("shukuma-dark-mode");
+  darkMode       = savedDark !== null ? savedDark === "1" : window.matchMedia("(prefers-color-scheme: dark)").matches;
   soundEnabled   = localStorage.getItem("shukuma-sound") !== "0";
   hapticsEnabled = localStorage.getItem("shukuma-haptics") !== "0";
   colourTheme    = localStorage.getItem("shukuma-colour-theme") || "default";
-  document.documentElement.dataset.theme  = darkMode ? "dark" : "";
-  document.documentElement.dataset.colour = colourTheme === "default" ? "" : colourTheme;
+  textSize       = localStorage.getItem("shukuma-text-size") || "normal";
+  document.documentElement.dataset.theme    = darkMode ? "dark" : "";
+  document.documentElement.dataset.colour   = colourTheme === "default" ? "" : colourTheme;
+  document.documentElement.dataset.textsize = textSize === "normal" ? "" : textSize;
 }
 
 // Attempt + time tracking
@@ -4696,6 +4706,10 @@ function renderTile(tile) {
   const g = document.getElementById("tile-" + tile.id);
   if (!g) return;
   const c = COLOURS[tile.state] || COLOURS.neutral;
+  // Keep ARIA label current so screen readers see letter + state
+  var ariaLetter = tile.blank ? (tile._resolvedLetter ? tile._resolvedLetter.toUpperCase() + " (blank)" : "blank") : tile.letter.toUpperCase();
+  var ariaState  = { neutral: "", selected: "selected", valid: "valid", invalid: "not a word", played: "best word" }[tile.state] || "";
+  g.setAttribute("aria-label", ariaState ? ariaLetter + " — " + ariaState : ariaLetter);
   const NS = "http://www.w3.org/2000/svg";
   const poly = g.querySelector("polygon:not(.hatch-overlay)");
   const text = g.querySelector("text");
@@ -4747,15 +4761,17 @@ function renderTile(tile) {
 function renderAllTiles() { tiles.forEach(renderTile); }
 
 function updateAnswerArea() {
-  var ansEl    = document.getElementById("answer-text");
-  var promptEl = document.getElementById("game-prompt");
-  var resetBtn = document.getElementById("reset-btn");
+  var ansEl     = document.getElementById("answer-text");
+  var promptEl  = document.getElementById("game-prompt");
+  var resetBtn  = document.getElementById("reset-btn");
+  var submitBtn = document.getElementById("submit-btn");
   if (!ansEl) return;
   if (selectedPath.length === 0) {
     ansEl.hidden = true; ansEl.textContent = "";
     ansEl.style.fontSize = ""; ansEl.style.letterSpacing = "";
-    if (promptEl) promptEl.hidden = false;
-    if (resetBtn) resetBtn.hidden = true;
+    if (promptEl)  promptEl.hidden  = false;
+    if (resetBtn)  resetBtn.hidden  = true;
+    if (submitBtn) submitBtn.hidden = true;
     updateWordLevelBar(0);
     // Restart cycling if target has been found
     if (_cycleAttemptCount > 0 && !_cycleTimer) setTimeout(startCyclingMessages, 200);
@@ -4772,8 +4788,9 @@ function updateAnswerArea() {
   if (hasInvalid) display += "?";
   ansEl.textContent = display;
   ansEl.hidden = false;
-  if (promptEl) promptEl.hidden = true;
-  if (resetBtn) resetBtn.hidden = false;
+  if (promptEl)  promptEl.hidden  = true;
+  if (resetBtn)  resetBtn.hidden  = false;
+  if (submitBtn) submitBtn.hidden = selectedPath.length < 4;
 
   // Scale font down for longer words to prevent topbar overflow
   var wordLen = display.replace("?", "").length;
@@ -4886,6 +4903,8 @@ function buildBoard() {
     g.setAttribute("id", "tile-" + tile.id);
     g.setAttribute("class", "hex-tile");
     g.setAttribute("data-id", tile.id);
+    g.setAttribute("role", "img");
+    g.setAttribute("aria-label", tile.blank ? "blank tile" : tile.letter.toUpperCase() + " tile");
 
     const poly = document.createElementNS(NS, "polygon");
     poly.setAttribute("points", hexPoints(x, y, HEX_SIZE - 2));
@@ -5170,6 +5189,7 @@ function lockValidWord(word) {
 
   var foundTarget = targetLen > 0 && len >= targetLen;
   var level = getScoreLevel(len);
+  srAnnounce(word.toUpperCase() + " — " + len + " letters, " + level + (foundTarget ? ", today's longest word!" : ""));
 
   if (isInOne) {
     targetWordFound = true;
@@ -5230,6 +5250,7 @@ function flashInvalid(customCheer) {
   selectedPath.forEach(id => { tiles[id].state = "invalid"; });
   renderAllTiles();
   updateAnswerArea();
+  srAnnounce(customCheer === "Need 4+" ? "Need at least 4 letters" : "Not a valid word");
 
   var resetBtn = document.getElementById("reset-btn");
   if (resetBtn) resetBtn.classList.add("is-throbbing");
@@ -5527,6 +5548,10 @@ function initInfoPanel() {
   // Word box reset (×) button
   var resetBtn = document.getElementById("reset-btn");
   if (resetBtn) resetBtn.addEventListener("click", clearSelection);
+
+  // Accessible submit button (motor alternative to gesture)
+  var submitBtn = document.getElementById("submit-btn");
+  if (submitBtn) submitBtn.addEventListener("click", submitTappedWord);
 
   // Header buttons
   var menuBtn = document.getElementById("menu-btn");
@@ -6902,6 +6927,14 @@ function initShare() {
   });
 }
 
+function srAnnounce(msg) {
+  var el = document.getElementById("sr-announce");
+  if (!el) return;
+  el.textContent = "";
+  // Defer so screen reader sees the change as new content
+  setTimeout(function() { el.textContent = msg; }, 50);
+}
+
 function showToast(msg) {
   var toast = document.getElementById("toast");
   if (!toast) {
@@ -7200,6 +7233,7 @@ function showFloatAnim(opts) {
 }
 
 function showAlreadyFoundAnim() {
+  srAnnounce("Already found that word");
   var container = document.getElementById("board-container");
   if (!container) return;
   var old = container.querySelector(".float-anim-wrapper");
@@ -7293,6 +7327,7 @@ function showSpellingVariantAnim(locale) {
 
 // ─── Confetti ─────────────────────────────────────────────────────────────────
 function showConfetti() {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   var canvas = document.createElement("canvas");
   var dpr = window.devicePixelRatio || 1;
   var W = window.innerWidth, H = window.innerHeight;
@@ -7545,6 +7580,11 @@ function renderSettingsPanel() {
     btn.classList.toggle("active", btn.dataset.theme === colourTheme);
   });
 
+  // Text size
+  document.querySelectorAll(".text-size-btn").forEach(function(btn) {
+    btn.classList.toggle("active", btn.dataset.size === (textSize || "normal"));
+  });
+
   // Account section
   var accountSection = document.getElementById("settings-account");
   if (accountSection) accountSection.hidden = !currentUser;
@@ -7569,9 +7609,31 @@ function initSettings() {
 
   // Dark mode
   var darkToggle = document.getElementById("setting-dark-mode");
-  if (darkToggle) darkToggle.addEventListener("change", function() {
-    applyDarkMode(this.checked);
-    localStorage.setItem("shukuma-dark-mode", this.checked ? "1" : "0");
+  if (darkToggle) {
+    darkToggle.checked = darkMode;
+    darkToggle.addEventListener("change", function() {
+      applyDarkMode(this.checked);
+      localStorage.setItem("shukuma-dark-mode", this.checked ? "1" : "0");
+    });
+  }
+
+  // System dark mode: follow OS preference if user hasn't manually set it
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function(e) {
+    if (localStorage.getItem("shukuma-dark-mode") === null) {
+      applyDarkMode(e.matches);
+      if (darkToggle) darkToggle.checked = e.matches;
+    }
+  });
+
+  // Text size
+  document.querySelectorAll(".text-size-btn").forEach(function(btn) {
+    btn.classList.toggle("active", btn.dataset.size === (textSize || "normal"));
+    btn.addEventListener("click", function() {
+      applyTextSize(btn.dataset.size);
+      document.querySelectorAll(".text-size-btn").forEach(function(b) {
+        b.classList.toggle("active", b.dataset.size === textSize);
+      });
+    });
   });
 
   // Sound

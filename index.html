@@ -8,9 +8,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2.0.14" />
+  <link rel="stylesheet" href="style.css?v=2.0.43" />
 </head>
 <body>
+  <!-- Screen reader live region — JS calls srAnnounce() to update this -->
+  <div id="sr-announce" aria-live="assertive" aria-atomic="true" class="sr-only"></div>
+
   <div id="app">
 
     <div id="card-scene">
@@ -60,7 +63,7 @@
             <svg id="hex-board" xmlns="http://www.w3.org/2000/svg"></svg>
           </div>
 
-          <!-- Board controls row: action icons (left) + share button (right) -->
+          <!-- Board controls row: action icons (left) + submit btn + share button (right) -->
           <div id="board-controls">
             <div id="action-bar">
               <button id="undo-btn" class="action-btn" aria-label="Undo">
@@ -80,6 +83,9 @@
                 </svg>
               </button>
             </div>
+
+            <!-- Submit — motor-accessible alternative to gesture; hidden until 4+ tiles selected -->
+            <button id="submit-btn" aria-label="Submit word" hidden>Submit</button>
 
             <!-- Share — outline pill, throbs gently after each valid word -->
             <button id="share-btn" aria-label="Share to earn a ticket">
@@ -287,6 +293,15 @@
               </div>
 
               <div class="settings-section">
+                <h3 class="settings-section-title">Text Size</h3>
+                <div class="text-size-grid">
+                  <button class="text-size-btn active" data-size="normal" aria-label="Normal text size">A</button>
+                  <button class="text-size-btn" data-size="large" aria-label="Large text size">A</button>
+                  <button class="text-size-btn" data-size="xl" aria-label="Extra-large text size">A</button>
+                </div>
+              </div>
+
+              <div class="settings-section">
                 <h3 class="settings-section-title">Colour Theme</h3>
                 <div class="colour-theme-grid">
                   <button class="colour-theme-btn active" data-theme="default">
@@ -297,7 +312,7 @@
                   <button class="colour-theme-btn" data-theme="protanopia">
                     <span class="theme-swatch" style="background:#4a90d9"></span>
                     <span class="theme-swatch" style="background:#f5a623"></span>
-                    Protanopia
+                    Red-Green
                   </button>
                   <button class="colour-theme-btn" data-theme="highcontrast">
                     <span class="theme-swatch" style="background:#00ff00"></span>
@@ -909,6 +924,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
-  <script src="game.js?v=2.0.42"></script>
+  <script src="game.js?v=2.0.43"></script>
 </body>
 </html>
