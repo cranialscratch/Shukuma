@@ -3822,11 +3822,17 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.86";
+const VERSION = "2.0.87";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.87",
+    date: "2026-06-30",
+    title: "Topbar word stays fixed size regardless of length",
+    changes: ["Removed font-size scaling that shrank longer words in the topbar answer display"],
+  },
   {
     version: "2.0.86",
     date: "2026-06-30",
@@ -5907,11 +5913,6 @@ function updateAnswerArea() {
   if (promptEl)  promptEl.hidden  = true;
   if (resetBtn)  resetBtn.hidden  = false;
   if (submitBtn) submitBtn.hidden = _scoreHighlightMode || selectedPath.length < 4;
-
-  // Scale font down for longer words to prevent topbar overflow
-  var wordLen = htmlDisplay.replace(/<[^>]*>/g, "").replace("?", "").length;
-  ansEl.style.fontSize    = wordLen <= 9  ? "" : wordLen <= 12 ? "1.2rem" : wordLen <= 15 ? "1rem" : "0.88rem";
-  ansEl.style.letterSpacing = wordLen <= 9  ? "" : wordLen <= 12 ? "0.08em" : "0.04em";
 
   updateWordLevelBar(selectedPath.length);
 }
