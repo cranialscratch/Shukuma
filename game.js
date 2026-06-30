@@ -3822,11 +3822,25 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.66";
+const VERSION = "2.0.67";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.67",
+    date: "2026-06-30",
+    title: "HC game card + settings visibility fixes",
+    changes: [
+      "High Contrast game card: 'TODAY'S PUZZLE' label now white (was yellow)",
+      "High Contrast game card: date now white (was black on black background)",
+      "High Contrast game card: prompt text now white (was grey)",
+      "High Contrast game card: action icons now yellow (selectable) or red (disabled hint); size increased to 24px",
+      "High Contrast settings: action buttons and locale buttons now visible (white text/border on dark; was black on black)",
+      "High Contrast settings: active locale button (e.g. UK English) now black text on yellow (was white on yellow)",
+      "High Contrast settings: section titles, sub-labels, dividers all readable on dark background",
+    ],
+  },
   {
     version: "2.0.66",
     date: "2026-06-30",
@@ -4999,16 +5013,13 @@ function getThemePulseColors(id) {
 // Inject theme CSS variables and sync tile render.
 // persistPreference=true saves to localStorage; false = display only (e.g. keepColourful auto)
 function updateThemeColorMeta(forHeader) {
-  var tcMeta = document.getElementById("theme-color-meta");
-  if (!tcMeta) return;
-  var color;
-  if (forHeader) {
-    // Use the effective brand color (computed after all CSS cascade applies)
-    color = getComputedStyle(document.documentElement).getPropertyValue("--brand").trim();
-  } else {
-    color = getComputedStyle(document.documentElement).getPropertyValue("--board-bg").trim();
-  }
-  if (color) tcMeta.content = color;
+  setTimeout(function() {
+    var tcMeta = document.getElementById("theme-color-meta");
+    if (!tcMeta) return;
+    var prop = forHeader ? "--brand" : "--board-bg";
+    var color = getComputedStyle(document.documentElement).getPropertyValue(prop).trim();
+    if (color) tcMeta.content = color;
+  }, 50);
 }
 
 function applyTheme(id, persistPreference) {
