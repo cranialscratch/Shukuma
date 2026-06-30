@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2.0.94" />
+  <link rel="stylesheet" href="style.css?v=2.0.95" />
 </head>
 <body>
   <!-- Screen reader live region — JS calls srAnnounce() to update this -->
@@ -313,10 +313,14 @@
 
               <!-- Date display — tappable, opens calendar; swipe tab to navigate days -->
               <div id="scores-date-hdr">
+                <button id="scores-sort-btn" class="scores-sort-hdr-btn" aria-label="Sort words">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
+                </button>
                 <button id="lb-date-btn" class="scores-date-btn" aria-label="Browse dates">
                   <span id="lb-date-label">Today</span>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
                 </button>
+                <div aria-hidden="true"></div>
               </div>
 
               <!-- Score card — built by buildMyScoreCard() -->
@@ -1182,6 +1186,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 
-  <script src="game.js?v=2.0.94"></script>
+  <script src="game.js?v=2.0.95"></script>
 </body>
 </html>

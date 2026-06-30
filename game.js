@@ -3822,11 +3822,20 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.94";
+const VERSION = "2.0.95";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.95",
+    date: "2026-06-30",
+    title: "Sort icon in Score header; Admin word-check reveal",
+    changes: [
+      "Sort icon moved to Score tab header (left-aligned, icon only) — tap for a popup to choose sort order",
+      "Admin: Word Check section — hold button to temporarily reveal the hidden target word (admin only, never visible to players)",
+    ],
+  },
   {
     version: "2.0.94",
     date: "2026-06-30",
@@ -5645,6 +5654,7 @@ var targetWordFound = false; // true once the puzzle's longest word has been fou
 var unlockedDates = {}; // { "280626": true } — legacy: dates where user paid to unlock all words
 var revealedLongestByDate = {}; // { "DDMMYY": true } — paid to reveal only the longest word
 var wlSortMode = "length-desc"; // word list sort: length-desc / length-asc / pct-desc / pct-asc
+var _sortCtx = null; // cached params for header sort button to re-invoke buildScratchAnswers
 
 // Cycling completion messages
 var CYCLE_MESSAGES_DEFAULT = [
@@ -8081,6 +8091,7 @@ function buildScratchAnswers(answers, playersByWord, isToday, totalPlayers, load
   var container = document.getElementById("scratchcard-list");
   if (!container) return;
   container.innerHTML = "";
+  _sortCtx = { answers: answers, playersByWord: playersByWord, isToday: isToday, totalPlayers: totalPlayers };
 
   // All valid words ≥ 4 letters from this puzzle — exclude summary bucket entries like "4 or lower"
   var allWords = (answers || []).filter(function(a) {
@@ -8132,61 +8143,6 @@ function buildScratchAnswers(answers, playersByWord, isToday, totalPlayers, load
   // Has the user paid to reveal the longest word for this date?
   var revealedTarget = !!(revealedLongestByDate && revealedLongestByDate[dateKey]);
 
-  // ── Sort controls ────────────────────────────────────────────────
-  var SORT_LABELS = {
-    "length-desc": "Longest first",
-    "length-asc":  "Shortest first",
-    "pct-desc":    "Most found first",
-    "pct-asc":     "Least found first",
-  };
-  var sortBar = document.createElement("div");
-  sortBar.className = "wl-sort-bar";
-  var sortBtn = document.createElement("button");
-  sortBtn.className = "wl-sort-btn";
-  sortBtn.setAttribute("aria-label", "Sort order");
-  sortBtn.innerHTML =
-    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M7 12h10M11 18h2"/></svg>' +
-    '<span class="wl-sort-label">' + (SORT_LABELS[wlSortMode] || "Sort") + '</span>' +
-    '<svg class="wl-sort-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>';
-  sortBar.appendChild(sortBtn);
-
-  var sortPopup = document.createElement("div");
-  sortPopup.className = "wl-sort-popup";
-  sortPopup.hidden = true;
-  var SORT_OPTIONS = [
-    { key: "length-desc", label: "Longest first" },
-    { key: "length-asc",  label: "Shortest first" },
-    { key: "pct-desc",    label: "Most found first" },
-    { key: "pct-asc",     label: "Least found first" },
-  ];
-  (function(ans, pbw, it, tp) {
-    SORT_OPTIONS.forEach(function(s) {
-      var opt = document.createElement("button");
-      opt.className = "wl-sort-opt" + (wlSortMode === s.key ? " wl-sort-opt-active" : "");
-      opt.textContent = s.label;
-      opt.addEventListener("click", function(e) {
-        e.stopPropagation();
-        wlSortMode = s.key;
-        sortPopup.hidden = true;
-        buildScratchAnswers(ans, pbw, it, tp, false);
-      });
-      sortPopup.appendChild(opt);
-    });
-  })(answers, playersByWord, isToday, totalPlayers);
-  sortBtn.addEventListener("click", function(e) {
-    e.stopPropagation();
-    sortPopup.hidden = !sortPopup.hidden;
-    if (!sortPopup.hidden) {
-      setTimeout(function() {
-        document.addEventListener("click", function closePop() {
-          sortPopup.hidden = true;
-          document.removeEventListener("click", closePop);
-        });
-      }, 0);
-    }
-  });
-  sortBar.appendChild(sortPopup);
-  container.appendChild(sortBar);
 
   if (allWords.length === 0) {
     var empty = document.createElement("div");
@@ -11184,6 +11140,7 @@ var INITIAL_BACKLOG_ITEMS = [
 ];
 
 var ADMIN_SECTIONS = [
+  { id: "wordcheck",  label: "Word Check" },
   { id: "themes",     label: "Themes"     },
   { id: "palette",    label: "Palette"    },
   { id: "typography", label: "Typography" },
@@ -11260,6 +11217,56 @@ function initAdminNav() {
 
   // Open Backlog by default
   expandAdminSection("backlog");
+}
+
+function initScoresSortBtn() {
+  var btn = document.getElementById("scores-sort-btn");
+  if (!btn) return;
+  var SORT_OPTIONS = [
+    { key: "length-desc", label: "Longest first" },
+    { key: "length-asc",  label: "Shortest first" },
+    { key: "pct-desc",    label: "Most found first" },
+    { key: "pct-asc",     label: "Least found first" },
+  ];
+  var popup = document.createElement("div");
+  popup.className = "wl-sort-popup scores-hdr-sort-popup";
+  popup.hidden = true;
+  SORT_OPTIONS.forEach(function(s) {
+    var opt = document.createElement("button");
+    opt.className = "wl-sort-opt";
+    opt.dataset.key = s.key;
+    opt.textContent = s.label;
+    opt.addEventListener("click", function(e) {
+      e.stopPropagation();
+      wlSortMode = s.key;
+      popup.hidden = true;
+      popup.querySelectorAll(".wl-sort-opt").forEach(function(o) {
+        o.classList.toggle("wl-sort-opt-active", o.dataset.key === wlSortMode);
+      });
+      if (_sortCtx) {
+        buildScratchAnswers(_sortCtx.answers, _sortCtx.playersByWord, _sortCtx.isToday, _sortCtx.totalPlayers, false);
+      }
+    });
+    popup.appendChild(opt);
+  });
+  var hdr = document.getElementById("scores-date-hdr");
+  if (hdr) hdr.appendChild(popup);
+
+  btn.addEventListener("click", function(e) {
+    e.stopPropagation();
+    popup.querySelectorAll(".wl-sort-opt").forEach(function(o) {
+      o.classList.toggle("wl-sort-opt-active", o.dataset.key === wlSortMode);
+    });
+    popup.hidden = !popup.hidden;
+    if (!popup.hidden) {
+      setTimeout(function() {
+        document.addEventListener("click", function closePop() {
+          popup.hidden = true;
+          document.removeEventListener("click", closePop);
+        });
+      }, 0);
+    }
+  });
 }
 
 function initAdmin() {
@@ -11510,6 +11517,35 @@ function initAdmin() {
 
   var resetAllScoresBtn = document.getElementById("admin-reset-all-scores-btn");
   if (resetAllScoresBtn) resetAllScoresBtn.addEventListener("click", resetAllScores);
+
+  // ── Word Check section (hold to reveal target word) ─────────────────────
+  (function() {
+    var adminContent = document.getElementById("admin-content");
+    if (!adminContent) return;
+    var sec = document.createElement("div");
+    sec.className = "admin-section";
+    sec.innerHTML = '<h3>Word Check</h3><p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:12px">Hold the button to reveal today\'s hidden target word. Admin only.</p>';
+    var revealBtn = document.createElement("button");
+    revealBtn.className = "admin-btn";
+    revealBtn.style.cssText = "width:100%;user-select:none;-webkit-user-select:none;";
+    revealBtn.textContent = "Hold to reveal word";
+    var revealDisplay = document.createElement("div");
+    revealDisplay.className = "admin-word-reveal-display";
+    revealDisplay.hidden = true;
+    function showWord() {
+      var word = puzzle && puzzle.prevAnswers && puzzle.prevAnswers[0] ? puzzle.prevAnswers[0].word : "(no puzzle)";
+      revealDisplay.textContent = word.toUpperCase();
+      revealDisplay.hidden = false;
+    }
+    function hideWord() { revealDisplay.hidden = true; revealDisplay.textContent = ""; }
+    revealBtn.addEventListener("pointerdown", function(e) { e.preventDefault(); showWord(); });
+    revealBtn.addEventListener("pointerup", hideWord);
+    revealBtn.addEventListener("pointercancel", hideWord);
+    revealBtn.addEventListener("pointerleave", hideWord);
+    sec.appendChild(revealBtn);
+    sec.appendChild(revealDisplay);
+    adminContent.insertBefore(sec, adminContent.firstChild);
+  })();
 
   // ── Animation Themes editor ─────────────────────────────────────────────
   initAdminAnimThemes();
@@ -12034,6 +12070,7 @@ function init() {
   initSwipeNavigation();
   initSettings();
   initAdmin();
+  initScoresSortBtn();
   initPlayerModals();
   initCalendar();
   initBackPanelDrag();

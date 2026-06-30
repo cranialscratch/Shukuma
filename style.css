@@ -1432,9 +1432,43 @@ html[data-reduce-motion] .tile-hint-poly     { animation: none !important; fill:
 /* ── Scores tab: compact date nav ────────────────────────────────── */
 /* ── Scores date header (no arrows — swipe or tap date to navigate) ─── */
 #scores-date-hdr {
-  display: flex;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
   padding: 10px 4px 2px;
+  position: relative;
+}
+#lb-date-btn { justify-self: center; }
+.scores-sort-hdr-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: none;
+  border: none;
+  border-radius: 50%;
+  color: var(--text-secondary);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.scores-sort-hdr-btn:active { opacity: 0.6; }
+.scores-hdr-sort-popup {
+  top: 100%;
+  left: 4px;
+}
+.admin-word-reveal-display {
+  margin-top: 12px;
+  padding: 16px;
+  background: rgba(0,0,0,0.12);
+  border-radius: 10px;
+  text-align: center;
+  font-size: 1.8rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  font-family: monospace;
+  color: var(--text-primary);
+  user-select: none;
 }
 .scores-date-btn {
   display: inline-flex;
