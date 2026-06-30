@@ -728,15 +728,15 @@ html[data-theme="dark"] { --tile-pulse-fill: #585859; } /* lighter than #3a3a3c 
   .is-throbbing          { animation: none !important; }
   .share-pulse           { animation: none !important; }
   .swipe-hint-hand       { animation: none !important; }
-  .tile-hint             { animation: none !important; }
-  .tile-hint-poly        { animation: none !important; }
+  .tile-hint             { animation: none !important; fill: var(--tile-pulse-fill); }
+  .tile-hint-poly        { animation: none !important; fill: var(--tile-pulse-fill); }
 }
 html[data-reduce-motion] .float-anim-wrapper { display: none !important; }
 html[data-reduce-motion] .is-throbbing       { animation: none !important; }
 html[data-reduce-motion] .share-pulse        { animation: none !important; }
 html[data-reduce-motion] .swipe-hint-hand    { animation: none !important; }
-html[data-reduce-motion] .tile-hint          { animation: none !important; }
-html[data-reduce-motion] .tile-hint-poly     { animation: none !important; }
+html[data-reduce-motion] .tile-hint          { animation: none !important; fill: var(--tile-pulse-fill); }
+html[data-reduce-motion] .tile-hint-poly     { animation: none !important; fill: var(--tile-pulse-fill); }
 
 /* ── Past game banner ───────────────────────────────────────────────── */
 #past-game-banner {

@@ -3822,11 +3822,19 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.71";
+const VERSION = "2.0.72";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.72",
+    date: "2026-06-30",
+    title: "Reduce Animations: hint tiles still show colour, just no pulse",
+    changes: [
+      "Idle hint with Reduce Animations on: tiles now show static hint colour for 1.6s then restore — no throbbing, colour still visible",
+    ],
+  },
   {
     version: "2.0.71",
     date: "2026-06-30",
