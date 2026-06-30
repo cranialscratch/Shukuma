@@ -3822,11 +3822,23 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.61";
+const VERSION = "2.0.62";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.62",
+    date: "2026-06-30",
+    title: "Colour themes: 22 seasonal/cultural themes with auto-switch",
+    changes: [
+      "22 colour themes covering brand, accessibility, community, cultural events, celebrations, seasons, and weather",
+      "Keep Me Colourful mode auto-switches theme based on current date (events take priority over seasons)",
+      "Board opening animation uses theme pulse colours, cycling through the theme palette per tile",
+      "Admin animation theme editor: customise pulse colours, played tile colour, and auto-switch date window",
+      "Theme picker UI dynamically built from THEMES array with gradient swatches",
+    ],
+  },
   {
     version: "2.0.61",
     date: "2026-06-30",
@@ -4673,8 +4685,395 @@ function updateLocaleBtns() {
 var darkMode      = false;
 var soundEnabled  = true;
 var hapticsEnabled = true;
-var colourTheme   = "default"; // "default" | "protanopia" | "highcontrast"
+var colourTheme   = "default"; // user's stored preference
+var keepColourful = false;     // auto-switch with seasons/events
+var _activeTheme  = "default"; // currently applied theme (may differ in keepColourful mode)
 var textSize      = "normal";  // "normal" | "large" | "xl"
+
+// ─── Animation theme definitions ─────────────────────────────────────────────
+// Each entry: id, name, emoji, cat (category key), auto (date window|null),
+//   vars (CSS var overrides, light mode), dark (CSS var overrides, dark mode),
+//   pulse (array of hex colours cycled across tiles during board animation)
+var THEMES = [
+  { id:"default",      name:"Default",          emoji:"✨", cat:"brand",
+    auto:null,
+    vars:{"--tile-pulse-fill":"#a78bfa","--tile-played":"#4ade80","--tile-played-stroke":"#22c55e"},
+    dark:{"--tile-pulse-fill":"#7c4dff"},
+    pulse:["#7c4dff","#4ade80","#9f7aea","#86efac","#7c4dff","#4ade80"] },
+
+  { id:"protanopia",   name:"Red-Green",         emoji:"👁", cat:"access",
+    auto:null, vars:{}, dark:{}, pulse:["#4a90d9","#f5a623","#4a90d9","#f5a623"] },
+
+  { id:"highcontrast", name:"High Contrast",     emoji:"◑", cat:"access",
+    auto:null, vars:{}, dark:{}, pulse:["#00ff00","#ffff00","#00ff00","#ffff00"] },
+
+  // Community ─────────────────────────────────────────────────────────────────
+  { id:"pride",        name:"Pride",             emoji:"🌈", cat:"community",
+    auto:{m1:6,d1:1,m2:6,d2:30},
+    vars:{"--tile-pulse-fill":"#ff8c00","--tile-played":"#004dff","--tile-played-stroke":"#0035b3"},
+    dark:{"--tile-pulse-fill":"#ffed00"},
+    pulse:["#e40303","#ff8c00","#ffed00","#008026","#004dff","#750787"] },
+
+  { id:"trans",        name:"Trans",             emoji:"⚧️", cat:"community",
+    auto:{m1:3,d1:31,m2:3,d2:31},
+    vars:{"--tile-pulse-fill":"#f7a8b8","--tile-played":"#55cdfc","--tile-played-stroke":"#28b5f0"},
+    dark:{"--tile-pulse-fill":"#55cdfc"},
+    pulse:["#55cdfc","#f7a8b8","#ffffff","#f7a8b8","#55cdfc"] },
+
+  // Cultural ──────────────────────────────────────────────────────────────────
+  { id:"earthday",     name:"Earth Day",         emoji:"🌍", cat:"cultural",
+    auto:{m1:4,d1:22,m2:4,d2:22},
+    vars:{"--tile-pulse-fill":"#52b788","--tile-played":"#2d6a4f","--tile-played-stroke":"#1b4332"},
+    dark:{"--tile-pulse-fill":"#95d5b2"},
+    pulse:["#52b788","#95d5b2","#2d6a4f","#b7e4c7","#74c69d","#40916c"] },
+
+  { id:"independence", name:"Independence Day",  emoji:"🦅", cat:"cultural",
+    auto:{m1:7,d1:4,m2:7,d2:4},
+    vars:{"--tile-pulse-fill":"#bf0a30","--tile-played":"#002868","--tile-played-stroke":"#001a45"},
+    dark:{"--tile-pulse-fill":"#4a90d9"},
+    pulse:["#bf0a30","#ffffff","#002868","#bf0a30","#ffffff","#002868"] },
+
+  // Celebrations ──────────────────────────────────────────────────────────────
+  { id:"newyear",      name:"New Year",          emoji:"🎆", cat:"celebrations",
+    auto:{m1:12,d1:31,m2:1,d2:2},
+    vars:{"--tile-pulse-fill":"#ffd700","--tile-played":"#b8860b","--tile-played-stroke":"#9a7209"},
+    dark:{"--tile-pulse-fill":"#ffd700"},
+    pulse:["#ffd700","#c0c0c0","#fffacd","#ffd700","#c0c0c0","#f0e68c"] },
+
+  { id:"valentines",   name:"Valentine's",       emoji:"💕", cat:"celebrations",
+    auto:{m1:2,d1:14,m2:2,d2:14},
+    vars:{"--tile-pulse-fill":"#ff4081","--tile-played":"#c2185b","--tile-played-stroke":"#a31545"},
+    dark:{"--tile-pulse-fill":"#ff80ab"},
+    pulse:["#ff1744","#ff6090","#ff4081","#e91e63","#f48fb1","#ff80ab"] },
+
+  { id:"halloween",    name:"Halloween",         emoji:"🎃", cat:"celebrations",
+    auto:{m1:10,d1:25,m2:10,d2:31},
+    vars:{"--tile-pulse-fill":"#ff9100","--tile-played":"#6a1b9a","--tile-played-stroke":"#4a148c"},
+    dark:{"--tile-pulse-fill":"#ffab40"},
+    pulse:["#ff6d00","#7b1fa2","#ff9100","#6a1b9a","#ff6d00","#e65100"] },
+
+  { id:"diwali",       name:"Diwali",            emoji:"🪔", cat:"celebrations",
+    auto:{m1:10,d1:20,m2:11,d2:15},
+    vars:{"--tile-pulse-fill":"#ffc107","--tile-played":"#e65100","--tile-played-stroke":"#bf360c"},
+    dark:{"--tile-pulse-fill":"#ffd54f"},
+    pulse:["#ffc107","#ff5722","#ffeb3b","#ff9800","#ffd54f","#ff6f00"] },
+
+  { id:"christmas",    name:"Christmas",         emoji:"🎄", cat:"celebrations",
+    auto:{m1:12,d1:1,m2:12,d2:26},
+    vars:{"--tile-pulse-fill":"#c41e3a","--tile-played":"#165b33","--tile-played-stroke":"#0e3d22"},
+    dark:{"--tile-pulse-fill":"#ef5350"},
+    pulse:["#c41e3a","#165b33","#f5f5f5","#fcc200","#c41e3a","#165b33"] },
+
+  { id:"hanukkah",     name:"Hanukkah",          emoji:"🕎", cat:"celebrations",
+    auto:{m1:12,d1:1,m2:12,d2:31},
+    vars:{"--tile-pulse-fill":"#4a90d9","--tile-played":"#003f87","--tile-played-stroke":"#002a5c"},
+    dark:{"--tile-pulse-fill":"#64b5f6"},
+    pulse:["#003f87","#4a90d9","#c0c0c0","#ffffff","#4a90d9","#1565c0"] },
+
+  // Seasons ───────────────────────────────────────────────────────────────────
+  { id:"spring",       name:"Spring",            emoji:"🌸", cat:"seasons",
+    auto:{m1:3,d1:20,m2:6,d2:19},
+    vars:{"--tile-pulse-fill":"#f48fb1","--tile-played":"#81c784","--tile-played-stroke":"#519657"},
+    dark:{"--tile-pulse-fill":"#f06292"},
+    pulse:["#f8b4d9","#a8e6cf","#ffd3e0","#c8e6c9","#f48fb1","#aed581"] },
+
+  { id:"summer",       name:"Summer",            emoji:"☀️",  cat:"seasons",
+    auto:{m1:6,d1:20,m2:9,d2:22},
+    vars:{"--tile-pulse-fill":"#ffcc02","--tile-played":"#0097a7","--tile-played-stroke":"#006978"},
+    dark:{"--tile-pulse-fill":"#ffd740"},
+    pulse:["#ffcc02","#00bcd4","#ff7043","#ffeb3b","#4dd0e1","#ff5722"] },
+
+  { id:"autumn",       name:"Autumn",            emoji:"🍂", cat:"seasons",
+    auto:{m1:9,d1:23,m2:12,d2:20},
+    vars:{"--tile-pulse-fill":"#f57f17","--tile-played":"#bf360c","--tile-played-stroke":"#8d2207"},
+    dark:{"--tile-pulse-fill":"#ff8f00"},
+    pulse:["#e65100","#bf360c","#f57f17","#795548","#ff8f00","#d84315"] },
+
+  { id:"winter",       name:"Winter",            emoji:"❄️", cat:"seasons",
+    auto:{m1:12,d1:21,m2:3,d2:19},
+    vars:{"--tile-pulse-fill":"#4fc3f7","--tile-played":"#0277bd","--tile-played-stroke":"#01579b"},
+    dark:{"--tile-pulse-fill":"#81d4fa"},
+    pulse:["#b3e5fc","#e1f5fe","#80d8ff","#4fc3f7","#29b6f6","#e1f5fe"] },
+
+  // Weather (manual only) ─────────────────────────────────────────────────────
+  { id:"rain",         name:"Rain",              emoji:"🌧️", cat:"weather",
+    auto:null,
+    vars:{"--tile-pulse-fill":"#78909c","--tile-played":"#37474f","--tile-played-stroke":"#263238"},
+    dark:{"--tile-pulse-fill":"#90a4ae"},
+    pulse:["#546e7a","#78909c","#4fc3f7","#607d8b","#80cbc4","#b0bec5"] },
+
+  { id:"snow",         name:"Snow",              emoji:"🌨️", cat:"weather",
+    auto:null,
+    vars:{"--tile-pulse-fill":"#b3e5fc","--tile-played":"#0288d1","--tile-played-stroke":"#01579b"},
+    dark:{"--tile-pulse-fill":"#e1f5fe"},
+    pulse:["#e1f5fe","#ffffff","#b3e5fc","#e3f2fd","#80d8ff","#e0f7fa"] },
+
+  { id:"clearday",     name:"Clear Day",         emoji:"🌤️", cat:"weather",
+    auto:null,
+    vars:{"--tile-pulse-fill":"#ffee58","--tile-played":"#f57f17","--tile-played-stroke":"#e65100"},
+    dark:{"--tile-pulse-fill":"#fff176"},
+    pulse:["#ffee58","#fff59d","#fff176","#ffb300","#ffe082","#fff59d"] },
+
+  { id:"clearnight",   name:"Clear Night",       emoji:"🌙", cat:"weather",
+    auto:null,
+    vars:{"--tile-pulse-fill":"#9fa8da","--tile-played":"#3949ab","--tile-played-stroke":"#283593"},
+    dark:{"--tile-pulse-fill":"#7986cb"},
+    pulse:["#9fa8da","#7986cb","#c5cae9","#e8eaf6","#5c6bc0","#7986cb"] },
+
+  { id:"cloudy",       name:"Cloudy",            emoji:"⛅", cat:"weather",
+    auto:null,
+    vars:{"--tile-pulse-fill":"#90a4ae","--tile-played":"#546e7a","--tile-played-stroke":"#37474f"},
+    dark:{"--tile-pulse-fill":"#b0bec5"},
+    pulse:["#90a4ae","#b0bec5","#cfd8dc","#78909c","#b0bec5","#eceff1"] },
+];
+
+// ─── Theme helpers ────────────────────────────────────────────────────────────
+
+function getThemeById(id) {
+  for (var i = 0; i < THEMES.length; i++) {
+    if (THEMES[i].id === id) return THEMES[i];
+  }
+  return THEMES[0];
+}
+
+// True if (m, d) falls within [m1/d1 .. m2/d2], handles year-wrapping ranges
+function inRange(m, d, m1, d1, m2, d2) {
+  var cur   = m * 100 + d;
+  var start = m1 * 100 + d1;
+  var end   = m2 * 100 + d2;
+  if (start <= end) return cur >= start && cur <= end;
+  return cur >= start || cur <= end;
+}
+
+function getAutoTheme() {
+  var now = new Date();
+  var m = now.getMonth() + 1;
+  var d = now.getDate();
+  var events = THEMES.filter(function(t) {
+    return t.auto && (t.cat === "cultural" || t.cat === "community" || t.cat === "celebrations");
+  });
+  for (var i = 0; i < events.length; i++) {
+    var a = events[i].auto;
+    if (inRange(m, d, a.m1, a.d1, a.m2, a.d2)) return events[i].id;
+  }
+  var seasons = THEMES.filter(function(t) { return t.auto && t.cat === "seasons"; });
+  for (var j = 0; j < seasons.length; j++) {
+    var b = seasons[j].auto;
+    if (inRange(m, d, b.m1, b.d1, b.m2, b.d2)) return seasons[j].id;
+  }
+  return "default";
+}
+
+// Returns effective pulse color array, merging any admin overrides from localStorage
+function getThemePulseColors(id) {
+  var theme = getThemeById(id);
+  try {
+    var overrides = JSON.parse(localStorage.getItem("shukuma-anim-overrides") || "{}");
+    var ov = overrides[id];
+    if (ov && ov.pulseColors && ov.pulseColors.length) return ov.pulseColors;
+  } catch (e) { /* ignore */ }
+  return theme.pulse.slice();
+}
+
+// Inject theme CSS variables and sync tile render.
+// persistPreference=true saves to localStorage; false = display only (e.g. keepColourful auto)
+function applyTheme(id, persistPreference) {
+  var theme = getThemeById(id);
+  _activeTheme = id;
+
+  var styleEl = document.getElementById("theme-override-style");
+  if (!styleEl) {
+    styleEl = document.createElement("style");
+    styleEl.id = "theme-override-style";
+    document.head.appendChild(styleEl);
+  }
+
+  var lightVars = Object.assign({}, theme.vars);
+  var darkVars  = Object.assign({}, theme.dark);
+  try {
+    var overrides = JSON.parse(localStorage.getItem("shukuma-anim-overrides") || "{}");
+    var ov = overrides[id];
+    if (ov) {
+      if (ov.pulseFillLight)  lightVars["--tile-pulse-fill"]    = ov.pulseFillLight;
+      if (ov.pulseFillDark)   darkVars["--tile-pulse-fill"]     = ov.pulseFillDark;
+      if (ov.played)          lightVars["--tile-played"]        = ov.played;
+      if (ov.playedStroke)    lightVars["--tile-played-stroke"] = ov.playedStroke;
+    }
+  } catch (e) { /* ignore */ }
+
+  function objToCss(obj) {
+    return Object.keys(obj).map(function(k) { return "  " + k + ":" + obj[k] + ";"; }).join("\n");
+  }
+
+  var css = ":root {\n" + objToCss(lightVars) + "\n}";
+  if (Object.keys(darkVars).length) {
+    css += "\nhtml[data-theme=dark] {\n" + objToCss(darkVars) + "\n}";
+  }
+  styleEl.textContent = css;
+
+  document.documentElement.dataset.colour = (theme.cat === "access") ? id : "";
+
+  buildColours();
+  renderAllTiles();
+
+  document.querySelectorAll(".colour-theme-btn").forEach(function(btn) {
+    btn.classList.toggle("active", btn.dataset.theme === id);
+  });
+
+  if (persistPreference) {
+    colourTheme = id;
+    localStorage.setItem("shukuma-colour-theme", id);
+  }
+}
+
+// Dynamically build theme picker from THEMES array
+function buildThemePicker() {
+  var picker = document.getElementById("theme-picker");
+  if (!picker) return;
+  picker.innerHTML = "";
+
+  var CAT_LABELS = {
+    brand:        "Brand",
+    access:       "Accessibility",
+    community:    "Community",
+    cultural:     "Cultural",
+    celebrations: "Celebrations",
+    seasons:      "Seasons",
+    weather:      "Weather",
+  };
+
+  var seenCats = [];
+  var bycat = {};
+  THEMES.forEach(function(t) {
+    if (!bycat[t.cat]) { bycat[t.cat] = []; seenCats.push(t.cat); }
+    bycat[t.cat].push(t);
+  });
+
+  seenCats.forEach(function(cat) {
+    var group = document.createElement("div");
+    group.className = "theme-category";
+
+    var label = document.createElement("div");
+    label.className = "theme-cat-label";
+    label.textContent = CAT_LABELS[cat] || cat;
+    group.appendChild(label);
+
+    var grid = document.createElement("div");
+    grid.className = "colour-theme-grid";
+
+    bycat[cat].forEach(function(theme) {
+      var btn = document.createElement("button");
+      btn.className = "colour-theme-btn";
+      btn.dataset.theme = theme.id;
+      btn.classList.toggle("active", theme.id === _activeTheme);
+
+      var swatch = document.createElement("div");
+      swatch.className = "theme-gradient-swatch";
+      swatch.style.background = "linear-gradient(90deg, " + theme.pulse.join(", ") + ")";
+      btn.appendChild(swatch);
+
+      var emoji = document.createElement("span");
+      emoji.className = "theme-btn-emoji";
+      emoji.textContent = theme.emoji;
+      btn.appendChild(emoji);
+
+      var nameEl = document.createElement("span");
+      nameEl.className = "theme-btn-label";
+      nameEl.textContent = theme.name;
+      btn.appendChild(nameEl);
+
+      btn.addEventListener("click", function() {
+        keepColourful = false;
+        var kc = document.getElementById("setting-keep-colourful");
+        if (kc) kc.checked = false;
+        localStorage.setItem("shukuma-keep-colourful", "0");
+        applyTheme(theme.id, true);
+      });
+
+      grid.appendChild(btn);
+    });
+
+    group.appendChild(grid);
+    picker.appendChild(group);
+  });
+}
+
+// ─── Admin: Animation Themes editor ──────────────────────────────────────────
+function initAdminAnimThemes() {
+  var select      = document.getElementById("admin-anim-theme-select");
+  var preview     = document.getElementById("admin-anim-preview");
+  var pulseLight  = document.getElementById("admin-anim-pulse-light");
+  var pulseDark   = document.getElementById("admin-anim-pulse-dark");
+  var playedEl    = document.getElementById("admin-anim-played");
+  var playedStr   = document.getElementById("admin-anim-played-stroke");
+  var pulseColors = document.getElementById("admin-anim-pulse-colors");
+  var autoStart   = document.getElementById("admin-anim-auto-start");
+  var autoEnd     = document.getElementById("admin-anim-auto-end");
+  var saveBtn     = document.getElementById("admin-anim-save-btn");
+  var resetBtn    = document.getElementById("admin-anim-reset-btn");
+  if (!select) return;
+
+  THEMES.forEach(function(t) {
+    var opt = document.createElement("option");
+    opt.value = t.id;
+    opt.textContent = t.emoji + " " + t.name;
+    select.appendChild(opt);
+  });
+
+  function getOverrides() {
+    try { return JSON.parse(localStorage.getItem("shukuma-anim-overrides") || "{}"); }
+    catch (e) { return {}; }
+  }
+
+  function populateFields(id) {
+    var theme = getThemeById(id);
+    var ov    = getOverrides()[id] || {};
+    if (pulseLight)  pulseLight.value  = ov.pulseFillLight || theme.vars["--tile-pulse-fill"]    || "#ffffff";
+    if (pulseDark)   pulseDark.value   = ov.pulseFillDark  || theme.dark["--tile-pulse-fill"]    || "#ffffff";
+    if (playedEl)    playedEl.value    = ov.played          || theme.vars["--tile-played"]        || "#4ade80";
+    if (playedStr)   playedStr.value   = ov.playedStroke    || theme.vars["--tile-played-stroke"] || "#22c55e";
+    var effectivePulse = (ov.pulseColors && ov.pulseColors.length) ? ov.pulseColors : theme.pulse;
+    if (pulseColors) pulseColors.value = effectivePulse.join(", ");
+    var a = theme.auto;
+    if (autoStart) autoStart.value = a ? (a.m1 + "/" + a.d1) : "";
+    if (autoEnd)   autoEnd.value   = a ? (a.m2 + "/" + a.d2) : "";
+    if (preview)   preview.style.background = "linear-gradient(90deg, " + effectivePulse.join(", ") + ")";
+  }
+
+  populateFields(select.value || "default");
+  select.addEventListener("change", function() { populateFields(select.value); });
+
+  if (pulseColors) pulseColors.addEventListener("input", function() {
+    var cols = pulseColors.value.split(",").map(function(c) { return c.trim(); }).filter(Boolean);
+    if (cols.length && preview) preview.style.background = "linear-gradient(90deg, " + cols.join(", ") + ")";
+  });
+
+  if (saveBtn) saveBtn.addEventListener("click", function() {
+    var id   = select.value;
+    var ov   = getOverrides();
+    var cols = pulseColors ? pulseColors.value.split(",").map(function(c) { return c.trim(); }).filter(Boolean) : [];
+    ov[id] = {
+      pulseFillLight: pulseLight ? pulseLight.value : null,
+      pulseFillDark:  pulseDark  ? pulseDark.value  : null,
+      played:         playedEl   ? playedEl.value   : null,
+      playedStroke:   playedStr  ? playedStr.value  : null,
+      pulseColors:    cols.length ? cols : null,
+    };
+    localStorage.setItem("shukuma-anim-overrides", JSON.stringify(ov));
+    if (id === _activeTheme) applyTheme(id, false);
+    showToast("Animation theme customisation saved.");
+  });
+
+  if (resetBtn) resetBtn.addEventListener("click", function() {
+    var id = select.value;
+    var ov = getOverrides();
+    delete ov[id];
+    localStorage.setItem("shukuma-anim-overrides", JSON.stringify(ov));
+    populateFields(id);
+    if (id === _activeTheme) applyTheme(id, false);
+    showToast("Reset to default for " + getThemeById(id).name + ".");
+  });
+}
 
 // Haptic intensity multiplier (1 = normal, admin-adjustable)
 var hapticIntensity = parseFloat(localStorage.getItem("shukuma-haptic-intensity") || "1");
@@ -4695,14 +5094,14 @@ function applyDarkMode(on) {
   localStorage.setItem("shukuma-dark-mode", on ? "1" : "0");
   var tcMeta = document.getElementById("theme-color-meta");
   if (tcMeta) tcMeta.content = on ? "#1c1c1e" : "#f2f2f7";
+  buildColours();
+  renderAllTiles();
 }
 
 function applyColourTheme(theme) {
-  colourTheme = theme;
-  document.documentElement.dataset.colour = theme === "default" ? "" : theme;
-  localStorage.setItem("shukuma-colour-theme", theme);
-  buildColours();
-  renderAllTiles();
+  keepColourful = false;
+  localStorage.setItem("shukuma-keep-colourful", "0");
+  applyTheme(theme, true);
 }
 
 function applyTextSize(size) {
@@ -4717,13 +5116,15 @@ function loadUserSettings() {
   soundEnabled   = localStorage.getItem("shukuma-sound") !== "0";
   hapticsEnabled = localStorage.getItem("shukuma-haptics") !== "0";
   colourTheme    = localStorage.getItem("shukuma-colour-theme") || "default";
+  keepColourful  = localStorage.getItem("shukuma-keep-colourful") === "1";
   textSize       = localStorage.getItem("shukuma-text-size") || "normal";
   document.documentElement.dataset.theme    = darkMode ? "dark" : "";
-  document.documentElement.dataset.colour   = colourTheme === "default" ? "" : colourTheme;
   document.documentElement.dataset.textsize = textSize === "normal" ? "" : textSize;
   // Sync status bar theme-color (Dynamic Island area)
   var tcMeta = document.getElementById("theme-color-meta");
   if (tcMeta) tcMeta.content = darkMode ? "#1c1c1e" : "#f2f2f7";
+  // Apply colour theme (keepColourful auto-selects by date)
+  applyTheme(keepColourful ? getAutoTheme() : colourTheme, false);
 }
 
 // Attempt + time tracking
@@ -8509,19 +8910,28 @@ function initShakeDetect() {
 
 // ─── Board opening animation ──────────────────────────────────────────────────
 
-// Animate one tile (any state) with a staggered delay
-function pulseTileOnce(tile, delayMs) {
+// Animate one tile (any state) with a staggered delay.
+// colorHex: optional hex string to override the CSS pulse color for this tile.
+function pulseTileOnce(tile, delayMs, colorHex) {
   setTimeout(function() {
     var g = document.getElementById("tile-" + tile.id);
     if (!g) return;
     var poly = g.querySelector("polygon:not(.hatch-overlay)");
     if (!poly) return;
+    if (colorHex) poly.style.setProperty("--pulse-color", colorHex);
     if (tile.state === "neutral") {
       poly.classList.add("tile-pulse");
-      setTimeout(function() { poly.classList.remove("tile-pulse"); renderTile(tile); }, 600);
+      setTimeout(function() {
+        poly.classList.remove("tile-pulse");
+        poly.style.removeProperty("--pulse-color");
+        renderTile(tile);
+      }, 600);
     } else {
       poly.classList.add("tile-pulse-any");
-      setTimeout(function() { poly.classList.remove("tile-pulse-any"); }, 600);
+      setTimeout(function() {
+        poly.classList.remove("tile-pulse-any");
+        poly.style.removeProperty("--pulse-color");
+      }, 600);
     }
   }, delayMs);
 }
@@ -8644,9 +9054,11 @@ function runBoardOpenAnimation() {
 
   var ordered = PATTERNS[Math.floor(Math.random() * PATTERNS.length)]();
   var STEP = 38; // ms between each tile
+  var pulseColors = getThemePulseColors(_activeTheme);
 
   ordered.forEach(function(tile, idx) {
-    pulseTileOnce(tile, idx * STEP);
+    var colorHex = pulseColors[idx % pulseColors.length];
+    pulseTileOnce(tile, idx * STEP, colorHex);
   });
 }
 
@@ -8833,7 +9245,7 @@ function renderSettingsPanel() {
 
   // Colour theme
   document.querySelectorAll(".colour-theme-btn").forEach(function(btn) {
-    btn.classList.toggle("active", btn.dataset.theme === colourTheme);
+    btn.classList.toggle("active", btn.dataset.theme === _activeTheme);
   });
 
   // Text size
@@ -8907,15 +9319,18 @@ function initSettings() {
     if (hapticsEnabled) triggerHaptic(15); // confirm haptics are working
   });
 
-  // Colour theme
-  document.querySelectorAll(".colour-theme-btn").forEach(function(btn) {
-    btn.addEventListener("click", function() {
-      applyColourTheme(btn.dataset.theme);
-      document.querySelectorAll(".colour-theme-btn").forEach(function(b) {
-        b.classList.toggle("active", b.dataset.theme === colourTheme);
-      });
+  // Colour theme — build picker and wire keep-colourful toggle
+  buildThemePicker();
+  var kcToggle = document.getElementById("setting-keep-colourful");
+  if (kcToggle) {
+    kcToggle.checked = keepColourful;
+    kcToggle.addEventListener("change", function() {
+      keepColourful = this.checked;
+      localStorage.setItem("shukuma-keep-colourful", keepColourful ? "1" : "0");
+      var themeToApply = keepColourful ? getAutoTheme() : colourTheme;
+      applyTheme(themeToApply, false);
     });
-  });
+  }
 
   // Push notifications
   var notifToggle = document.getElementById("setting-notif");
@@ -9810,6 +10225,9 @@ function initAdmin() {
 
   var resetAllScoresBtn = document.getElementById("admin-reset-all-scores-btn");
   if (resetAllScoresBtn) resetAllScoresBtn.addEventListener("click", resetAllScores);
+
+  // ── Animation Themes editor ─────────────────────────────────────────────
+  initAdminAnimThemes();
 
   // ── Admin Nav (accordion + sticky pills) ───────────────────────────────
   initAdminNav();

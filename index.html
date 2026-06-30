@@ -352,23 +352,14 @@
 
               <div class="settings-section">
                 <h3 class="settings-section-title">Colour Theme</h3>
-                <div class="colour-theme-grid">
-                  <button class="colour-theme-btn active" data-theme="default">
-                    <span class="theme-swatch" style="background:#22c55e"></span>
-                    <span class="theme-swatch" style="background:#ef4444"></span>
-                    Default
-                  </button>
-                  <button class="colour-theme-btn" data-theme="protanopia">
-                    <span class="theme-swatch" style="background:#4a90d9"></span>
-                    <span class="theme-swatch" style="background:#f5a623"></span>
-                    Red-Green
-                  </button>
-                  <button class="colour-theme-btn" data-theme="highcontrast">
-                    <span class="theme-swatch" style="background:#00ff00"></span>
-                    <span class="theme-swatch" style="background:#ff0000"></span>
-                    High Contrast
-                  </button>
-                </div>
+                <label class="settings-row">
+                  <span class="settings-label">
+                    Keep me colourful
+                    <small class="settings-sublabel">Auto-switches with seasons &amp; events</small>
+                  </span>
+                  <input type="checkbox" id="setting-keep-colourful" class="settings-toggle" />
+                </label>
+                <div id="theme-picker"><!-- Populated by JS from THEMES array --></div>
               </div>
 
               <div class="settings-section" id="settings-account" hidden>
@@ -855,6 +846,53 @@
           placeholder="One message per line…"></textarea>
         <div class="admin-actions" style="margin-top:6px;">
           <button class="admin-btn" id="admin-save-cycle-messages-btn">Save Messages</button>
+        </div>
+      </div>
+
+      <!-- ── Animation Themes ──────────────────────────────────── -->
+      <div class="admin-section" data-section="animthemes">
+        <h3>Animation Themes</h3>
+        <p class="admin-mode-note">Customise pulse colours and auto-switch date windows for each animation theme. Saved to this device only.</p>
+        <div style="margin-bottom:10px;">
+          <select id="admin-anim-theme-select" style="width:100%;padding:8px 10px;border:1.5px solid #ddd;border-radius:8px;font-size:0.92rem;font-family:inherit;"></select>
+        </div>
+        <div id="admin-anim-preview" style="height:12px;border-radius:6px;margin-bottom:12px;background:#ccc;transition:background 0.3s;"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+          <label style="font-size:0.82rem;display:flex;flex-direction:column;gap:3px;">
+            Pulse fill · Light
+            <input type="color" id="admin-anim-pulse-light" style="height:34px;border:1px solid #ddd;border-radius:6px;padding:2px 4px;width:100%;" />
+          </label>
+          <label style="font-size:0.82rem;display:flex;flex-direction:column;gap:3px;">
+            Pulse fill · Dark
+            <input type="color" id="admin-anim-pulse-dark" style="height:34px;border:1px solid #ddd;border-radius:6px;padding:2px 4px;width:100%;" />
+          </label>
+          <label style="font-size:0.82rem;display:flex;flex-direction:column;gap:3px;">
+            Played tile colour
+            <input type="color" id="admin-anim-played" style="height:34px;border:1px solid #ddd;border-radius:6px;padding:2px 4px;width:100%;" />
+          </label>
+          <label style="font-size:0.82rem;display:flex;flex-direction:column;gap:3px;">
+            Played tile stroke
+            <input type="color" id="admin-anim-played-stroke" style="height:34px;border:1px solid #ddd;border-radius:6px;padding:2px 4px;width:100%;" />
+          </label>
+        </div>
+        <label style="font-size:0.82rem;display:flex;flex-direction:column;gap:3px;margin-bottom:10px;">
+          Gradient pulse colours (comma-separated hex)
+          <input type="text" id="admin-anim-pulse-colors" placeholder="#ff0000, #ff8800, #ffff00"
+            style="padding:8px 10px;border:1.5px solid #ddd;border-radius:8px;font-size:0.85rem;font-family:monospace;" />
+        </label>
+        <label style="font-size:0.82rem;display:flex;flex-direction:column;gap:3px;margin-bottom:12px;">
+          Auto-switch window (M/D · leave blank for manual only)
+          <div style="display:flex;align-items:center;gap:8px;margin-top:2px;">
+            <input type="text" id="admin-anim-auto-start" placeholder="M/D"
+              style="width:64px;padding:7px 10px;border:1.5px solid #ddd;border-radius:8px;font-size:0.88rem;font-family:inherit;text-align:center;" />
+            <span style="color:#aaa;font-size:0.85rem;">to</span>
+            <input type="text" id="admin-anim-auto-end" placeholder="M/D"
+              style="width:64px;padding:7px 10px;border:1.5px solid #ddd;border-radius:8px;font-size:0.88rem;font-family:inherit;text-align:center;" />
+          </div>
+        </label>
+        <div class="admin-actions">
+          <button class="admin-btn" id="admin-anim-save-btn">Save Customisation</button>
+          <button class="admin-btn admin-btn-secondary" id="admin-anim-reset-btn">Reset to Default</button>
         </div>
       </div>
 
