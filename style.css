@@ -1718,6 +1718,8 @@ html[data-reduce-motion] .tile-hint-poly     { animation: none !important; fill:
   margin-right: 5px;
 }
 .wl-def-panel em { color: var(--text-muted); font-style: italic; }
+/* Blank-tile substitute letter shown underlined in the word text */
+.wl-blank-letter { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 2px; }
 
 /* ── Scores tab: players section ─────────────────────────────────── */
 .scores-players-hdr {
@@ -4597,63 +4599,50 @@ html[data-theme="dark"] #ep-header h3 { color: white; }
   font-variant-numeric: tabular-nums;
 }
 .hint-picker-options {
-  padding: 8px 14px;
+  padding: 10px 14px 18px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 8px;
 }
 .hint-pick-btn {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 3px;
-  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   background: rgba(0,0,0,0.04);
   border: 1.5px solid transparent;
-  border-radius: 12px;
-  padding: 12px 14px;
-  text-align: left;
+  border-radius: 14px;
+  padding: 14px 6px;
   font-family: inherit;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: background 0.12s, border-color 0.12s;
+  transition: background 0.12s, border-color 0.12s, opacity 0.12s;
+  min-height: 78px;
 }
-.hint-pick-btn:active { background: rgba(0,0,0,0.08); }
-.hint-pick-btn:disabled { opacity: 0.45; cursor: default; }
+.hint-pick-btn:active { background: rgba(0,0,0,0.10); }
+.hint-pick-btn:disabled { opacity: 0.40; cursor: default; }
 .hint-pick-btn.hint-pick-danger { border-color: rgba(239,68,68,0.25); background: rgba(239,68,68,0.05); }
-.hint-pick-btn.hint-pick-unaffordable { opacity: 0.6; }
-.hint-pick-main {
+.hint-pick-btn.hint-pick-unaffordable { opacity: 0.55; }
+.hpc-cost {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
-}
-.hint-pick-name {
+  gap: 2px;
   font-size: 1rem;
+  font-weight: 800;
+  color: var(--brand);
+  line-height: 1;
+}
+.hpc-cost-num { font-variant-numeric: tabular-nums; }
+.hint-pick-danger .hpc-cost { color: #dc2626; }
+.hpc-label {
+  font-size: 0.78rem;
   font-weight: 700;
   color: var(--text-primary);
+  text-align: center;
 }
-.hint-pick-danger .hint-pick-name { color: #dc2626; }
-.hint-pick-cost {
-  font-size: var(--fs-sm);
-  font-weight: 700;
-  color: var(--brand);
-  background: rgba(var(--brand-rgb, 255,45,85), 0.10);
-  padding: 2px 8px;
-  border-radius: 10px;
-}
-.hint-pick-danger .hint-pick-cost { color: #dc2626; background: rgba(239,68,68,0.12); }
-.hint-pick-desc {
-  font-size: var(--fs-sm);
-  color: var(--text-secondary);
-  line-height: 1.4;
-}
-.hint-pick-num { font-weight: 700; color: var(--text-primary); }
-#hint-picker-cancel {
-  display: block;
-  width: calc(100% - 28px);
-  margin: 4px 14px 0;
-}
+.hint-pick-danger .hpc-label { color: #dc2626; }
 
 /* ── Define-hint modal ───────────────────────────────────────────── */
 #define-hint-modal {
@@ -4681,13 +4670,6 @@ html[data-theme="dark"] #ep-header h3 { color: white; }
   display: flex;
   flex-direction: column;
   gap: 12px;
-}
-#define-hint-word {
-  font-size: 1.4rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  color: var(--text-primary);
-  text-align: center;
 }
 #define-hint-body {
   font-size: var(--fs-sm);
@@ -4751,11 +4733,6 @@ html[data-theme="dark"] #ep-header h3 { color: white; }
   transition: opacity 0.25s ease, transform 0.25s ease;
 }
 .defeat-letter.defeat-letter-show { opacity: 1; transform: translateY(0); }
-.defeat-sub {
-  font-size: var(--fs-sm);
-  color: var(--text-secondary);
-  line-height: 1.5;
-}
 #defeat-close { align-self: stretch; }
 
 /* ── Flying ticket animation ─────────────────────────────────────── */
@@ -4776,6 +4753,34 @@ html[data-theme="dark"] #ep-header h3 { color: white; }
   0%   { transform: translate(0,0) scale(1);    opacity: 1; }
   60%  { transform: translate(0,30px) scale(0.9); opacity: 0.8; }
   100% { transform: translate(0,55px) scale(0.6); opacity: 0; }
+}
+
+/* ── Defeated board overlay ──────────────────────────────────────── */
+#defeated-board-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.55);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+#defeated-board-overlay.dbo-show {
+  opacity: 1;
+  pointer-events: auto;
+}
+.dbo-hex { width: 110px; height: 127px; }
+.dbo-label {
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 900;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  margin-top: 14px;
 }
 
 /* ── Dark mode for new elements ──────────────────────────────────── */

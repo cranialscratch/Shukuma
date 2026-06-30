@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2.0.76" />
+  <link rel="stylesheet" href="style.css?v=2.0.77" />
 </head>
 <body>
   <!-- Screen reader live region — JS calls srAnnounce() to update this -->
@@ -527,30 +527,18 @@
       </div>
       <div class="hint-picker-options">
         <button id="hint-pick-letter" class="hint-pick-btn">
-          <div class="hint-pick-main">
-            <span class="hint-pick-name">Letter</span>
-            <span class="hint-pick-cost" data-cost="1">-1 Ticket</span>
-          </div>
-          <div class="hint-pick-desc">
-            <span class="hint-pick-num">Letter 1</span> — highlighted on the board for a few seconds
-          </div>
+          <span class="hpc-cost"><span class="hpc-cost-num">-1</span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg></span>
+          <span class="hpc-label">Letter</span>
         </button>
         <button id="hint-pick-define" class="hint-pick-btn">
-          <div class="hint-pick-main">
-            <span class="hint-pick-name">Define</span>
-            <span class="hint-pick-cost" data-cost="5">-5 Tickets</span>
-          </div>
-          <div class="hint-pick-desc">Show the definition of today's word</div>
+          <span class="hpc-cost"><span class="hpc-cost-num">-5</span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg></span>
+          <span class="hpc-label">Define</span>
         </button>
         <button id="hint-pick-defeat" class="hint-pick-btn hint-pick-danger">
-          <div class="hint-pick-main">
-            <span class="hint-pick-name">Defeat</span>
-            <span class="hint-pick-cost" data-cost="10">-10 Tickets</span>
-          </div>
-          <div class="hint-pick-desc">Reveal the word — rank changes to Defeated</div>
+          <span class="hpc-cost"><span class="hpc-cost-num">-10</span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg></span>
+          <span class="hpc-label">Defeat</span>
         </button>
       </div>
-      <button id="hint-picker-cancel" class="hint-cancel-btn">Cancel</button>
     </div>
   </div>
 
@@ -558,7 +546,6 @@
   <div id="define-hint-modal" hidden>
     <div id="define-hint-overlay"></div>
     <div id="define-hint-card">
-      <div id="define-hint-word"></div>
       <div id="define-hint-body"></div>
       <button id="define-hint-close" class="brand-btn">Close</button>
     </div>
@@ -570,9 +557,19 @@
     <div id="defeat-card">
       <div class="defeat-title">Today's Word</div>
       <div id="defeat-letters" class="defeat-letters"></div>
-      <p class="defeat-sub">You can still find it on the board and explore other words.<br>Your rank will show as <strong>Defeated</strong>.</p>
       <button id="defeat-close" class="brand-btn">Got It</button>
     </div>
+  </div>
+
+  <!-- Board defeated overlay (sad face, shown briefly after defeat modal closes) -->
+  <div id="defeated-board-overlay" hidden aria-hidden="true">
+    <svg class="dbo-hex" viewBox="0 0 100 115" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="50,4 96,28 96,88 50,112 4,88 4,28" fill="var(--board-bg,#3d1a24)" stroke="var(--brand,#ff2d55)" stroke-width="3"/>
+      <circle cx="36" cy="50" r="4.5" fill="white"/>
+      <circle cx="64" cy="50" r="4.5" fill="white"/>
+      <path d="M34 74 Q50 64 66 74" stroke="white" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+    </svg>
+    <div class="dbo-label">Defeated</div>
   </div>
 
   <!-- ── Auth Modal ─────────────────────────────────────────────────────── -->
@@ -1188,6 +1185,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 
-  <script src="game.js?v=2.0.76"></script>
+  <script src="game.js?v=2.0.77"></script>
 </body>
 </html>

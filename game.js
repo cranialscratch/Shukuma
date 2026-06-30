@@ -3822,11 +3822,24 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.76";
+const VERSION = "2.0.77";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.77",
+    date: "2026-06-30",
+    title: "Blank multi-word, underlined blank letters, full board word list",
+    changes: [
+      "Blank tile multi-word: all valid words from every letter substitution are now awarded, not just the first one found",
+      "Words found using a blank tile now show the substituted letter underlined in the word list",
+      "Word list now pre-populates with every valid 4+ letter word on the board, shown locked until you find them",
+      "findWordPath now handles blank tiles as wildcards so score-card highlights work for blank-formed words",
+      "Dictionary API: network errors no longer cache as 'invalid' — only confirmed 404s are cached as false",
+      "Clear (↺) and submit now correctly handle blank paths where every valid word variant was already found",
+    ],
+  },
   {
     version: "2.0.76",
     date: "2026-06-30",
@@ -5467,6 +5480,12 @@ var _highlightTimer = null;
 // Definition cache { word: html }
 var _defCache = {};
 
+// All valid 4+ letter words findable on the current board (populated async at load)
+var allBoardWords = [];
+
+// Maps found word (uppercase) → 0-based index of the blank tile in that word's path
+var foundWordBlanks = {};
+
 // Tile IDs forming the current best-score word (shown in indigo)
 let playedPath = [];
 let playedPathVisible = true; // false after clearBoard(); resets only on page load
@@ -5560,6 +5579,97 @@ function getBlankCandidates(path) {
   return candidates;
 }
 
+// Returns ALL unique valid words (WORDS + API) for a blank-containing path
+async function resolveBlankPath(path) {
+  var letters = path.map(function(id) { return tiles[id].letter.toLowerCase(); });
+  var blankPos = [];
+  letters.forEach(function(l, i) { if (l === "") blankPos.push(i); });
+  if (blankPos.length === 0) return []; // caller should use validateWord for non-blank paths
+
+  var allCandidates = [];
+  function gen(bi, arr) {
+    if (bi === blankPos.length) { allCandidates.push(arr.join("")); return; }
+    for (var c = 97; c <= 122; c++) {
+      arr[blankPos[bi]] = String.fromCharCode(c);
+      gen(bi + 1, arr.slice());
+    }
+  }
+  gen(0, letters.slice());
+
+  var found = new Set();
+
+  // Fast pass: WORDS set (synchronous)
+  allCandidates.forEach(function(c) {
+    if (!OFFENSIVE_WORDS.has(c) && WORDS.has(c)) found.add(c);
+  });
+
+  // API pass: only candidates not already found and not in WORDS
+  var apiNeeded = allCandidates.filter(function(c) {
+    return !OFFENSIVE_WORDS.has(c) && !WORDS.has(c) && !found.has(c);
+  });
+  var apiResults = await Promise.all(apiNeeded.map(function(c) {
+    return checkDictionaryAPI(c).then(function(ok) { return ok ? c : null; }).catch(function() { return null; });
+  }));
+  apiResults.forEach(function(c) { if (c) found.add(c); });
+
+  return Array.from(found);
+}
+
+// Award a bonus word found via a different blank substitution on the same tile path
+function awardBonusWord(word, path) {
+  if (foundWords.includes(word.toUpperCase())) return;
+  // Record blank position for underline display
+  if (path && path.length) {
+    path.forEach(function(id, i) {
+      if (tiles[id] && tiles[id].blank) foundWordBlanks[word.toUpperCase()] = i;
+    });
+  }
+  foundWords.push(word.toUpperCase());
+  var len = word.length;
+  if (len > bestScore) { bestScore = len; bestWord = word; }
+  saveState();
+  updateScoreDisplay(word);
+  updateShareBtn();
+  showToast("Bonus word: " + word.toUpperCase() + " (" + len + " letters)");
+}
+
+// Returns all valid 4+ letter words on the current board using the WORDS set
+function findAllBoardWords() {
+  if (!tiles || !tiles.length || !WORD_PREFIXES) return [];
+  var found = new Set();
+  var visited = new Uint8Array(tiles.length);
+
+  function dfs(tileId, word) {
+    if (!WORD_PREFIXES.has(word)) return;
+    if (word.length >= 4 && WORDS.has(word) && !OFFENSIVE_WORDS.has(word)) found.add(word.toUpperCase());
+    if (word.length >= 16) return;
+    adjacency[tileId].forEach(function(nextId) {
+      if (visited[nextId]) return;
+      visited[nextId] = 1;
+      var letter = tiles[nextId].letter.toLowerCase();
+      if (letter === "") {
+        for (var c = 97; c <= 122; c++) dfs(nextId, word + String.fromCharCode(c));
+      } else {
+        dfs(nextId, word + letter);
+      }
+      visited[nextId] = 0;
+    });
+  }
+
+  tiles.forEach(function(tile) {
+    visited[tile.id] = 1;
+    var letter = tile.letter.toLowerCase();
+    if (letter === "") {
+      for (var c = 97; c <= 122; c++) dfs(tile.id, String.fromCharCode(c));
+    } else {
+      dfs(tile.id, letter);
+    }
+    visited[tile.id] = 0;
+  });
+
+  return Array.from(found).sort(function(a, b) { return b.length - a.length; });
+}
+
 // ─── Word validation ──────────────────────────────────────────────────────────
 function validateWord(path) {
   const letters = path.map(id => tiles[id].letter.toLowerCase());
@@ -5595,9 +5705,13 @@ async function checkDictionaryAPI(word) {
   try {
     var resp = await fetch("https://api.dictionaryapi.dev/api/v2/entries/en/" + key);
     if (resp.ok) { apiCache.set(key, true); return true; }
-  } catch (_) {}
-  apiCache.set(key, false);
-  return false;
+    if (resp.status === 404) { apiCache.set(key, false); return false; }
+    // Other errors (5xx, network issues) — don't cache so we retry next time
+    return false;
+  } catch (_) {
+    // Network error — don't cache
+    return false;
+  }
 }
 
 // ─── Rendering ────────────────────────────────────────────────────────────────
@@ -5870,17 +5984,13 @@ function buildBoard() {
 
 // ─── Selection logic ──────────────────────────────────────────────────────────
 function restoreTileDefault(t) {
-  t.state = (playedPathVisible && playedPath.includes(t.id)) ? "played" : "neutral";
+  t.state = "neutral";
   t._resolvedLetter = "";
 }
 
 function clearSelection() {
-  tiles.forEach(function(t) {
-    if (t.state !== "played") { t.state = "neutral"; t._resolvedLetter = ""; }
-  });
-  if (playedPathVisible) {
-    playedPath.forEach(function(id) { if (tiles[id]) tiles[id].state = "played"; });
-  }
+  if (_highlightTimer) { clearTimeout(_highlightTimer); _highlightTimer = null; }
+  tiles.forEach(function(t) { t.state = "neutral"; t._resolvedLetter = ""; });
   selectedPath = [];
   renderAllTiles();
   updateAnswerArea();
@@ -6009,35 +6119,42 @@ async function onPointerUp(e) {
     if (selectedPath.length === 1) { clearSelection(); return; } // reverted to start — silent clear
     if (selectedPath.length < 4) { flashInvalid("Need 4+"); return; }
     attemptCount++;
-    var validWord = validateWord(selectedPath);
-    if (validWord) {
-      if (OFFENSIVE_WORDS.has(validWord.toLowerCase())) { flashInvalid(); return; }
-      lockValidWord(validWord); return;
-    }
     var hasBlanks = selectedPath.some(function(id) { return tiles[id].blank; });
     var answerEl = document.getElementById("answer-text");
-    if (hasBlanks) {
-      // Try all blank substitutions via API in parallel
-      isChecking = true;
-      if (answerEl) answerEl.classList.add("checking");
-      var candidates = getBlankCandidates(selectedPath).filter(function(c) { return !OFFENSIVE_WORDS.has(c); });
-      var results = await Promise.all(candidates.map(function(c) {
-        return checkDictionaryAPI(c).then(function(ok) { return ok ? c : null; }).catch(function() { return null; });
-      }));
-      var resolved = results.find(Boolean) || null;
-      isChecking = false;
-      if (answerEl) answerEl.classList.remove("checking");
-      if (resolved) { lockValidWord(resolved); return; }
-    } else {
+    if (!hasBlanks) {
+      var validWord = validateWord(selectedPath);
+      if (validWord && !OFFENSIVE_WORDS.has(validWord.toLowerCase())) { lockValidWord(validWord); return; }
+      // API fallback for non-WORDS words
       var word = selectedPath.map(function(id) { return tiles[id].letter.toLowerCase(); }).join("");
-      if (OFFENSIVE_WORDS.has(word)) { flashInvalid(); return; }
-      isChecking = true;
-      if (answerEl) answerEl.classList.add("checking");
-      var found = false;
-      try { found = await checkDictionaryAPI(word); } catch (_) {}
-      isChecking = false;
-      if (answerEl) answerEl.classList.remove("checking");
-      if (found) { lockValidWord(word); return; }
+      if (!OFFENSIVE_WORDS.has(word)) {
+        isChecking = true; if (answerEl) answerEl.classList.add("checking");
+        var apiFound = false;
+        try { apiFound = await checkDictionaryAPI(word); } catch (_) {}
+        isChecking = false; if (answerEl) answerEl.classList.remove("checking");
+        if (apiFound) { lockValidWord(word); return; }
+      }
+    } else {
+      // Blank path: find ALL valid words across all substitutions
+      isChecking = true; if (answerEl) answerEl.classList.add("checking");
+      var allValid = await resolveBlankPath(selectedPath);
+      isChecking = false; if (answerEl) answerEl.classList.remove("checking");
+      var freshWords = allValid.filter(function(w) { return !foundWords.includes(w.toUpperCase()); });
+      if (freshWords.length) {
+        var savedPath = selectedPath.slice();
+        lockValidWord(freshWords[0]);
+        freshWords.slice(1).forEach(function(w, i) {
+          setTimeout(function() {
+            if (!foundWords.includes(w.toUpperCase())) awardBonusWord(w, savedPath);
+          }, 1900 + i * 900);
+        });
+        return;
+      } else if (allValid.length) {
+        // All valid variants already found
+        showAlreadyFoundAnim();
+        triggerHaptic([40, 20, 40, 20, 40, 20, 40, 20, 40]);
+        setTimeout(clearSelection, 1500);
+        return;
+      }
     }
     flashInvalid();
     return;
@@ -6120,7 +6237,10 @@ function lockValidWord(word) {
   validAttemptCount++;
   selectedPath.forEach(function(id, i) {
     tiles[id].state = "valid";
-    if (tiles[id].blank) tiles[id]._resolvedLetter = word[i] || "";
+    if (tiles[id].blank) {
+      tiles[id]._resolvedLetter = word[i] || "";
+      foundWordBlanks[word.toUpperCase()] = i;
+    }
   });
   renderAllTiles();
   const len = selectedPath.length;
@@ -6240,35 +6360,42 @@ function flashInvalid(customCheer) {
 
 async function submitTappedWord() {
   if (selectedPath.length < 4) { showToast("Minimum 4 letters"); flashInvalid(); return; }
-  var validWord = validateWord(selectedPath);
-  if (validWord) {
-    if (OFFENSIVE_WORDS.has(validWord.toLowerCase())) { flashInvalid(); return; }
-    lockValidWord(validWord); return;
-  }
   var hasBlanks = selectedPath.some(function(id) { return tiles[id].blank; });
   var answerEl2 = document.getElementById("answer-text");
-  if (hasBlanks) {
-    // Try all blank substitutions via API in parallel
-    isChecking = true;
-    if (answerEl2) answerEl2.classList.add("checking");
-    var candidates2 = getBlankCandidates(selectedPath).filter(function(c) { return !OFFENSIVE_WORDS.has(c); });
-    var results2 = await Promise.all(candidates2.map(function(c) {
-      return checkDictionaryAPI(c).then(function(ok) { return ok ? c : null; }).catch(function() { return null; });
-    }));
-    var resolved2 = results2.find(Boolean) || null;
-    isChecking = false;
-    if (answerEl2) answerEl2.classList.remove("checking");
-    if (resolved2) { lockValidWord(resolved2); return; }
-  } else {
+  if (!hasBlanks) {
+    var validWord = validateWord(selectedPath);
+    if (validWord && !OFFENSIVE_WORDS.has(validWord.toLowerCase())) { lockValidWord(validWord); return; }
+    // API fallback for non-WORDS words
     var word2 = selectedPath.map(function(id) { return tiles[id].letter.toLowerCase(); }).join("");
-    if (OFFENSIVE_WORDS.has(word2)) { flashInvalid(); return; }
-    isChecking = true;
-    if (answerEl2) answerEl2.classList.add("checking");
-    var found2 = false;
-    try { found2 = await checkDictionaryAPI(word2); } catch (_) {}
-    isChecking = false;
-    if (answerEl2) answerEl2.classList.remove("checking");
-    if (found2) { lockValidWord(word2); return; }
+    if (!OFFENSIVE_WORDS.has(word2)) {
+      isChecking = true; if (answerEl2) answerEl2.classList.add("checking");
+      var found2 = false;
+      try { found2 = await checkDictionaryAPI(word2); } catch (_) {}
+      isChecking = false; if (answerEl2) answerEl2.classList.remove("checking");
+      if (found2) { lockValidWord(word2); return; }
+    }
+  } else {
+    // Blank path: find ALL valid words across all substitutions
+    isChecking = true; if (answerEl2) answerEl2.classList.add("checking");
+    var allValid2 = await resolveBlankPath(selectedPath);
+    isChecking = false; if (answerEl2) answerEl2.classList.remove("checking");
+    var freshWords2 = allValid2.filter(function(w) { return !foundWords.includes(w.toUpperCase()); });
+    if (freshWords2.length) {
+      var savedPath2 = selectedPath.slice();
+      lockValidWord(freshWords2[0]);
+      freshWords2.slice(1).forEach(function(w, i) {
+        setTimeout(function() {
+          if (!foundWords.includes(w.toUpperCase())) awardBonusWord(w, savedPath2);
+        }, 1900 + i * 900);
+      });
+      return;
+    } else if (allValid2.length) {
+      // All valid variants already found
+      showAlreadyFoundAnim();
+      triggerHaptic([40, 20, 40, 20, 40, 20, 40, 20, 40]);
+      setTimeout(clearSelection, 1500);
+      return;
+    }
   }
   flashInvalid();
 }
@@ -6312,7 +6439,9 @@ function findWordPath(word) {
       : Array.from(adjacency[prevId] || []).map(function(id) { return tiles[id]; });
     for (var i = 0; i < candidates.length; i++) {
       var t = candidates[i];
-      if (!t || used[t.id] || t.letter.toUpperCase() !== L) continue;
+      if (!t || used[t.id]) continue;
+      // Blank tile matches any letter; normal tile must match exactly
+      if (t.letter !== "" && t.letter.toUpperCase() !== L) continue;
       used[t.id] = true;
       var sub = dfs(depth + 1, t.id, used);
       if (sub !== null) return [t.id].concat(sub);
@@ -6325,28 +6454,32 @@ function findWordPath(word) {
 
 function highlightWordOnBoard(word) {
   var path = findWordPath(word);
-  if (!path || !path.length) { showToast("Cannot find " + word + " on this board"); return; }
+  if (!path || !path.length) return;
 
-  // Clear current selection and any running auto-clear timer
   if (_highlightTimer) { clearTimeout(_highlightTimer); _highlightTimer = null; }
   clearSelection();
 
-  // Animate tiles sequentially
+  // Sequential tile reveal (fast)
   path.forEach(function(id, idx) {
     setTimeout(function() {
       tiles[id].state = "selected";
       selectedPath = path.slice(0, idx + 1);
       renderAllTiles();
       updateAnswerArea();
-    }, idx * 110);
+    }, idx * 80);
   });
 
-  // Auto-clear after 5 seconds (counted from when last tile illuminates)
-  var clearAfter = (path.length * 110) + 5000;
-  _highlightTimer = setTimeout(function() {
-    _highlightTimer = null;
-    clearSelection();
-  }, clearAfter);
+  // Flash all tiles together once the sequence completes
+  var flashAt = path.length * 80 + 60;
+  setTimeout(function() {
+    path.forEach(function(id) { tiles[id].state = "valid"; });
+    renderAllTiles();
+    setTimeout(function() {
+      // Stay highlighted as selected — user clears by interacting or pressing ↺
+      path.forEach(function(id) { tiles[id].state = "selected"; });
+      renderAllTiles();
+    }, 300);
+  }, flashAt);
 }
 
 function doLetterHint(free) {
@@ -6378,12 +6511,16 @@ function doLetterHint(free) {
   hintsUsed++;
   saveState();
   closeHintPicker();
-  pulseHintTile(path[revealIdx]);
+
+  // Pulse ALL letters revealed so far in cumulative sequence
+  path.slice(0, hintsUsed).forEach(function(id, idx) {
+    setTimeout(function() { pulseHintTile(id); }, idx * 160);
+  });
 
   if (!wasDefeated && gameDefeated) {
     showToast("Rank set to Defeated — keep exploring other words!");
   } else if (free) {
-    showToast("Free hint — letter highlighted!");
+    showToast("Letter highlighted!");
   } else {
     showToast("Letter " + hintsUsed + " of " + path.length + " revealed");
   }
@@ -6430,34 +6567,34 @@ function showHintPicker() {
   // Letter btn
   var letterBtn = document.getElementById("hint-pick-letter");
   if (letterBtn) {
-    var lCost = letterBtn.querySelector(".hint-pick-cost");
-    var lNum  = letterBtn.querySelector(".hint-pick-num");
-    if (lCost) lCost.textContent = isAtLimit ? "Free (rank: Defeated)" : "-1 Ticket";
-    if (lNum)  lNum.textContent  = "Letter " + (hintsUsed + 1) + (totalLetters ? " of " + totalLetters : "");
-    var canLetter = hintsUsed < totalLetters && (isAtLimit || ticketCount >= 1);
-    letterBtn.classList.toggle("hint-pick-unaffordable", !canLetter && !isAtLimit);
-    letterBtn.dataset.canAfford = canLetter ? "1" : "0";
+    var allRevealed = hintsUsed >= totalLetters && totalLetters > 0;
+    var costNum = letterBtn.querySelector(".hpc-cost-num");
+    if (costNum) costNum.textContent = allRevealed ? "✓" : isAtLimit ? "Free" : "-1";
+    var canLetter = !allRevealed && (isAtLimit || ticketCount >= 1);
+    letterBtn.disabled = allRevealed;
+    letterBtn.dataset.canAfford = (allRevealed || canLetter) ? "1" : "0";
+    letterBtn.classList.toggle("hint-pick-unaffordable", !canLetter && !isAtLimit && !allRevealed);
   }
 
   // Define btn
   var defineBtn = document.getElementById("hint-pick-define");
   if (defineBtn) {
-    var dCost = defineBtn.querySelector(".hint-pick-cost");
-    if (dCost) dCost.textContent = defineHintUsed ? "Free" : "-5 Tickets";
+    var dCostNum = defineBtn.querySelector(".hpc-cost-num");
+    if (dCostNum) dCostNum.textContent = defineHintUsed ? "✓" : "-5";
     var canDefine = defineHintUsed || ticketCount >= 5;
-    defineBtn.classList.toggle("hint-pick-unaffordable", !canDefine);
     defineBtn.dataset.canAfford = canDefine ? "1" : "0";
+    defineBtn.classList.toggle("hint-pick-unaffordable", !canDefine);
   }
 
   // Defeat btn
   var defeatBtn = document.getElementById("hint-pick-defeat");
   if (defeatBtn) {
-    var fCost = defeatBtn.querySelector(".hint-pick-cost");
-    if (fCost) fCost.textContent = gameDefeated ? "Already used" : "-10 Tickets";
+    var fCostNum = defeatBtn.querySelector(".hpc-cost-num");
+    if (fCostNum) fCostNum.textContent = gameDefeated ? "✓" : "-10";
     defeatBtn.disabled = gameDefeated;
     var canDefeat = !gameDefeated && ticketCount >= 10;
-    defeatBtn.classList.toggle("hint-pick-unaffordable", !canDefeat && !gameDefeated);
     defeatBtn.dataset.canAfford = canDefeat ? "1" : "0";
+    defeatBtn.classList.toggle("hint-pick-unaffordable", !canDefeat && !gameDefeated);
   }
 
   picker.hidden = false;
@@ -6509,10 +6646,8 @@ function doDefineHint() {
 
 function showDefineHint(word) {
   var modal = document.getElementById("define-hint-modal");
-  var wordEl = document.getElementById("define-hint-word");
   var bodyEl = document.getElementById("define-hint-body");
-  if (!modal || !wordEl || !bodyEl) return;
-  wordEl.textContent = word.toUpperCase();
+  if (!modal || !bodyEl) return;
   bodyEl.innerHTML = "Loading…";
   modal.hidden = false;
   var cached = _defCache[word];
@@ -6573,6 +6708,35 @@ function showDefeatReveal(word) {
     lettersEl.classList.add("defeat-expand");
     setTimeout(function() { lettersEl.classList.remove("defeat-expand"); }, 700);
   }, expandAt);
+}
+
+function flashDefeatedWordOnBoard() {
+  var targetWord = puzzle && puzzle.prevAnswers && puzzle.prevAnswers[0]
+    ? puzzle.prevAnswers[0].word : "";
+  if (!targetWord) { showDefeatedBoardOverlay(); return; }
+  var path = findWordPath(targetWord);
+  if (!path || !path.length) { showDefeatedBoardOverlay(); return; }
+  // Pulse all tiles sequentially (same stagger as letter hints)
+  path.forEach(function(id, idx) {
+    setTimeout(function() { pulseHintTile(id); }, idx * 140);
+  });
+  // After all tiles have pulsed, show the sad-face overlay briefly
+  setTimeout(function() {
+    showDefeatedBoardOverlay();
+  }, path.length * 140 + 1000);
+}
+
+function showDefeatedBoardOverlay() {
+  var overlay = document.getElementById("defeated-board-overlay");
+  if (!overlay) return;
+  overlay.hidden = false;
+  requestAnimationFrame(function() {
+    overlay.classList.add("dbo-show");
+  });
+  setTimeout(function() {
+    overlay.classList.remove("dbo-show");
+    setTimeout(function() { overlay.hidden = true; }, 380);
+  }, 2200);
 }
 
 // Generic ticket-spend confirmation — shows balance, cost, remainder
@@ -6747,9 +6911,8 @@ function initInfoPanel() {
   var hintPickLetter = document.getElementById("hint-pick-letter");
   if (hintPickLetter) hintPickLetter.addEventListener("click", function() {
     if (hintPickLetter.dataset.canAfford === "0") {
-      showToast("Not enough tickets. Buy Tickets — coming soon!");
-      closeHintPicker();
-      return;
+      showToast("Not enough tickets — purchase coming soon!");
+      return; // keep picker open so user can see options
     }
     doLetterHint(false);
   });
@@ -6757,8 +6920,7 @@ function initInfoPanel() {
   var hintPickDefine = document.getElementById("hint-pick-define");
   if (hintPickDefine) hintPickDefine.addEventListener("click", function() {
     if (hintPickDefine.dataset.canAfford === "0") {
-      showToast("Not enough tickets. Buy Tickets — coming soon!");
-      closeHintPicker();
+      showToast("Not enough tickets — purchase coming soon!");
       return;
     }
     doDefineHint();
@@ -6767,8 +6929,7 @@ function initInfoPanel() {
   var hintPickDefeat = document.getElementById("hint-pick-defeat");
   if (hintPickDefeat) hintPickDefeat.addEventListener("click", function() {
     if (hintPickDefeat.dataset.canAfford === "0") {
-      showToast("Not enough tickets. Buy Tickets — coming soon!");
-      closeHintPicker();
+      showToast("Not enough tickets — purchase coming soon!");
       return;
     }
     doDefeatHint();
@@ -6780,11 +6941,16 @@ function initInfoPanel() {
   var defineHintOverlay = document.getElementById("define-hint-overlay");
   if (defineHintOverlay) defineHintOverlay.addEventListener("click", function() { var m = document.getElementById("define-hint-modal"); if (m) m.hidden = true; });
 
-  // Defeat modal
+  // Defeat modal — on close, flash tiles then show sad-face overlay
+  function closeDefeatModal() {
+    var m = document.getElementById("defeat-modal");
+    if (m) m.hidden = true;
+    flashDefeatedWordOnBoard();
+  }
   var defeatClose = document.getElementById("defeat-close");
-  if (defeatClose) defeatClose.addEventListener("click", function() { var m = document.getElementById("defeat-modal"); if (m) m.hidden = true; });
+  if (defeatClose) defeatClose.addEventListener("click", closeDefeatModal);
   var defeatOverlay = document.getElementById("defeat-overlay");
-  if (defeatOverlay) defeatOverlay.addEventListener("click", function() { var m = document.getElementById("defeat-modal"); if (m) m.hidden = true; });
+  if (defeatOverlay) defeatOverlay.addEventListener("click", closeDefeatModal);
 
   // Ticket-spend confirmation modal (generic — wired via confirmTicketSpend())
 
@@ -6847,6 +7013,7 @@ function loadBoardForDate(ddmmyy) {
 
   // Reset game state for this date
   tiles = []; selectedPath = []; isDragging = false; playedPath = []; playedPathVisible = true; foundWords = [];
+  foundWordBlanks = {}; allBoardWords = [];
   bestScore = 0; bestWord = ""; gameCompleted = false;
   attemptCount = 0; validAttemptCount = 0; activeTimeMs = 0; timerRunning = false; timerLastStart = 0;
   inOneAchieved = false; targetWordFound = false;
@@ -6873,10 +7040,10 @@ function loadBoardForDate(ddmmyy) {
   buildBoard();
   requestAnimationFrame(alignBoardControls);
   setTimeout(runBoardOpenAnimation, 100);
+  // Populate all valid board words asynchronously (used in word list)
+  setTimeout(function() { buildWordPrefixes(); allBoardWords = findAllBoardWords(); }, 50);
 
-  // Restore played path tiles to indigo
-  playedPath.forEach(function(id) { if (tiles[id]) tiles[id].state = "played"; });
-  if (playedPath.length > 0) renderAllTiles();
+  // Board starts fully neutral — no indigo played tiles on reload
 
   updateScoreDisplay(null);
   updateTicketDisplay();
@@ -7564,8 +7731,18 @@ function buildScratchAnswers(answers, playersByWord, isToday, totalPlayers, load
     } catch(_) {}
   }
 
-  // Merge in any words the user found that aren't in the pre-stored list (today AND past days)
+  // Merge in all board words (found via DFS at load time) and any words the user found
   var inList = new Set(allWords.map(function(a) { return a.word.toUpperCase(); }));
+  // Add all board words (DFS-computed, today's board only) as locked rows
+  if (isToday && allBoardWords.length > 0) {
+    allBoardWords.forEach(function(wu) {
+      if (!inList.has(wu)) {
+        allWords.push({ word: wu, pct: -1 });
+        inList.add(wu);
+      }
+    });
+  }
+  // Also add any user-found words not yet in the list (past days or API-only words)
   myFound.forEach(function(wu) {
     if (!inList.has(wu)) {
       allWords.push({ word: wu, pct: -1 });
@@ -7698,7 +7875,23 @@ function buildWordRow(cfg) {
     wordEl.textContent = word;
     wordEl.setAttribute("aria-label", word.length + "-letter word, not yet found");
   } else {
-    wordEl.textContent = word;
+    // Check if this word was found using a blank tile
+    var blankIdx = foundWordBlanks[word.toUpperCase()];
+    if (blankIdx !== undefined && blankIdx >= 0 && blankIdx < word.length) {
+      // Render with underlined blank-substituted letter
+      word.split("").forEach(function(ch, i) {
+        if (i === blankIdx) {
+          var sp = document.createElement("span");
+          sp.className = "wl-blank-letter";
+          sp.textContent = ch;
+          wordEl.appendChild(sp);
+        } else {
+          wordEl.appendChild(document.createTextNode(ch));
+        }
+      });
+    } else {
+      wordEl.textContent = word;
+    }
   }
   row.appendChild(wordEl);
 
@@ -7728,34 +7921,7 @@ function buildWordRow(cfg) {
   }
   row.appendChild(pctEl);
 
-  // ── Reveal button (locked target, today only) — spans all cols ──
-  if (locked && isTarget && isToday) {
-    var revealWrapper = document.createElement("div");
-    revealWrapper.className = "wl-reveal-wrapper";
-    var revealBtn = document.createElement("button");
-    revealBtn.className = "wl-reveal-btn";
-    revealBtn.innerHTML = 'Reveal · <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg> 10 tickets';
-    (function(dk, ans, pbw, tp) {
-      revealBtn.addEventListener("click", function(e) {
-        e.stopPropagation();
-        if (ticketCount < 10) { showToast("Not enough tickets to reveal the longest word"); return; }
-        confirmTicketSpend({
-          title: "Reveal Longest Word?",
-          desc: "Spend 10 tickets to reveal today's longest word.",
-          cost: 10,
-        }, function() {
-          ticketCount = Math.max(0, ticketCount - 10);
-          saveTickets();
-          updateTicketDisplay();
-          revealedLongestByDate[dk] = true;
-          saveRevealedLongest();
-          buildScratchAnswers(ans, pbw, true, tp);
-        });
-      });
-    })(dateKey, answers, playersByWord, totalPlayers);
-    revealWrapper.appendChild(revealBtn);
-    row.appendChild(revealWrapper);
-  }
+  // Locked target word: no reveal button — use the Defeat hint instead
 
   // Tap found/revealed word → show/hide definition + friends
   if (!locked) {
@@ -7773,6 +7939,8 @@ function toggleWordDefinition(word, rowEl, playersByWord) {
     existing.remove();
     return;
   }
+  // Highlight the word on the game board simultaneously
+  highlightWordOnBoard(word);
   var panel = document.createElement("div");
   panel.className = "wl-def-panel";
 
@@ -9011,7 +9179,7 @@ function saveState() {
   const elapsed = timerRunning ? activeTimeMs + (Date.now() - timerLastStart) : activeTimeMs;
   try {
     localStorage.setItem(storageKey(), JSON.stringify({
-      bestWord, bestScore, gameCompleted, attemptCount, validAttemptCount, hintsUsed, hintTicketsSpent, defineHintUsed, gameDefeated, activeTimeMs: elapsed, playedPath, inOneAchieved, foundWords, targetFoundMs, targetFoundAttempts,
+      bestWord, bestScore, gameCompleted, attemptCount, validAttemptCount, hintsUsed, hintTicketsSpent, defineHintUsed, gameDefeated, activeTimeMs: elapsed, playedPath, inOneAchieved, foundWords, foundWordBlanks, targetFoundMs, targetFoundAttempts,
     }));
   } catch(_) {}
 }
@@ -9036,6 +9204,7 @@ function loadState() {
     foundWords       = Array.isArray(s.foundWords) ? s.foundWords : [];
     targetFoundMs       = s.targetFoundMs || 0;
     targetFoundAttempts = s.targetFoundAttempts || 0;
+    foundWordBlanks     = (s.foundWordBlanks && typeof s.foundWordBlanks === "object") ? s.foundWordBlanks : {};
   } catch(_) {}
 }
 
