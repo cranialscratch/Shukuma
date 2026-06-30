@@ -3822,11 +3822,21 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.70";
+const VERSION = "2.0.71";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.71",
+    date: "2026-06-30",
+    title: "Reduce Animations: also stops board open animation and swipe hint",
+    changes: [
+      "Board opening colour-sweep animation now skipped when Reduce Animations is on",
+      "Swipe-day finger hint animation now skipped when Reduce Animations is on",
+      "Removed explanatory sublabel from Reduce Animations toggle",
+    ],
+  },
   {
     version: "2.0.70",
     date: "2026-06-30",
@@ -9148,6 +9158,7 @@ function pulseTileOnce(tile, delayMs, colorHex) {
 }
 
 function runBoardOpenAnimation() {
+  if (reduceMotion) return;
   if (!tiles || !tiles.length) return;
 
   // Pre-compute pixel centres for every tile (needed for corner/spiral patterns)
@@ -9297,6 +9308,7 @@ function initSwipeDayHint() {
   }
 
   function maybeShow() {
+    if (reduceMotion) return;
     if (hintActive) return;
     if (Date.now() - lastInteraction < IDLE_THRESHOLD) return;
     hintActive = true;
