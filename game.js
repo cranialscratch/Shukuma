@@ -3822,11 +3822,29 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.68";
+const VERSION = "2.0.69";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.69",
+    date: "2026-06-30",
+    title: "HC profile, badges, friend cards, nav pill — final HC polish pass",
+    changes: [
+      "Dynamic Island / status bar: updateThemeColorMeta now uses requestAnimationFrame (was setTimeout 50ms — unreliable timing fixed)",
+      "Theme color meta: default changed from #f2f2f7 (light grey) to #1c1c1e so iOS chrome starts dark on load",
+      "Badge outlines: switched from CSS border to box-shadow:inset — border was clipped by clip-path polygon and invisible",
+      "HC badges: locked badges now red (#FF4444) — disabled colour — with red icon and name; earned badges yellow outline + yellow icon",
+      "Badge hyphenation: overflow-wrap:break-word, hyphens:none globally; Grand­master (soft hyphen) for clean 2-line break",
+      "HC streak: flame icon background transparent (was white/cream circle showing in HC)",
+      "Friend avatar: hex clip-path shape replacing circular border-radius; colour now deterministic hash of uid/username not brand yellow",
+      "HC friend profile card (Lu Jones): dark background (#111111), white text, yellow stat values, yellow avatar outline",
+      "HC badge popup card (bim): dark hex, yellow icon, yellow earned pill, red locked pill, white text",
+      "Nav pill: inactive icons changed to #FFFF00 (selectable yellow) in HC (was #FFFFFF white)",
+      "Global: #ppm-back (back arrow on profile cards) hidden — X button already closes cards",
+    ],
+  },
   {
     version: "2.0.68",
     date: "2026-06-30",
@@ -4631,7 +4649,7 @@ const BADGES = {
   first_word:    { name: "First Word",    desc: "Complete your first puzzle" },
   above_average: { name: "Word Wizard",   desc: "Score 7 or more letters in a single game" },
   master:        { name: "Master",        desc: "Score 11 or more letters in a single game" },
-  grandmaster:   { name: "Grandmaster",   desc: "Score 15 or more letters in a single game" },
+  grandmaster:   { name: "Grand­master", desc: "Score 15 or more letters in a single game" },
   streak_3:      { name: "On a Roll",     desc: "Play 3 days in a row" },
   streak_7:      { name: "Week Warrior",  desc: "Play 7 days in a row" },
   streak_30:     { name: "Month Champion",desc: "Play 30 days in a row" },
@@ -5034,13 +5052,13 @@ function getThemePulseColors(id) {
 // Inject theme CSS variables and sync tile render.
 // persistPreference=true saves to localStorage; false = display only (e.g. keepColourful auto)
 function updateThemeColorMeta(forHeader) {
-  setTimeout(function() {
+  requestAnimationFrame(function() {
     var tcMeta = document.getElementById("theme-color-meta");
     if (!tcMeta) return;
     var prop = forHeader ? "--brand" : "--board-bg";
     var color = getComputedStyle(document.documentElement).getPropertyValue(prop).trim();
     if (color) tcMeta.content = color;
-  }, 50);
+  });
 }
 
 function applyTheme(id, persistPreference) {
@@ -7078,6 +7096,12 @@ function escHtml(s) {
 // ─── Scratchcard answers (v1.9.4) ─────────────────────────────────────────────
 var AVATAR_COLORS = ["#7c4dff","#ef4444","#22c55e","#f97316","#3b82f6","#ec4899","#0ea5e9","#a855f7"];
 
+function getAvatarColor(str) {
+  var h = 0;
+  for (var i = 0; i < (str || "").length; i++) h = (h * 31 + str.charCodeAt(i)) | 0;
+  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+}
+
 function buildScratchAnswers(answers, playersByWord, isToday, totalPlayers, loading) {
   var container = document.getElementById("scratchcard-list");
   if (!container) return;
@@ -8305,12 +8329,13 @@ async function renderFriends() {
       var words = (p.stats && p.stats.totalWords) || 0;
       var row = document.createElement("div");
       row.className = "friend-row";
+      var avatarColor = p.photoURL ? "transparent" : getAvatarColor(p.uid || p.username || "");
       var avatarHtml = p.photoURL
-        ? '<img src="' + escHtml(p.photoURL) + '" alt="" class="avatar-photo" style="width:100%;height:100%;border-radius:50%;object-fit:cover">'
+        ? '<img src="' + escHtml(p.photoURL) + '" alt="" class="avatar-photo" style="width:100%;height:100%;object-fit:cover">'
         : escHtml(getInitials(p));
       var displayName = (p.displayName && p.displayName.trim()) ? p.displayName : (p.username || "Player");
       row.innerHTML =
-        '<div class="friend-avatar"' + (p.photoURL ? ' style="background:transparent;overflow:hidden"' : '') + '>' + avatarHtml + '</div>' +
+        '<div class="friend-avatar" style="background:' + avatarColor + '">' + avatarHtml + '</div>' +
         '<div class="friend-info">' +
           '<div class="friend-name">' + escHtml(displayName) + '</div>' +
           '<div class="friend-words">' + words + ' words</div>' +

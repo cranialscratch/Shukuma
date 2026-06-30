@@ -2232,8 +2232,8 @@ html[data-theme="dark"] { --tile-pulse-fill: #585859; } /* lighter than #3a3a3c 
   color: #888;
   text-align: center;
   line-height: 1.2;
-  word-break: break-word;
-  hyphens: auto;
+  overflow-wrap: break-word;
+  hyphens: none;
 }
 .badge-item.earned .badge-name { color: var(--brand); font-weight: 600; }
 
@@ -2398,7 +2398,7 @@ html[data-theme="dark"] { --tile-pulse-fill: #585859; } /* lighter than #3a3a3c 
 .friend-avatar {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
   background: var(--brand);
   color: #fff;
   font-weight: 700;
@@ -3650,7 +3650,7 @@ html[data-colour="highcontrast"] #nav-pill {
   background: #111111;
   box-shadow: none;
 }
-html[data-colour="highcontrast"] .nav-btn { color: #FFFFFF; }
+html[data-colour="highcontrast"] .nav-btn { color: #FFFF00; }
 html[data-colour="highcontrast"] .nav-btn.active {
   background: #FFFF00;
   color: #000000;
@@ -3721,19 +3721,19 @@ html[data-colour="highcontrast"] #user-email-text   { color: #FFFFFF; }
 html[data-colour="highcontrast"] #signout-btn       { border-color: #FFFFFF; color: #FFFFFF; }
 html[data-colour="highcontrast"] #signout-btn:hover { border-color: #FFFF00; color: #FFFF00; }
 
-/* 14. Badges: earned = yellow hex + icon; locked = white outline, dim icon (not invisible) */
+/* 14. Badges: earned = yellow hex+icon; locked = red (HC disabled colour) */
 html[data-colour="highcontrast"] .badge-hex {
-  background: #1a1a1a;
-  border: 2px solid rgba(255,255,255,0.30);
+  background: #111111;
+  box-shadow: inset 0 0 0 2px rgba(255,68,68,0.55);
 }
-html[data-colour="highcontrast"] .badge-hex svg { color: rgba(255,255,255,0.35); }
+html[data-colour="highcontrast"] .badge-hex svg { color: #FF4444; }
 html[data-colour="highcontrast"] .badge-item.earned .badge-hex {
-  background: rgba(255,255,0,0.10);
-  border-color: #FFFF00;
+  background: rgba(255,255,0,0.08);
+  box-shadow: inset 0 0 0 3px #FFFF00;
 }
 html[data-colour="highcontrast"] .badge-item.earned .badge-hex svg  { color: #FFFF00; }
 html[data-colour="highcontrast"] .badge-item.locked .badge-hex       { filter: none; opacity: 1; }
-html[data-colour="highcontrast"] .badge-name                         { color: rgba(255,255,255,0.50); }
+html[data-colour="highcontrast"] .badge-name                         { color: #FF4444; }
 html[data-colour="highcontrast"] .badge-item.earned .badge-name      { color: #FFFF00; font-weight: 700; }
 html[data-colour="highcontrast"] .badge-item:hover                   { background: rgba(255,255,0,0.07); }
 
@@ -3762,6 +3762,37 @@ html[data-colour="highcontrast"] .streak-freeze-icon.used {
 html[data-colour="highcontrast"] .lb-rank  { color: #FFFFFF; }
 html[data-colour="highcontrast"] .lb-level { color: #FFFFFF; }
 html[data-colour="highcontrast"] .lb-empty { color: rgba(255,255,255,0.55); }
+
+/* 18. Streak flame: remove white/cream background from played day circles */
+html[data-colour="highcontrast"] .streak-day.played .streak-day-flame { background: transparent; }
+
+/* 19. Badge popup card (badge-info-modal): dark hex, yellow icon, proper pills */
+html[data-colour="highcontrast"] .bim-icon {
+  background: #111111;
+  box-shadow: inset 0 0 0 3px #FFFF00;
+}
+html[data-colour="highcontrast"] .bim-icon svg         { color: #FFFF00; }
+html[data-colour="highcontrast"] .bim-name             { color: #FFFFFF; }
+html[data-colour="highcontrast"] .bim-desc             { color: #FFFFFF; }
+html[data-colour="highcontrast"] .bim-status.earned    { background: #111111; color: #FFFF00; border: 1.5px solid #FFFF00; }
+html[data-colour="highcontrast"] .bim-status.locked    { background: #111111; color: #FF4444; border: 1.5px solid #FF4444; }
+html[data-colour="highcontrast"] #badge-info-close     { color: #FFFFFF; }
+
+/* 20. Player profile modal (friend card): dark card, dark stat boxes */
+html[data-colour="highcontrast"] #player-modal-card,
+html[data-colour="highcontrast"] #ppm-card             { background: #111111; }
+html[data-colour="highcontrast"] #player-modal-header,
+html[data-colour="highcontrast"] #ppm-header           { border-bottom-color: rgba(255,255,255,0.20); }
+html[data-colour="highcontrast"] #player-modal-word,
+html[data-colour="highcontrast"] #ppm-title            { color: #FFFFFF; }
+html[data-colour="highcontrast"] .ppm-stat-box         { background: #1a1a1a; border: 1px solid #333333; }
+html[data-colour="highcontrast"] .ppm-stat-val         { color: #FFFF00; }
+html[data-colour="highcontrast"] .ppm-stat-lbl         { color: #FFFFFF; }
+html[data-colour="highcontrast"] .ppm-name             { color: #FFFFFF; }
+html[data-colour="highcontrast"] .ppm-avatar-lg        { box-shadow: 0 0 0 3px #FFFF00; }
+
+/* Back arrow not needed — X closes the card */
+#ppm-back { display: none !important; }
 
 /* ── Responsive ─────────────────────────────────────────────────────── */
 @media (max-width: 360px) {
