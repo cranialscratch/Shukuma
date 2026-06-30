@@ -3822,11 +3822,26 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.65";
+const VERSION = "2.0.66";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.66",
+    date: "2026-06-30",
+    title: "HC component fixes, theme button palette stripes, Dynamic Island meta",
+    changes: [
+      "High Contrast: settings header title and X button now black on yellow (not white on yellow)",
+      "High Contrast: toggle ON state changed from yellow to bright green (#00CC00)",
+      "High Contrast: text-size buttons now white outline/text on black; active = green outline",
+      "High Contrast: theme picker buttons visible on dark background; active = yellow border",
+      "High Contrast: nav pill now has white border, white inactive icons, black icon on yellow for active",
+      "High Contrast: word box answer text now white (was black on dark box)",
+      "Theme buttons: emoji removed; swatch stripe now 22px tall showing true palette colours per theme",
+      "Dynamic Island area: theme-color meta now tracks board-bg on game screen, brand on settings panel",
+    ],
+  },
   {
     version: "2.0.65",
     date: "2026-06-30",
@@ -4762,7 +4777,8 @@ var THEMES = [
       "--dk-tile-played":"#86efac",      "--dk-tile-played-stroke":"#4ade80",
     },
     dark:{"--tile-pulse-fill":"#a78bfa"},
-    pulse:["#7c4dff","#4ade80","#a78bfa","#86efac","#7c4dff","#4ade80"] },
+    pulse:["#7c4dff","#4ade80","#a78bfa","#86efac","#7c4dff","#4ade80"],
+    swatch:["#7c4dff","#22c55e","#ef4444","#4ade80"] },
 
   // ── Accessibility ───────────────────────────────────────────────────────────
 
@@ -4802,7 +4818,8 @@ var THEMES = [
       "--dk-tile-played":"#3AB0C8",      "--dk-tile-played-stroke":"#2A90A8",
     },
     dark:{"--tile-pulse-fill":"#6A9ECC"},
-    pulse:["#3B49C4","#2563A8","#0A7282","#6A85D0","#2563A8","#3B49C4"] },
+    pulse:["#3B49C4","#2563A8","#0A7282","#6A85D0","#2563A8","#3B49C4"],
+    swatch:["#3B49C4","#2563A8","#C87020","#0A7282"] },
 
   // High contrast — maximum readability. Black / white / yellow only.
   // Selected = high-vis yellow. Valid = deep green, Invalid = deep red,
@@ -4841,7 +4858,8 @@ var THEMES = [
       "--dk-tile-played":"#5588FF",      "--dk-tile-played-stroke":"#2244DD",
     },
     dark:{"--tile-pulse-fill":"#F5C800"},
-    pulse:["#F5C800","#1A1A1A","#F5C800","#888888","#F5C800","#1A1A1A"] },
+    pulse:["#F5C800","#1A1A1A","#F5C800","#888888","#F5C800","#1A1A1A"],
+    swatch:["#FFFF00","#000000","#00CC00","#FF0000","#0044CC"] },
 
   // ── Community ───────────────────────────────────────────────────────────────
 
@@ -4884,7 +4902,8 @@ var THEMES = [
       "--dk-tile-played":"#448AFF",      "--dk-tile-played-stroke":"#2979FF",
     },
     dark:{"--tile-pulse-fill":"#D580FF"},
-    pulse:["#E40303","#FF8C00","#FFED00","#008026","#004DFF","#750787"] },
+    pulse:["#E40303","#FF8C00","#FFED00","#008026","#004DFF","#750787"],
+    swatch:["#E40303","#FF8C00","#FFED00","#008026","#004DFF","#750787"] },
 
   // Trans — the three flag stripes: sky blue brand, palest blush-pink board,
   // white neutral tiles (the white stripe). Soft pink for selection (dark text
@@ -4924,7 +4943,8 @@ var THEMES = [
       "--dk-tile-played":"#7ADCF8",      "--dk-tile-played-stroke":"#5BC8F5",
     },
     dark:{"--tile-pulse-fill":"#7ADCF8"},
-    pulse:["#55CDFC","#F7A8B8","#DCF4FF","#F7A8B8","#55CDFC","#B8DCEA"] },
+    pulse:["#55CDFC","#F7A8B8","#DCF4FF","#F7A8B8","#55CDFC","#B8DCEA"],
+    swatch:["#5BC8F5","#F7A8C4","#FFFFFF","#F7A8C4","#5BC8F5"] },
 
 ];
 
@@ -4978,6 +4998,19 @@ function getThemePulseColors(id) {
 
 // Inject theme CSS variables and sync tile render.
 // persistPreference=true saves to localStorage; false = display only (e.g. keepColourful auto)
+function updateThemeColorMeta(forHeader) {
+  var tcMeta = document.getElementById("theme-color-meta");
+  if (!tcMeta) return;
+  var color;
+  if (forHeader) {
+    // Use the effective brand color (computed after all CSS cascade applies)
+    color = getComputedStyle(document.documentElement).getPropertyValue("--brand").trim();
+  } else {
+    color = getComputedStyle(document.documentElement).getPropertyValue("--board-bg").trim();
+  }
+  if (color) tcMeta.content = color;
+}
+
 function applyTheme(id, persistPreference) {
   var theme = getThemeById(id);
   _activeTheme = id;
@@ -5016,6 +5049,9 @@ function applyTheme(id, persistPreference) {
 
   buildColours();
   renderAllTiles();
+
+  // Update status bar colour (Dynamic Island area) to match board bg
+  updateThemeColorMeta(false);
 
   document.querySelectorAll(".colour-theme-btn").forEach(function(btn) {
     btn.classList.toggle("active", btn.dataset.theme === id);
@@ -5070,13 +5106,9 @@ function buildThemePicker() {
 
       var swatch = document.createElement("div");
       swatch.className = "theme-gradient-swatch";
-      swatch.style.background = "linear-gradient(90deg, " + theme.pulse.join(", ") + ")";
+      var swatchColors = theme.swatch || theme.pulse;
+      swatch.style.background = "linear-gradient(90deg, " + swatchColors.join(", ") + ")";
       btn.appendChild(swatch);
-
-      var emoji = document.createElement("span");
-      emoji.className = "theme-btn-emoji";
-      emoji.textContent = theme.emoji;
-      btn.appendChild(emoji);
 
       var nameEl = document.createElement("span");
       nameEl.className = "theme-btn-label";
@@ -5193,10 +5225,9 @@ function applyDarkMode(on) {
   darkMode = on;
   document.documentElement.dataset.theme = on ? "dark" : "";
   localStorage.setItem("shukuma-dark-mode", on ? "1" : "0");
-  var tcMeta = document.getElementById("theme-color-meta");
-  if (tcMeta) tcMeta.content = on ? "#1c1c1e" : "#f2f2f7";
   buildColours();
   renderAllTiles();
+  updateThemeColorMeta(false);
 }
 
 function applyColourTheme(theme) {
@@ -5221,10 +5252,7 @@ function loadUserSettings() {
   textSize       = localStorage.getItem("shukuma-text-size") || "normal";
   document.documentElement.dataset.theme    = darkMode ? "dark" : "";
   document.documentElement.dataset.textsize = textSize === "normal" ? "" : textSize;
-  // Sync status bar theme-color (Dynamic Island area)
-  var tcMeta = document.getElementById("theme-color-meta");
-  if (tcMeta) tcMeta.content = darkMode ? "#1c1c1e" : "#f2f2f7";
-  // Apply colour theme (keepColourful auto-selects by date)
+  // Apply colour theme (keepColourful auto-selects by date) — also updates theme-color meta
   applyTheme(keepColourful ? getAutoTheme() : colourTheme, false);
 }
 
@@ -6301,6 +6329,7 @@ function openSheet(tabName) {
       // Profile / Settings / Rules: always full screen
       sheet.style.top = "0px";
       sheet.classList.add("full-screen");
+      updateThemeColorMeta(true);
     }
     sheet.classList.add("open");
   }
@@ -6321,6 +6350,7 @@ function closeSheet() {
     sheet.classList.remove("open");
     sheet.classList.remove("full-screen");
   }
+  updateThemeColorMeta(false);
   document.querySelectorAll(".nav-btn").forEach(function(b) {
     b.classList.toggle("active", b.dataset.panel === "play");
   });
