@@ -494,7 +494,6 @@ html[data-textsize="xl"] {
   justify-content: center;
   padding: 6px 16px calc(10px + env(safe-area-inset-bottom, 0px));
   flex-shrink: 0;
-  margin-top: auto;
 }
 
 #nav-pill {
@@ -2985,16 +2984,22 @@ html[data-theme="dark"] .settings-toggle { background: #48484a; }
 .text-size-btn.active { border-color: var(--brand); color: var(--brand); }
 
 /* ── Submit button ──────────────────────────────────────────────────── */
+/* Submit area fills the flex gap between board-controls and nav pill;
+   the button inside is automatically vertically centred in that space. */
+#submit-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  pointer-events: none;
+}
 #submit-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  position: absolute;
-  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
-  left: 16px;
-  right: 16px;
-  width: auto;
-  margin: 0;
+  width: 100%;
+  max-width: 480px;
   padding: 0 20px;
   height: 44px;
   border-radius: 22px;
@@ -3008,7 +3013,7 @@ html[data-theme="dark"] .settings-toggle { background: #48484a; }
   letter-spacing: 0.02em;
   transition: opacity 0.15s, transform 0.1s;
   -webkit-tap-highlight-color: transparent;
-  z-index: 20;
+  pointer-events: auto;
 }
 #submit-btn:active { opacity: 0.85; transform: scale(0.98); }
 

@@ -3822,11 +3822,23 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.83";
+const VERSION = "2.0.84";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.84",
+    date: "2026-06-30",
+    title: "Review highlight uses blue (played) colour; submit button improvements",
+    changes: [
+      "Score-card and best-word board highlights now use the blue 'played' colour instead of pink — makes it obvious this is a review, not an active selection",
+      "Submit button never appears during a board review — it is a review only, nothing to submit",
+      "Submit button is now vertically centred in the space between the action icons and the nav pill (equidistant)",
+      "After submitting a word, the button text changes to 'Submitted ✓' before disappearing",
+      "Best word now appears in the topbar during the on-open board highlight",
+    ],
+  },
   {
     version: "2.0.83",
     date: "2026-06-30",
@@ -6068,7 +6080,12 @@ function clearSelection() {
   _scoreHighlightMode = false;
   tiles.forEach(function(t) { t.state = "neutral"; t._resolvedLetter = ""; });
   selectedPath = [];
+  // Restore played tiles for current best word
+  if (playedPath) playedPath.forEach(function(id) { if (tiles[id]) tiles[id].state = "played"; });
   renderAllTiles();
+  // Restore submit button label (may have been set to "Submitted ✓" after lockValidWord)
+  var sBtn = document.getElementById("submit-btn");
+  if (sBtn) { sBtn.textContent = "Submit word"; sBtn.disabled = false; }
   updateAnswerArea();
   updateScoreDisplay(null);
   updateShareBtn();
@@ -6451,6 +6468,10 @@ function lockValidWord(word) {
     setTimeout(function() { showSpellingVariantAnim(variantInfo.locale); }, 500);
   }
 
+  // Change submit button to "Submitted" so it's clear the word was accepted
+  var _sBtn = document.getElementById("submit-btn");
+  if (_sBtn && !_sBtn.hidden) { _sBtn.textContent = "Submitted ✓"; _sBtn.disabled = true; }
+
   // After showing green, transition to played (indigo) state
   setTimeout(clearSelection, 1500);
 
@@ -6588,27 +6609,16 @@ function highlightWordOnBoard(word) {
   clearSelection();
   _scoreHighlightMode = true; // view-only: board is showing a score-card word
 
-  // Sequential tile reveal (fast)
+  // Reveal tiles one by one in "played" blue — makes clear this is a review, not active selection
   path.forEach(function(id, idx) {
     setTimeout(function() {
-      tiles[id].state = "selected";
+      tiles[id].state = "played";
+      tiles[id]._resolvedLetter = word[idx] || ""; // needed for blank tile display in topbar
       selectedPath = path.slice(0, idx + 1);
       renderAllTiles();
       updateAnswerArea();
     }, idx * 80);
   });
-
-  // Flash all tiles together once the sequence completes
-  var flashAt = path.length * 80 + 60;
-  setTimeout(function() {
-    path.forEach(function(id) { tiles[id].state = "valid"; });
-    renderAllTiles();
-    setTimeout(function() {
-      // Stay highlighted as selected — not submittable, cleared on first board interaction
-      path.forEach(function(id) { tiles[id].state = "selected"; });
-      renderAllTiles();
-    }, 300);
-  }, flashAt);
 }
 
 function doLetterHint(free) {
