@@ -3822,11 +3822,20 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.96";
+const VERSION = "2.0.97";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.97",
+    date: "2026-06-30",
+    title: "Fix idle hint timing and colour",
+    changes: [
+      "Idle hint: was firing after ~16 s idle (8 s interval + 10 s threshold); now fires after 6 s idle and repeats every 6 s",
+      "Idle hint: tiles now tint to the theme's selected colour (gold by default) and fade back — uses CSS fill transition on the polygon inline style, not opacity dimming",
+    ],
+  },
   {
     version: "2.0.96",
     date: "2026-06-30",
@@ -7144,22 +7153,25 @@ function triggerHint() {
     seen[next.id] = true;
     chain.push(next);
   }
+  // Tint colour: use the theme's selected-tile fill (gold/yellow by default)
+  var tint = getComputedStyle(document.documentElement).getPropertyValue("--tile-selected").trim() || "#e8c840";
   chain.forEach(function(tile, idx) {
     var g = document.getElementById("tile-" + tile.id);
     if (!g) return;
     var poly = g.querySelector("polygon:not(.hatch-overlay)");
     if (!poly) return;
     setTimeout(function() {
-      poly.style.transition = "opacity 0.35s ease-in-out";
-      poly.style.opacity = "0.3";
+      // Fade fill to tint colour
+      poly.style.transition = "fill 0.45s ease-in-out";
+      poly.style.fill = tint;
       setTimeout(function() {
-        poly.style.opacity = "1";
+        // Fade fill back — clearing inline fill reverts to the setAttribute value
+        poly.style.fill = "";
         setTimeout(function() {
           poly.style.transition = "";
-          poly.style.opacity = "";
-        }, 400);
-      }, 650);
-    }, idx * 180);
+        }, 500);
+      }, 750);
+    }, idx * 220);
   });
 }
 
@@ -10356,14 +10368,17 @@ function initIdleHint() {
   function resetTimer() { lastInteraction = Date.now(); }
   document.addEventListener("pointerdown", resetTimer, { passive: true });
   document.addEventListener("touchstart",  resetTimer, { passive: true });
+  // Check every 1.5 s; fire once 6 s of idle has elapsed, then reset so next
+  // trigger requires another 6 s of idle — giving a natural ~6-second repeat.
   setInterval(function() {
     if (gameCompleted) return;
     if (_tomorrowMode) return;
     if (reduceMotion) return;
     if (selectedPath.length > 0) return;
-    if (Date.now() - lastInteraction < 10000) return;
+    if (Date.now() - lastInteraction < 6000) return;
     triggerHint();
-  }, 8000);
+    lastInteraction = Date.now(); // debounce: next hint after another 6 s idle
+  }, 1500);
 }
 
 // ─── Swipe navigation ─────────────────────────────────────────────────────────
