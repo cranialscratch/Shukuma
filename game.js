@@ -3822,21 +3822,22 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.62";
+const VERSION = "2.0.63";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
   {
-    version: "2.0.62",
+    version: "2.0.63",
     date: "2026-06-30",
-    title: "Colour themes: 22 seasonal/cultural themes with auto-switch",
+    title: "Colour themes: full system palettes — 5 refined themes",
     changes: [
-      "22 colour themes covering brand, accessibility, community, cultural events, celebrations, seasons, and weather",
-      "Keep Me Colourful mode auto-switches theme based on current date (events take priority over seasons)",
-      "Board opening animation uses theme pulse colours, cycling through the theme palette per tile",
-      "Admin animation theme editor: customise pulse colours, played tile colour, and auto-switch date window",
-      "Theme picker UI dynamically built from THEMES array with gradient swatches",
+      "5 themes: Default (refined indigo-violet), Red-Green accessible, High Contrast, Pride, Trans",
+      "Each theme sets the complete system palette — brand, backgrounds, text, and all tile states in both light and dark mode",
+      "Backgrounds are barely-tinted washes; functional colours (valid/invalid) remain universally readable while harmonising with the theme",
+      "Board opening animation cycles through each theme's pulse palette across tiles",
+      "Keep Me Colourful mode auto-switches to Pride theme during June",
+      "Admin animation theme editor: customise pulse colours and played tile colour per theme",
     ],
   },
   {
@@ -4690,141 +4691,218 @@ var keepColourful = false;     // auto-switch with seasons/events
 var _activeTheme  = "default"; // currently applied theme (may differ in keepColourful mode)
 var textSize      = "normal";  // "normal" | "large" | "xl"
 
-// ─── Animation theme definitions ─────────────────────────────────────────────
-// Each entry: id, name, emoji, cat (category key), auto (date window|null),
-//   vars (CSS var overrides, light mode), dark (CSS var overrides, dark mode),
-//   pulse (array of hex colours cycled across tiles during board animation)
+// ─── Colour themes ────────────────────────────────────────────────────────────
+// Each entry defines the FULL system palette — every CSS variable for both
+// light mode (vars) and dark mode (dk-* counterparts also in vars, remapped by
+// html[data-theme=dark] in style.css). dark:{} holds only the animation pulse
+// fill for dark mode (injected as a direct html[data-theme=dark] rule so it
+// wins over the static fallback in style.css line 644).
+// pulse: hex array cycled across tiles during the board opening animation.
 var THEMES = [
-  { id:"default",      name:"Default",          emoji:"✨", cat:"brand",
-    auto:null,
-    vars:{"--tile-pulse-fill":"#a78bfa","--tile-played":"#4ade80","--tile-played-stroke":"#22c55e"},
-    dark:{"--tile-pulse-fill":"#7c4dff"},
-    pulse:["#7c4dff","#4ade80","#9f7aea","#86efac","#7c4dff","#4ade80"] },
 
-  { id:"protanopia",   name:"Red-Green",         emoji:"👁", cat:"access",
-    auto:null, vars:{}, dark:{}, pulse:["#4a90d9","#f5a623","#4a90d9","#f5a623"] },
+  // ── Brand ───────────────────────────────────────────────────────────────────
+  // Refined indigo-violet. Backgrounds barely tinted; functional colours
+  // shifted away from electric toward natural teal-green and calm blue.
+  { id:"default", name:"Default", emoji:"✨", cat:"brand", auto:null,
+    vars:{
+      "--brand":"#6B4FBB",               "--brand-dark":"#4E3A8E",
+      "--board-bg":"#F5F3FB",            "--page-bg":"#F5F3FB",
+      "--card-bg":"#FFFFFF",
+      "--sheet-bg":"#EFF0FB",            "--word-box-bg":"#EAE8F8",
+      "--stat-box-bg":"#F5F3FB",
+      "--text-primary":"#1D1A2C",        "--text-secondary":"#6B6880",
+      "--text-muted":"#9C99AF",          "--prompt-color":"#9C99AF",
+      "--icon-color":"#6B6880",          "--lb-row-border":"#E8E4F4",
+      "--tile-neutral":"#FFFFFF",        "--tile-neutral-stroke":"#E4E0F0",
+      "--tile-blank":"#EFF0FB",          "--tile-text":"#1D1A2C",
+      "--tile-text-light":"#FFFFFF",
+      "--tile-selected":"#6B4FBB",       "--tile-selected-stroke":"#4E3A8E",
+      "--tile-valid":"#27896A",          "--tile-valid-stroke":"#1C6650",
+      "--tile-invalid":"#C8484A",        "--tile-invalid-stroke":"#A03336",
+      "--tile-played":"#4A9CBB",         "--tile-played-stroke":"#3376A0",
+      "--tile-pulse-fill":"#9B7EE0",
+      // Dark counterparts
+      "--dk-brand":"#9B7EE0",            "--dk-brand-dark":"#6B4FBB",
+      "--dk-board-bg":"#13101E",         "--dk-card-bg":"#1E1A2E",
+      "--dk-sheet-bg":"#13101E",         "--dk-word-box-bg":"#1E1A2E",
+      "--dk-stat-box-bg":"#28223C",
+      "--dk-text-primary":"#EEEAF8",     "--dk-text-secondary":"#9E9AB8",
+      "--dk-text-muted":"#6A6880",       "--dk-prompt-color":"#6A6880",
+      "--dk-icon-color":"#9E9AB8",       "--dk-lb-row-border":"#28223C",
+      "--dk-tile-neutral":"#28223C",     "--dk-tile-neutral-stroke":"#352C4C",
+      "--dk-tile-blank":"#201C30",       "--dk-tile-text":"#EEEAF8",
+      "--dk-tile-text-light":"#FFFFFF",
+      "--dk-tile-selected":"#9B7EE0",    "--dk-tile-selected-stroke":"#6B4FBB",
+      "--dk-tile-valid":"#3AB888",       "--dk-tile-valid-stroke":"#27896A",
+      "--dk-tile-invalid":"#E06060",     "--dk-tile-invalid-stroke":"#C04040",
+      "--dk-tile-played":"#6AB8D6",      "--dk-tile-played-stroke":"#4A9CBB",
+    },
+    dark:{"--tile-pulse-fill":"#9B7EE0"},
+    pulse:["#6B4FBB","#4A9CBB","#9B7EE0","#6AB8D6","#8060CC","#3AB888"] },
 
-  { id:"highcontrast", name:"High Contrast",     emoji:"◑", cat:"access",
-    auto:null, vars:{}, dark:{}, pulse:["#00ff00","#ffff00","#00ff00","#ffff00"] },
+  // ── Accessibility ───────────────────────────────────────────────────────────
 
-  // Community ─────────────────────────────────────────────────────────────────
-  { id:"pride",        name:"Pride",             emoji:"🌈", cat:"community",
+  // Protanopia / deuteranopia — no red or green used for meaning.
+  // Valid = steel blue, Invalid = amber, Played = teal, Selected = indigo.
+  { id:"protanopia", name:"Red-Green", emoji:"👁", cat:"access", auto:null,
+    vars:{
+      "--brand":"#2563A8",               "--brand-dark":"#1A4A80",
+      "--board-bg":"#F3F6FB",            "--page-bg":"#F3F6FB",
+      "--card-bg":"#FFFFFF",
+      "--sheet-bg":"#ECF2FA",            "--word-box-bg":"#E5EDF8",
+      "--stat-box-bg":"#F3F6FB",
+      "--text-primary":"#18253A",        "--text-secondary":"#4A5E78",
+      "--text-muted":"#8A9DB8",          "--prompt-color":"#8A9DB8",
+      "--icon-color":"#4A5E78",          "--lb-row-border":"#DDE8F4",
+      "--tile-neutral":"#FFFFFF",        "--tile-neutral-stroke":"#CBD9EC",
+      "--tile-blank":"#ECF2FA",          "--tile-text":"#18253A",
+      "--tile-text-light":"#FFFFFF",
+      "--tile-selected":"#3B49C4",       "--tile-selected-stroke":"#2830A0",
+      "--tile-valid":"#2563A8",          "--tile-valid-stroke":"#1A4A80",
+      "--tile-invalid":"#C87020",        "--tile-invalid-stroke":"#A05418",
+      "--tile-played":"#0D8A9A",         "--tile-played-stroke":"#0A6B78",
+      "--tile-pulse-fill":"#6A85D0",
+      "--dk-brand":"#6A9ECC",            "--dk-brand-dark":"#2563A8",
+      "--dk-board-bg":"#0E1620",         "--dk-card-bg":"#182430",
+      "--dk-sheet-bg":"#0E1620",         "--dk-word-box-bg":"#182430",
+      "--dk-stat-box-bg":"#20303E",
+      "--dk-text-primary":"#E2EAF5",     "--dk-text-secondary":"#7A9AB8",
+      "--dk-text-muted":"#4A6278",       "--dk-prompt-color":"#4A6278",
+      "--dk-icon-color":"#7A9AB8",       "--dk-lb-row-border":"#20303E",
+      "--dk-tile-neutral":"#20303E",     "--dk-tile-neutral-stroke":"#2A3E52",
+      "--dk-tile-blank":"#18283A",       "--dk-tile-text":"#E2EAF5",
+      "--dk-tile-text-light":"#FFFFFF",
+      "--dk-tile-selected":"#7880DC",    "--dk-tile-selected-stroke":"#3B49C4",
+      "--dk-tile-valid":"#6A9ECC",       "--dk-tile-valid-stroke":"#2563A8",
+      "--dk-tile-invalid":"#D98830",     "--dk-tile-invalid-stroke":"#C07020",
+      "--dk-tile-played":"#20B8CC",      "--dk-tile-played-stroke":"#0D8A9A",
+    },
+    dark:{"--tile-pulse-fill":"#6A9ECC"},
+    pulse:["#3B49C4","#2563A8","#0D8A9A","#6A85D0","#2563A8","#3B49C4"] },
+
+  // High contrast — maximum readability. Black / white / yellow only.
+  // Selected = high-vis yellow. Valid = deep green, Invalid = deep red,
+  // Played = deep navy. All meet WCAG AAA on their tile backgrounds.
+  { id:"highcontrast", name:"High Contrast", emoji:"◑", cat:"access", auto:null,
+    vars:{
+      "--brand":"#1A1A1A",               "--brand-dark":"#000000",
+      "--board-bg":"#F8F8F8",            "--page-bg":"#F8F8F8",
+      "--card-bg":"#FFFFFF",
+      "--sheet-bg":"#F0F0F0",            "--word-box-bg":"#E8E8E8",
+      "--stat-box-bg":"#F8F8F8",
+      "--text-primary":"#000000",        "--text-secondary":"#333333",
+      "--text-muted":"#555555",          "--prompt-color":"#555555",
+      "--icon-color":"#333333",          "--lb-row-border":"#DDDDDD",
+      "--tile-neutral":"#FFFFFF",        "--tile-neutral-stroke":"#000000",
+      "--tile-blank":"#F0F0F0",          "--tile-text":"#000000",
+      "--tile-text-light":"#000000",
+      "--tile-selected":"#F5C800",       "--tile-selected-stroke":"#B09400",
+      "--tile-valid":"#005E00",          "--tile-valid-stroke":"#003D00",
+      "--tile-invalid":"#CC0000",        "--tile-invalid-stroke":"#880000",
+      "--tile-played":"#00007A",         "--tile-played-stroke":"#000050",
+      "--tile-pulse-fill":"#F5C800",
+      "--dk-brand":"#FFFFFF",            "--dk-brand-dark":"#E0E0E0",
+      "--dk-board-bg":"#000000",         "--dk-card-bg":"#111111",
+      "--dk-sheet-bg":"#000000",         "--dk-word-box-bg":"#111111",
+      "--dk-stat-box-bg":"#1A1A1A",
+      "--dk-text-primary":"#FFFFFF",     "--dk-text-secondary":"#CCCCCC",
+      "--dk-text-muted":"#999999",       "--dk-prompt-color":"#AAAAAA",
+      "--dk-icon-color":"#CCCCCC",       "--dk-lb-row-border":"#333333",
+      "--dk-tile-neutral":"#1A1A1A",     "--dk-tile-neutral-stroke":"#FFFFFF",
+      "--dk-tile-blank":"#0D0D0D",       "--dk-tile-text":"#FFFFFF",
+      "--dk-tile-text-light":"#000000",
+      "--dk-tile-selected":"#F5C800",    "--dk-tile-selected-stroke":"#DDB000",
+      "--dk-tile-valid":"#44DD44",       "--dk-tile-valid-stroke":"#00AA00",
+      "--dk-tile-invalid":"#FF5555",     "--dk-tile-invalid-stroke":"#DD0000",
+      "--dk-tile-played":"#5588FF",      "--dk-tile-played-stroke":"#2244DD",
+    },
+    dark:{"--tile-pulse-fill":"#F5C800"},
+    pulse:["#F5C800","#1A1A1A","#F5C800","#888888","#F5C800","#1A1A1A"] },
+
+  // ── Community ───────────────────────────────────────────────────────────────
+
+  // Pride — anchored on the photography-derived palette from the reference:
+  // 6D458B · 0491D0 · 88BB64 · F2CE3F · FC9548 · FB5B44.
+  // Violet brand from the purple stripe; backgrounds a whisper of violet wash;
+  // valid = forest green (green stripe, darkened); invalid = warm coral (red
+  // stripe, quieted); played = antique gold (yellow stripe, muted).
+  { id:"pride", name:"Pride", emoji:"🌈", cat:"community",
     auto:{m1:6,d1:1,m2:6,d2:30},
-    vars:{"--tile-pulse-fill":"#ff8c00","--tile-played":"#004dff","--tile-played-stroke":"#0035b3"},
-    dark:{"--tile-pulse-fill":"#ffed00"},
-    pulse:["#e40303","#ff8c00","#ffed00","#008026","#004dff","#750787"] },
+    vars:{
+      "--brand":"#6D458B",               "--brand-dark":"#503366",
+      "--board-bg":"#FBF8FD",            "--page-bg":"#FBF8FD",
+      "--card-bg":"#FFFFFF",
+      "--sheet-bg":"#F5F0FA",            "--word-box-bg":"#EFE8F5",
+      "--stat-box-bg":"#FBF8FD",
+      "--text-primary":"#1E1228",        "--text-secondary":"#6A507A",
+      "--text-muted":"#9E8AAE",          "--prompt-color":"#9E8AAE",
+      "--icon-color":"#6A507A",          "--lb-row-border":"#EDE6F4",
+      "--tile-neutral":"#FFFFFF",        "--tile-neutral-stroke":"#E6D8F0",
+      "--tile-blank":"#F8F2FC",          "--tile-text":"#1E1228",
+      "--tile-text-light":"#FFFFFF",
+      "--tile-selected":"#6D458B",       "--tile-selected-stroke":"#503366",
+      "--tile-valid":"#3D8A4E",          "--tile-valid-stroke":"#2A6638",
+      "--tile-invalid":"#C84A28",        "--tile-invalid-stroke":"#A03520",
+      "--tile-played":"#B88C10",         "--tile-played-stroke":"#907008",
+      "--tile-pulse-fill":"#A870CC",
+      "--dk-brand":"#B08AD0",            "--dk-brand-dark":"#6D458B",
+      "--dk-board-bg":"#120C1C",         "--dk-card-bg":"#1E1428",
+      "--dk-sheet-bg":"#120C1C",         "--dk-word-box-bg":"#1E1428",
+      "--dk-stat-box-bg":"#281C36",
+      "--dk-text-primary":"#F2ECF8",     "--dk-text-secondary":"#A888C0",
+      "--dk-text-muted":"#6E5880",       "--dk-prompt-color":"#6E5880",
+      "--dk-icon-color":"#A888C0",       "--dk-lb-row-border":"#281C36",
+      "--dk-tile-neutral":"#281C36",     "--dk-tile-neutral-stroke":"#382848",
+      "--dk-tile-blank":"#201428",       "--dk-tile-text":"#F2ECF8",
+      "--dk-tile-text-light":"#FFFFFF",
+      "--dk-tile-selected":"#B08AD0",    "--dk-tile-selected-stroke":"#6D458B",
+      "--dk-tile-valid":"#54B06A",       "--dk-tile-valid-stroke":"#3D8A4E",
+      "--dk-tile-invalid":"#E06840",     "--dk-tile-invalid-stroke":"#C04828",
+      "--dk-tile-played":"#D9A830",      "--dk-tile-played-stroke":"#B88C10",
+    },
+    dark:{"--tile-pulse-fill":"#B08AD0"},
+    pulse:["#FB5B44","#FC9548","#F2CE3F","#88BB64","#0491D0","#6D458B"] },
 
-  { id:"trans",        name:"Trans",             emoji:"⚧️", cat:"community",
+  // Trans — sky blue as brand, boards washed in the palest rose, white tiles
+  // (the white stripe lives in the neutral tile). Pink for selection, blue for
+  // best word. Functional valid/invalid stay universally readable.
+  { id:"trans", name:"Trans", emoji:"⚧️", cat:"community",
     auto:{m1:3,d1:31,m2:3,d2:31},
-    vars:{"--tile-pulse-fill":"#f7a8b8","--tile-played":"#55cdfc","--tile-played-stroke":"#28b5f0"},
-    dark:{"--tile-pulse-fill":"#55cdfc"},
-    pulse:["#55cdfc","#f7a8b8","#ffffff","#f7a8b8","#55cdfc"] },
+    vars:{
+      "--brand":"#4A9CBB",               "--brand-dark":"#357A96",
+      "--board-bg":"#FDF6F9",            "--page-bg":"#FDF6F9",
+      "--card-bg":"#FFFFFF",
+      "--sheet-bg":"#F8EEF3",            "--word-box-bg":"#F3E6EE",
+      "--stat-box-bg":"#FDF6F9",
+      "--text-primary":"#18242E",        "--text-secondary":"#507080",
+      "--text-muted":"#8AAAB8",          "--prompt-color":"#8AAAB8",
+      "--icon-color":"#507080",          "--lb-row-border":"#EADCE8",
+      "--tile-neutral":"#FFFFFF",        "--tile-neutral-stroke":"#E4D4DE",
+      "--tile-blank":"#FBF2F6",          "--tile-text":"#18242E",
+      "--tile-text-light":"#FFFFFF",
+      "--tile-selected":"#C8607A",       "--tile-selected-stroke":"#A04860",
+      "--tile-valid":"#2A9A70",          "--tile-valid-stroke":"#1F7455",
+      "--tile-invalid":"#C84848",        "--tile-invalid-stroke":"#A03030",
+      "--tile-played":"#4A9CBB",         "--tile-played-stroke":"#357A96",
+      "--tile-pulse-fill":"#7ABCD6",
+      "--dk-brand":"#7ABCD6",            "--dk-brand-dark":"#4A9CBB",
+      "--dk-board-bg":"#0E181E",         "--dk-card-bg":"#182430",
+      "--dk-sheet-bg":"#0E181E",         "--dk-word-box-bg":"#182430",
+      "--dk-stat-box-bg":"#20303E",
+      "--dk-text-primary":"#EEF4F8",     "--dk-text-secondary":"#7AAAB8",
+      "--dk-text-muted":"#4A6878",       "--dk-prompt-color":"#4A6878",
+      "--dk-icon-color":"#7AAAB8",       "--dk-lb-row-border":"#20303E",
+      "--dk-tile-neutral":"#20303E",     "--dk-tile-neutral-stroke":"#2C4050",
+      "--dk-tile-blank":"#1A2C38",       "--dk-tile-text":"#EEF4F8",
+      "--dk-tile-text-light":"#FFFFFF",
+      "--dk-tile-selected":"#E090A8",    "--dk-tile-selected-stroke":"#C06888",
+      "--dk-tile-valid":"#3AB888",       "--dk-tile-valid-stroke":"#2A9A70",
+      "--dk-tile-invalid":"#E06060",     "--dk-tile-invalid-stroke":"#C04040",
+      "--dk-tile-played":"#7ABCD6",      "--dk-tile-played-stroke":"#4A9CBB",
+    },
+    dark:{"--tile-pulse-fill":"#7ABCD6"},
+    pulse:["#55CDFC","#F7A8B8","#EEF6FF","#F7A8B8","#55CDFC","#B8DCEA"] },
 
-  // Cultural ──────────────────────────────────────────────────────────────────
-  { id:"earthday",     name:"Earth Day",         emoji:"🌍", cat:"cultural",
-    auto:{m1:4,d1:22,m2:4,d2:22},
-    vars:{"--tile-pulse-fill":"#52b788","--tile-played":"#2d6a4f","--tile-played-stroke":"#1b4332"},
-    dark:{"--tile-pulse-fill":"#95d5b2"},
-    pulse:["#52b788","#95d5b2","#2d6a4f","#b7e4c7","#74c69d","#40916c"] },
-
-  { id:"independence", name:"Independence Day",  emoji:"🦅", cat:"cultural",
-    auto:{m1:7,d1:4,m2:7,d2:4},
-    vars:{"--tile-pulse-fill":"#bf0a30","--tile-played":"#002868","--tile-played-stroke":"#001a45"},
-    dark:{"--tile-pulse-fill":"#4a90d9"},
-    pulse:["#bf0a30","#ffffff","#002868","#bf0a30","#ffffff","#002868"] },
-
-  // Celebrations ──────────────────────────────────────────────────────────────
-  { id:"newyear",      name:"New Year",          emoji:"🎆", cat:"celebrations",
-    auto:{m1:12,d1:31,m2:1,d2:2},
-    vars:{"--tile-pulse-fill":"#ffd700","--tile-played":"#b8860b","--tile-played-stroke":"#9a7209"},
-    dark:{"--tile-pulse-fill":"#ffd700"},
-    pulse:["#ffd700","#c0c0c0","#fffacd","#ffd700","#c0c0c0","#f0e68c"] },
-
-  { id:"valentines",   name:"Valentine's",       emoji:"💕", cat:"celebrations",
-    auto:{m1:2,d1:14,m2:2,d2:14},
-    vars:{"--tile-pulse-fill":"#ff4081","--tile-played":"#c2185b","--tile-played-stroke":"#a31545"},
-    dark:{"--tile-pulse-fill":"#ff80ab"},
-    pulse:["#ff1744","#ff6090","#ff4081","#e91e63","#f48fb1","#ff80ab"] },
-
-  { id:"halloween",    name:"Halloween",         emoji:"🎃", cat:"celebrations",
-    auto:{m1:10,d1:25,m2:10,d2:31},
-    vars:{"--tile-pulse-fill":"#ff9100","--tile-played":"#6a1b9a","--tile-played-stroke":"#4a148c"},
-    dark:{"--tile-pulse-fill":"#ffab40"},
-    pulse:["#ff6d00","#7b1fa2","#ff9100","#6a1b9a","#ff6d00","#e65100"] },
-
-  { id:"diwali",       name:"Diwali",            emoji:"🪔", cat:"celebrations",
-    auto:{m1:10,d1:20,m2:11,d2:15},
-    vars:{"--tile-pulse-fill":"#ffc107","--tile-played":"#e65100","--tile-played-stroke":"#bf360c"},
-    dark:{"--tile-pulse-fill":"#ffd54f"},
-    pulse:["#ffc107","#ff5722","#ffeb3b","#ff9800","#ffd54f","#ff6f00"] },
-
-  { id:"christmas",    name:"Christmas",         emoji:"🎄", cat:"celebrations",
-    auto:{m1:12,d1:1,m2:12,d2:26},
-    vars:{"--tile-pulse-fill":"#c41e3a","--tile-played":"#165b33","--tile-played-stroke":"#0e3d22"},
-    dark:{"--tile-pulse-fill":"#ef5350"},
-    pulse:["#c41e3a","#165b33","#f5f5f5","#fcc200","#c41e3a","#165b33"] },
-
-  { id:"hanukkah",     name:"Hanukkah",          emoji:"🕎", cat:"celebrations",
-    auto:{m1:12,d1:1,m2:12,d2:31},
-    vars:{"--tile-pulse-fill":"#4a90d9","--tile-played":"#003f87","--tile-played-stroke":"#002a5c"},
-    dark:{"--tile-pulse-fill":"#64b5f6"},
-    pulse:["#003f87","#4a90d9","#c0c0c0","#ffffff","#4a90d9","#1565c0"] },
-
-  // Seasons ───────────────────────────────────────────────────────────────────
-  { id:"spring",       name:"Spring",            emoji:"🌸", cat:"seasons",
-    auto:{m1:3,d1:20,m2:6,d2:19},
-    vars:{"--tile-pulse-fill":"#f48fb1","--tile-played":"#81c784","--tile-played-stroke":"#519657"},
-    dark:{"--tile-pulse-fill":"#f06292"},
-    pulse:["#f8b4d9","#a8e6cf","#ffd3e0","#c8e6c9","#f48fb1","#aed581"] },
-
-  { id:"summer",       name:"Summer",            emoji:"☀️",  cat:"seasons",
-    auto:{m1:6,d1:20,m2:9,d2:22},
-    vars:{"--tile-pulse-fill":"#ffcc02","--tile-played":"#0097a7","--tile-played-stroke":"#006978"},
-    dark:{"--tile-pulse-fill":"#ffd740"},
-    pulse:["#ffcc02","#00bcd4","#ff7043","#ffeb3b","#4dd0e1","#ff5722"] },
-
-  { id:"autumn",       name:"Autumn",            emoji:"🍂", cat:"seasons",
-    auto:{m1:9,d1:23,m2:12,d2:20},
-    vars:{"--tile-pulse-fill":"#f57f17","--tile-played":"#bf360c","--tile-played-stroke":"#8d2207"},
-    dark:{"--tile-pulse-fill":"#ff8f00"},
-    pulse:["#e65100","#bf360c","#f57f17","#795548","#ff8f00","#d84315"] },
-
-  { id:"winter",       name:"Winter",            emoji:"❄️", cat:"seasons",
-    auto:{m1:12,d1:21,m2:3,d2:19},
-    vars:{"--tile-pulse-fill":"#4fc3f7","--tile-played":"#0277bd","--tile-played-stroke":"#01579b"},
-    dark:{"--tile-pulse-fill":"#81d4fa"},
-    pulse:["#b3e5fc","#e1f5fe","#80d8ff","#4fc3f7","#29b6f6","#e1f5fe"] },
-
-  // Weather (manual only) ─────────────────────────────────────────────────────
-  { id:"rain",         name:"Rain",              emoji:"🌧️", cat:"weather",
-    auto:null,
-    vars:{"--tile-pulse-fill":"#78909c","--tile-played":"#37474f","--tile-played-stroke":"#263238"},
-    dark:{"--tile-pulse-fill":"#90a4ae"},
-    pulse:["#546e7a","#78909c","#4fc3f7","#607d8b","#80cbc4","#b0bec5"] },
-
-  { id:"snow",         name:"Snow",              emoji:"🌨️", cat:"weather",
-    auto:null,
-    vars:{"--tile-pulse-fill":"#b3e5fc","--tile-played":"#0288d1","--tile-played-stroke":"#01579b"},
-    dark:{"--tile-pulse-fill":"#e1f5fe"},
-    pulse:["#e1f5fe","#ffffff","#b3e5fc","#e3f2fd","#80d8ff","#e0f7fa"] },
-
-  { id:"clearday",     name:"Clear Day",         emoji:"🌤️", cat:"weather",
-    auto:null,
-    vars:{"--tile-pulse-fill":"#ffee58","--tile-played":"#f57f17","--tile-played-stroke":"#e65100"},
-    dark:{"--tile-pulse-fill":"#fff176"},
-    pulse:["#ffee58","#fff59d","#fff176","#ffb300","#ffe082","#fff59d"] },
-
-  { id:"clearnight",   name:"Clear Night",       emoji:"🌙", cat:"weather",
-    auto:null,
-    vars:{"--tile-pulse-fill":"#9fa8da","--tile-played":"#3949ab","--tile-played-stroke":"#283593"},
-    dark:{"--tile-pulse-fill":"#7986cb"},
-    pulse:["#9fa8da","#7986cb","#c5cae9","#e8eaf6","#5c6bc0","#7986cb"] },
-
-  { id:"cloudy",       name:"Cloudy",            emoji:"⛅", cat:"weather",
-    auto:null,
-    vars:{"--tile-pulse-fill":"#90a4ae","--tile-played":"#546e7a","--tile-played-stroke":"#37474f"},
-    dark:{"--tile-pulse-fill":"#b0bec5"},
-    pulse:["#90a4ae","#b0bec5","#cfd8dc","#78909c","#b0bec5","#eceff1"] },
 ];
 
 // ─── Theme helpers ────────────────────────────────────────────────────────────
