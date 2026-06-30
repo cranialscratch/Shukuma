@@ -3822,11 +3822,22 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.55";
+const VERSION = "2.0.56";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.56",
+    date: "2026-06-30",
+    title: "Fix: snapshot time/tries at goal, keep running after; remove letter count label",
+    changes: [
+      "'Tries to Find' and 'Time to Find' are now snapshot values captured the exact moment the longest word is found — the timer and attempt counter keep running after that for total stats",
+      "Score submitted to Firestore uses the snapshot values for 'attempts' and 'timeSpent', not the post-find totals",
+      "Attempts now count normally after the target is found (no longer stops at goal)",
+      "Letter-count label ('10L', '10 ltr') removed from word rows — it was not meaningful when percentage data isn't yet available",
+    ],
+  },
   {
     version: "2.0.55",
     date: "2026-06-30",
@@ -4694,6 +4705,10 @@ let hintsUsed = 0;
 let activeTimeMs = 0;
 let timerRunning = false;
 let timerLastStart = 0;
+// Snapshots captured the moment the longest word is found
+// (used for "Tries to Find" / "Time to Find" display; timer & counter keep running after)
+let targetFoundMs = 0;
+let targetFoundAttempts = 0;
 
 // Board date browsing (0 = today, -1 = yesterday, …)
 let browseOffset = 0;
@@ -5263,7 +5278,7 @@ async function onPointerUp(e) {
     if (selectedPath.length === 0) return;
     if (selectedPath.length === 1) { clearSelection(); return; } // reverted to start — silent clear
     if (selectedPath.length < 4) { flashInvalid("Need 4+"); return; }
-    if (!targetWordFound) attemptCount++;
+    attemptCount++;
     var validWord = validateWord(selectedPath);
     if (validWord) {
       if (OFFENSIVE_WORDS.has(validWord.toLowerCase())) { flashInvalid(); return; }
@@ -5313,7 +5328,7 @@ async function onPointerUp(e) {
 
   // Tapping the last tile with ≥2 letters: submit
   if (selectedPath.length >= 2 && selectedPath[selectedPath.length - 1] === tileId) {
-    if (!targetWordFound) attemptCount++;
+    attemptCount++;
     await submitTappedWord();
     return;
   }
@@ -5404,8 +5419,9 @@ function lockValidWord(word) {
     targetWordFound = true;
     gameCompleted = true;
     _cycleAttemptCount = attemptCount;
-    // Freeze the timer the moment the longest word is found
-    if (timerRunning) { activeTimeMs += (Date.now() - timerLastStart); timerRunning = false; }
+    // Snapshot time/tries at the moment of finding the longest word
+    targetFoundAttempts = attemptCount;
+    targetFoundMs = activeTimeMs + (timerRunning ? (Date.now() - timerLastStart) : 0);
     saveState();
     if (currentUser) submitScore().then(function() {
       var t = document.getElementById("tab-scores");
@@ -5427,8 +5443,9 @@ function lockValidWord(word) {
     targetWordFound = true;
     gameCompleted = true;
     _cycleAttemptCount = attemptCount;
-    // Freeze the timer the moment the longest word is found
-    if (timerRunning) { activeTimeMs += (Date.now() - timerLastStart); timerRunning = false; }
+    // Snapshot time/tries at the moment of finding the longest word
+    targetFoundAttempts = attemptCount;
+    targetFoundMs = activeTimeMs + (timerRunning ? (Date.now() - timerLastStart) : 0);
     saveState();
     if (currentUser) submitScore().then(function() {
       var t = document.getElementById("tab-scores");
@@ -5887,6 +5904,7 @@ function loadBoardForDate(ddmmyy) {
   bestScore = 0; bestWord = ""; gameCompleted = false;
   attemptCount = 0; validAttemptCount = 0; activeTimeMs = 0; timerRunning = false; timerLastStart = 0;
   inOneAchieved = false; targetWordFound = false;
+  targetFoundMs = 0; targetFoundAttempts = 0;
 
   loadState();
 
@@ -6361,14 +6379,17 @@ async function submitScore() {
     const bestStreakSoFar = Math.max(streak, (userProfile && userProfile.stats && userProfile.stats.bestStreak) || 0);
     const totalGamesNow  = ((userProfile && userProfile.stats && userProfile.stats.totalGames) || 0) + (existing.exists ? 0 : 1);
     const elapsed = timerRunning ? activeTimeMs + (Date.now() - timerLastStart) : activeTimeMs;
+    // Use snapshot values for "time/tries to find" in the score doc; fall back to totals if target not yet found
+    const scoreTimeMs  = targetFoundMs  > 0 ? targetFoundMs  : elapsed;
+    const scoreAttempts = targetFoundAttempts > 0 ? targetFoundAttempts : attemptCount;
 
     const batch = db.batch();
     batch.set(scoreRef, {
       uid: currentUser.uid, username, date: dateStr, puzzleId: puzzle.id,
       score: bestScore, word: bestWord, level,
-      attempts: attemptCount,
+      attempts: scoreAttempts,
       validAttempts: validAttemptCount,
-      timeSpent: Math.round(elapsed / 1000),
+      timeSpent: Math.round(scoreTimeMs / 1000),
       submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
 
@@ -6682,7 +6703,7 @@ function buildWordRow(cfg) {
     pctEl.title = pct + "% of players who played today found this word";
   } else {
     pctEl.className = "wl-len";
-    pctEl.textContent = word.length + " ltr";
+    pctEl.textContent = "";
   }
 
   row.appendChild(leftCol);
@@ -6755,8 +6776,8 @@ function buildPlayersSection(players, targetWord) {
     var myCells = [
       { val: bestWord || "—", lbl: "Best Word" },
       { val: getScoreLevel(bestScore), lbl: "Ranking" },
-      { val: attemptCount || "—", lbl: targetWordFound ? "Tries to Find" : "Tries so far" },
-      { val: formatTime(Math.round(elapsed / 1000)), lbl: targetWordFound ? "Time to Find" : "Time so far" },
+      { val: (targetWordFound ? targetFoundAttempts : attemptCount) || "—", lbl: targetWordFound ? "Tries to Find" : "Tries so far" },
+      { val: formatTime(Math.round((targetWordFound ? targetFoundMs : elapsed) / 1000)), lbl: targetWordFound ? "Time to Find" : "Time so far" },
     ];
     if (hintsUsed > 0) myCells.push({ val: hintsUsed, lbl: "Hints Used" });
     myCells.forEach(function(s) {
@@ -7936,7 +7957,7 @@ function saveState() {
   const elapsed = timerRunning ? activeTimeMs + (Date.now() - timerLastStart) : activeTimeMs;
   try {
     localStorage.setItem(storageKey(), JSON.stringify({
-      bestWord, bestScore, gameCompleted, attemptCount, validAttemptCount, hintsUsed, activeTimeMs: elapsed, playedPath, inOneAchieved, foundWords,
+      bestWord, bestScore, gameCompleted, attemptCount, validAttemptCount, hintsUsed, activeTimeMs: elapsed, playedPath, inOneAchieved, foundWords, targetFoundMs, targetFoundAttempts,
     }));
   } catch(_) {}
 }
@@ -7956,6 +7977,8 @@ function loadState() {
     hintsUsed        = s.hintsUsed || 0;
     inOneAchieved    = s.inOneAchieved || false;
     foundWords       = Array.isArray(s.foundWords) ? s.foundWords : [];
+    targetFoundMs       = s.targetFoundMs || 0;
+    targetFoundAttempts = s.targetFoundAttempts || 0;
   } catch(_) {}
 }
 
