@@ -3822,22 +3822,21 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.93";
+const VERSION = "2.0.94";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
   {
-    version: "2.0.93",
+    version: "2.0.94",
     date: "2026-06-30",
-    title: "Fix: nudge pulse, swipe hint, and best-word fade on refresh",
+    title: "Fix tomorrow topbar; rewrite nudge + swipe hint; Trans baby blue pulse",
     changes: [
-      "Nudge pulse now animates the tile polygon directly — fixes silent failure on iOS Safari with Web Animations API on SVG group elements",
-      "Nudge pulse also fires during drag (entering a new tile), not only on tap",
-      "Swipe-to-browse-days hint: removed reduce-motion JS guard — hint text always shows (animation still suppressed by Reduce Animations toggle)",
-      "Swipe hint fires after 10 s of idle on first load; previously required waiting up to 25 s for the first interval tick",
-      "Swipe hint auto-dismisses after 4.5 s even if animationend doesn't fire (fallback timer)",
-      "Best-word highlight on force-refresh: tiles now correctly fade out after 3.5 s — previously stayed blue indefinitely because the fade timer was only set in loadBoardForDate, not in init()",
+      "Fixed: tomorrow board showed topbar selection text (underscores/letters) and active Submit button — stale highlightWordOnBoard reveal timers were firing after navigating to tomorrow; generation counter now invalidates them",
+      "Nudge: complete rewrite using inline CSS transition on tile polygon opacity — no keyframes, no Web Animations API, works on all iOS Safari versions",
+      "Nudge also fires on drag entry (not only tap)",
+      "Swipe hint: complete rewrite — plain text fade-in/out using CSS transition; no SVG hand animation to fail; auto-dismisses after 3 s; shows after 8 s idle",
+      "Trans theme: board open animation colour changed from purple (#8B5CF6) to pale baby blue (#A8D4F0)",
     ],
   },
   {
@@ -5270,7 +5269,7 @@ var THEMES = [
       "--tile-valid":"#2EC4F1",          "--tile-valid-stroke":"#1AABB8",
       "--tile-invalid":"#F72F8C",        "--tile-invalid-stroke":"#C2006A",
       "--tile-played":"#2EC4F1",         "--tile-played-stroke":"#1AABB8",
-      "--tile-pulse-fill":"#8B5CF6",
+      "--tile-pulse-fill":"#A8D4F0",
       "--dk-brand":"#1BACD6",            "--dk-brand-dark":"#0E90BB",
       "--dk-board-bg":"#0C1520",         "--dk-card-bg":"#16222E",
       "--dk-sheet-bg":"#0C1520",         "--dk-word-box-bg":"#16222E",
@@ -5286,8 +5285,8 @@ var THEMES = [
       "--dk-tile-invalid":"#F72F8C",     "--dk-tile-invalid-stroke":"#C2006A",
       "--dk-tile-played":"#2EC4F1",      "--dk-tile-played-stroke":"#1AABB8",
     },
-    dark:{"--tile-pulse-fill":"#8B5CF6"},
-    pulse:["#2EC4F1","#F72F8C","#8B5CF6","#F7A8C4","#2EC4F1","#8B5CF6"],
+    dark:{"--tile-pulse-fill":"#A8D4F0"},
+    pulse:["#2EC4F1","#F72F8C","#A8D4F0","#F7A8C4","#2EC4F1","#A8D4F0"],
     swatch:["#2EC4F1","#F72F8C","#FFFFFF","#F72F8C","#2EC4F1"] },
 
 ];
@@ -5681,6 +5680,8 @@ var _scoreHighlightMode = false;
 var _scoreHighlightFadeTimer = null;
 // Timer for showing best word after board animation on previously-played games
 var _bestWordTimer = null;
+// Generation counter — incremented on every board navigation to cancel stale highlight reveal timers
+var _highlightGen = 0;
 
 // Definition cache { word: html }
 var _defCache = {};
@@ -5996,6 +5997,7 @@ function renderTile(tile) {
 function renderAllTiles() { tiles.forEach(renderTile); }
 
 function updateAnswerArea() {
+  if (_tomorrowMode) return; // tomorrow board manages its own topbar
   var ansEl     = document.getElementById("answer-text");
   var promptEl  = document.getElementById("game-prompt");
   var resetBtn  = document.getElementById("reset-btn");
@@ -6359,7 +6361,7 @@ function enterTile(tileId) {
   selectedPath.push(tileId);
   triggerHaptic(8);
   processWordState();
-  pulseTileSubmitHint();
+  nudgeLastTile();
 }
 
 function tileIdFromPoint(clientX, clientY) {
@@ -6506,7 +6508,7 @@ async function onPointerUp(e) {
     tapHintShown = true;
     showToast("Tap the last letter again to check your word");
   }
-  pulseTileSubmitHint();
+  nudgeLastTile();
 }
 
 function lockValidWord(word) {
@@ -6700,7 +6702,7 @@ async function submitTappedWord() {
   flashInvalid();
 }
 
-function pulseTileSubmitHint() {
+function nudgeLastTile() {
   if (reduceMotion) return;
   if (selectedPath.length < 2) return;
   var lastId = selectedPath[selectedPath.length - 1];
@@ -6708,11 +6710,16 @@ function pulseTileSubmitHint() {
   if (!g) return;
   var poly = g.querySelector("polygon:not(.hatch-overlay)");
   if (!poly) return;
-  // CSS class on polygon — reliable across all iOS Safari versions
-  poly.classList.remove("tile-nudge");
-  void poly.getBoundingClientRect();
-  poly.classList.add("tile-nudge");
-  setTimeout(function() { poly.classList.remove("tile-nudge"); }, 850);
+  // Inline CSS transition — no keyframes, no Web Animations API; reliable on all iOS Safari
+  poly.style.transition = "opacity 0.22s ease-out";
+  poly.style.opacity = "0.3";
+  setTimeout(function() {
+    poly.style.opacity = "1";
+    setTimeout(function() {
+      poly.style.transition = "";
+      poly.style.opacity = "";
+    }, 240);
+  }, 230);
 }
 
 function undoLastTile() {
@@ -6762,6 +6769,9 @@ function highlightWordOnBoard(word) {
   var path = findWordPath(word);
   if (!path || !path.length) return;
 
+  _highlightGen++; // invalidate any stale reveal timers from a previous highlight
+  var thisGen = _highlightGen;
+
   if (_highlightTimer) { clearTimeout(_highlightTimer); _highlightTimer = null; }
   if (_scoreHighlightFadeTimer) { clearTimeout(_scoreHighlightFadeTimer); _scoreHighlightFadeTimer = null; }
   clearSelection();
@@ -6770,6 +6780,7 @@ function highlightWordOnBoard(word) {
   // Reveal tiles one by one in "played" blue — makes clear this is a review, not active selection
   path.forEach(function(id, idx) {
     setTimeout(function() {
+      if (_highlightGen !== thisGen) return; // board navigated away; discard stale callback
       tiles[id].state = "played";
       tiles[id]._resolvedLetter = word[idx] || ""; // needed for blank tile display in topbar
       selectedPath = path.slice(0, idx + 1);
@@ -7354,6 +7365,7 @@ function loadBoardForDate(ddmmyy) {
   if (_bestWordTimer) { clearTimeout(_bestWordTimer); _bestWordTimer = null; }
   if (_scoreHighlightFadeTimer) { clearTimeout(_scoreHighlightFadeTimer); _scoreHighlightFadeTimer = null; }
   _scoreHighlightMode = false;
+  _highlightGen++; // invalidate any stale per-tile reveal timers from highlightWordOnBoard
 
   // Reset game state for this date
   tiles = []; selectedPath = []; isDragging = false; playedPath = []; playedPathVisible = true; foundWords = [];
@@ -10325,8 +10337,9 @@ function initSwipeDayHint() {
   if (!hint) return;
   var lastInteraction = Date.now();
   var hintActive = false;
-  var IDLE_THRESHOLD = 10000; // show after 10s idle
-  var REPEAT = 15000;         // repeat every 15s of continued inactivity
+  var IDLE_MS   = 8000;  // show after 8 s idle
+  var SHOW_MS   = 3000;  // visible for 3 s
+  var REPEAT_MS = 16000; // re-check every 16 s
 
   function resetIdle() { lastInteraction = Date.now(); }
   document.addEventListener("pointerdown", resetIdle, { passive: true });
@@ -10339,34 +10352,24 @@ function initSwipeDayHint() {
   function dismissHint() {
     hintActive = false;
     hint.classList.remove("visible");
-    setTimeout(function() { hint.hidden = true; }, 650);
+    setTimeout(function() { hint.hidden = true; }, 560);
   }
 
   function maybeShow() {
     if (hintActive) return;
-    if (Date.now() - lastInteraction < IDLE_THRESHOLD) return;
+    if (_tomorrowMode) return;
+    if (Date.now() - lastInteraction < IDLE_MS) return;
     hintActive = true;
     hint.hidden = false;
-    var hand = hint.querySelector(".swipe-hint-hand");
-    requestAnimationFrame(function() { hint.classList.add("visible"); });
-    if (hand) {
-      // Restart the CSS animation
-      hand.style.animation = "none";
-      void hand.getBoundingClientRect();
-      hand.style.animation = "";
-      // Fallback dismiss in case animationend doesn't fire (e.g. animation blocked by reduce-motion)
-      var dismissTimer = setTimeout(dismissHint, 4500);
-      hand.addEventListener("animationend", function() {
-        clearTimeout(dismissTimer);
-        dismissHint();
-      }, { once: true });
-    } else {
-      setTimeout(dismissHint, 4500);
-    }
+    // Double-rAF ensures display:flex is painted before the opacity transition starts
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() { hint.classList.add("visible"); });
+    });
+    setTimeout(dismissHint, SHOW_MS);
   }
 
-  setTimeout(maybeShow, IDLE_THRESHOLD); // first trigger after idle threshold
-  setInterval(maybeShow, REPEAT);
+  setTimeout(maybeShow, IDLE_MS);
+  setInterval(maybeShow, REPEAT_MS);
 }
 
 // ─── Idle hint ────────────────────────────────────────────────────────────────

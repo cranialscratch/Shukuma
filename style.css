@@ -663,37 +663,20 @@ html[data-theme="dark"] { --tile-pulse-fill: #585859; } /* lighter than #3a3a3c 
 /* ── Swipe-to-browse-days hint ───────────────────────────────────── */
 #swipe-day-hint {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
+  justify-content: center;
   padding: 4px 0 2px;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.6s ease;
+  transition: opacity 0.5s ease;
   flex-shrink: 0;
 }
 #swipe-day-hint.visible { opacity: 1; }
-.swipe-hint-icon {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: rgba(255,255,255,0.55);
-}
-.swipe-hint-hand {
-  animation: swipeFinger 1.3s ease-in-out 3 forwards;
-  will-change: transform;
-}
-.swipe-hint-label {
+.swipe-hint-text {
   font-size: var(--fs-sm);
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.32);
-}
-@keyframes swipeFinger {
-  0%   { transform: translateX(16px); }
-  50%  { transform: translateX(-16px); }
-  100% { transform: translateX(16px); }
+  color: rgba(255,255,255,0.45);
 }
 
 /* ── Manual HINT button — still uses a more prominent fill throb ─── */
@@ -713,13 +696,6 @@ html[data-theme="dark"] { --tile-pulse-fill: #585859; } /* lighter than #3a3a3c 
 }
 .tile-submit-hint { animation: tileSubmitHint 0.8s ease-in-out; }
 
-/* ── Nudge pulse on last selected tile ──────────────────────────────── */
-@keyframes tileNudge {
-  0%, 100% { opacity: 1; }
-  35%       { opacity: 0.45; }
-  70%       { opacity: 0.9; }
-}
-.tile-nudge { animation: tileNudge 0.8s ease-in-out forwards; }
 
 /* ── Reduce Motion: OS preference or in-app toggle ─────────────────── */
 /* Suppresses decorative/distracting animations; leaves functional ones  */
@@ -733,10 +709,8 @@ html[data-theme="dark"] { --tile-pulse-fill: #585859; } /* lighter than #3a3a3c 
 html[data-reduce-motion] .float-anim-wrapper { display: none !important; }
 html[data-reduce-motion] .is-throbbing       { animation: none !important; }
 html[data-reduce-motion] .share-pulse        { animation: none !important; }
-html[data-reduce-motion] .swipe-hint-hand    { animation: none !important; }
 html[data-reduce-motion] .tile-hint          { animation: none !important; fill: var(--tile-pulse-fill); }
 html[data-reduce-motion] .tile-hint-poly     { animation: none !important; fill: var(--tile-pulse-fill); }
-html[data-reduce-motion] .tile-nudge         { animation: none !important; }
 
 /* ── Tomorrow board — tile explosion on midnight ────────────────────── */
 @keyframes tile-explode {
@@ -3782,8 +3756,7 @@ html[data-colour="highcontrast"] #hint-btn.hint-found { color: #FF4444; opacity:
 html[data-colour="highcontrast"] #hint-btn.hint-found:hover { color: #FF4444; background: rgba(255,68,68,0.10); }
 
 /* 9. Swipe-to-browse hint: brighter and minimum 17 pt */
-html[data-colour="highcontrast"] .swipe-hint-icon  { color: #FFFFFF; }
-html[data-colour="highcontrast"] .swipe-hint-label { color: #FFFFFF; font-size: 1.0625rem; }
+html[data-colour="highcontrast"] .swipe-hint-text { color: #FFFFFF; font-size: 1.0625rem; }
 
 /* 10. Settings: section dividers, sub-labels, version label */
 html[data-colour="highcontrast"] .settings-section          { border-bottom-color: rgba(255,255,255,0.35); }
