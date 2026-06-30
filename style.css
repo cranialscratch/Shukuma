@@ -2987,8 +2987,12 @@ html[data-theme="dark"] .settings-toggle { background: #48484a; }
   display: flex;
   align-items: center;
   justify-content: center;
-  width: calc(100% - 32px);
-  margin: 6px 16px 0;
+  position: absolute;
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  left: 16px;
+  right: 16px;
+  width: auto;
+  margin: 0;
   padding: 0 20px;
   height: 44px;
   border-radius: 22px;
@@ -3002,8 +3006,16 @@ html[data-theme="dark"] .settings-toggle { background: #48484a; }
   letter-spacing: 0.02em;
   transition: opacity 0.15s, transform 0.1s;
   -webkit-tap-highlight-color: transparent;
+  z-index: 20;
 }
 #submit-btn:active { opacity: 0.85; transform: scale(0.98); }
+
+/* ── Tile fade-out animation (score-card highlight gradual clear) ────── */
+@keyframes tileGroupFadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+.tile-fade-out { animation: tileGroupFadeOut 0.65s ease-out forwards; }
 
 /* Keep me colourful sublabel */
 .settings-sublabel {

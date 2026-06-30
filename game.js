@@ -3822,11 +3822,24 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.78";
+const VERSION = "2.0.79";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.79",
+    date: "2026-06-30",
+    title: "Gradual tile fade, best-word replay, hint always available, submit button fix",
+    changes: [
+      "Score-card word highlight now fades out gradually (0.65s ease) instead of disappearing instantly",
+      "Returning to a previously-played game shows your best word on the board after the open animation, then fades it out",
+      "Hint picker: all three hint options are always tappable — no more greyed-out or disabled buttons",
+      "Defeat hint: viewing the word again (after first use) no longer deducts tickets",
+      "Submit button is hidden when a score-card word is shown on the board (view-only mode)",
+      "Submit button repositioned lower — now sits between the action icons and the nav pill bar",
+    ],
+  },
   {
     version: "2.0.78",
     date: "2026-06-30",
@@ -5490,6 +5503,8 @@ var _highlightTimer = null;
 // True while the board is showing a score-card word highlight (view-only, not submittable)
 var _scoreHighlightMode = false;
 var _scoreHighlightFadeTimer = null;
+// Timer for showing best word after board animation on previously-played games
+var _bestWordTimer = null;
 
 // Definition cache { word: html }
 var _defCache = {};
@@ -5747,6 +5762,7 @@ function buildColours() {
 function renderTile(tile) {
   const g = document.getElementById("tile-" + tile.id);
   if (!g) return;
+  g.classList.remove("tile-fade-out"); // interrupt any in-progress fade
   const c = COLOURS[tile.state] || COLOURS.neutral;
   // Keep ARIA label current so screen readers see letter + state
   var ariaLetter = tile.blank ? (tile._resolvedLetter ? tile._resolvedLetter.toUpperCase() + " (blank)" : "blank") : tile.letter.toUpperCase();
@@ -5832,7 +5848,7 @@ function updateAnswerArea() {
   ansEl.hidden = false;
   if (promptEl)  promptEl.hidden  = true;
   if (resetBtn)  resetBtn.hidden  = false;
-  if (submitBtn) submitBtn.hidden = selectedPath.length < 4;
+  if (submitBtn) submitBtn.hidden = _scoreHighlightMode || selectedPath.length < 4;
 
   // Scale font down for longer words to prevent topbar overflow
   var wordLen = display.replace("?", "").length;
@@ -6014,6 +6030,32 @@ function clearSelection() {
   updateShareBtn();
 }
 
+// Gradually fade out a score-card highlight instead of snapping to neutral
+function fadeOutScoreHighlight() {
+  if (!_scoreHighlightMode) { clearSelection(); return; }
+  if (_highlightTimer) { clearTimeout(_highlightTimer); _highlightTimer = null; }
+  if (_scoreHighlightFadeTimer) { clearTimeout(_scoreHighlightFadeTimer); _scoreHighlightFadeTimer = null; }
+  var fadingIds = selectedPath.slice();
+  // Release interaction lock immediately so user can start selecting
+  _scoreHighlightMode = false;
+  selectedPath = [];
+  updateAnswerArea();
+  // Animate fade on each tile's <g> element
+  fadingIds.forEach(function(id) {
+    var g = document.getElementById("tile-" + id);
+    if (g) g.classList.add("tile-fade-out");
+  });
+  // After animation completes, snap tiles back to neutral state
+  setTimeout(function() {
+    fadingIds.forEach(function(id) {
+      var g = document.getElementById("tile-" + id);
+      if (g) g.classList.remove("tile-fade-out");
+    });
+    tiles.forEach(function(t) { t.state = "neutral"; t._resolvedLetter = ""; });
+    renderAllTiles();
+  }, 700);
+}
+
 function processWordState() {
   if (selectedPath.length === 0) {
     tiles.forEach(restoreTileDefault);
@@ -6100,7 +6142,7 @@ function onPointerDown(e) {
   e.preventDefault();
   // If the board is showing a score-card highlight, clear it on first tap
   if (_scoreHighlightMode) {
-    clearSelection();
+    fadeOutScoreHighlight();
     return; // absorb this tap — next tap starts a real selection
   }
   pointerDownX = e.clientX;
@@ -6587,37 +6629,35 @@ function showHintPicker() {
   var totalLetters = path ? path.length : 0;
   var isAtLimit = hintTicketsSpent >= 10;
 
-  // Letter btn
+  // Letter btn — always enabled; cost shows ✓ when all revealed
   var letterBtn = document.getElementById("hint-pick-letter");
   if (letterBtn) {
     var allRevealed = hintsUsed >= totalLetters && totalLetters > 0;
     var costNum = letterBtn.querySelector(".hpc-cost-num");
     if (costNum) costNum.textContent = allRevealed ? "✓" : isAtLimit ? "Free" : "-1";
-    var canLetter = !allRevealed && (isAtLimit || ticketCount >= 1);
-    letterBtn.disabled = allRevealed;
-    letterBtn.dataset.canAfford = (allRevealed || canLetter) ? "1" : "0";
-    letterBtn.classList.toggle("hint-pick-unaffordable", !canLetter && !isAtLimit && !allRevealed);
+    letterBtn.disabled = false;
+    letterBtn.dataset.canAfford = "1";
+    letterBtn.classList.remove("hint-pick-unaffordable");
   }
 
-  // Define btn
+  // Define btn — always enabled; cost shows ✓ when already used
   var defineBtn = document.getElementById("hint-pick-define");
   if (defineBtn) {
     var dCostNum = defineBtn.querySelector(".hpc-cost-num");
     if (dCostNum) dCostNum.textContent = defineHintUsed ? "✓" : "-5";
-    var canDefine = defineHintUsed || ticketCount >= 5;
-    defineBtn.dataset.canAfford = canDefine ? "1" : "0";
-    defineBtn.classList.toggle("hint-pick-unaffordable", !canDefine);
+    defineBtn.disabled = false;
+    defineBtn.dataset.canAfford = "1";
+    defineBtn.classList.remove("hint-pick-unaffordable");
   }
 
-  // Defeat btn
+  // Defeat btn — always enabled; cost shows ✓ when already used
   var defeatBtn = document.getElementById("hint-pick-defeat");
   if (defeatBtn) {
     var fCostNum = defeatBtn.querySelector(".hpc-cost-num");
     if (fCostNum) fCostNum.textContent = gameDefeated ? "✓" : "-10";
-    defeatBtn.disabled = gameDefeated;
-    var canDefeat = !gameDefeated && ticketCount >= 10;
-    defeatBtn.dataset.canAfford = canDefeat ? "1" : "0";
-    defeatBtn.classList.toggle("hint-pick-unaffordable", !canDefeat && !gameDefeated);
+    defeatBtn.disabled = false;
+    defeatBtn.dataset.canAfford = "1";
+    defeatBtn.classList.remove("hint-pick-unaffordable");
   }
 
   picker.hidden = false;
@@ -6699,11 +6739,14 @@ function doDefeatHint() {
     ? puzzle.prevAnswers[0].word : "";
   if (!targetWord) { showToast("No word available"); return; }
   closeHintPicker();
-  gameDefeated = true;
-  animateTicketDrain(10);
-  ticketCount = Math.max(0, ticketCount - 10);
-  saveTickets();
-  saveState();
+  if (!gameDefeated) {
+    // First use — charge tickets and mark defeated
+    gameDefeated = true;
+    animateTicketDrain(10);
+    ticketCount = Math.max(0, ticketCount - 10);
+    saveTickets();
+    saveState();
+  }
   setTimeout(function() { showDefeatReveal(targetWord); }, 500);
 }
 
@@ -6871,12 +6914,12 @@ function closeSheet() {
   document.querySelectorAll(".nav-btn").forEach(function(b) {
     b.classList.toggle("active", b.dataset.panel === "play");
   });
-  // If a score-card word is still highlighted on the board, schedule a fade-out
+  // If a score-card word is still highlighted on the board, schedule a gradual fade-out
   if (_scoreHighlightMode) {
     if (_scoreHighlightFadeTimer) clearTimeout(_scoreHighlightFadeTimer);
     _scoreHighlightFadeTimer = setTimeout(function() {
       _scoreHighlightFadeTimer = null;
-      if (_scoreHighlightMode) clearSelection();
+      fadeOutScoreHighlight();
     }, 2200);
   }
 }
@@ -7042,6 +7085,11 @@ function loadBoardForDate(ddmmyy) {
   browsedDateStr = isToday ? null : ddmmyy;
   puzzle = isToday ? getTodaysPuzzle() : getPuzzleForDate(ddmmyy);
 
+  // Cancel any pending best-word display timer from the previous board
+  if (_bestWordTimer) { clearTimeout(_bestWordTimer); _bestWordTimer = null; }
+  if (_scoreHighlightFadeTimer) { clearTimeout(_scoreHighlightFadeTimer); _scoreHighlightFadeTimer = null; }
+  _scoreHighlightMode = false;
+
   // Reset game state for this date
   tiles = []; selectedPath = []; isDragging = false; playedPath = []; playedPathVisible = true; foundWords = [];
   foundWordBlanks = {}; allBoardWords = [];
@@ -7073,6 +7121,23 @@ function loadBoardForDate(ddmmyy) {
   setTimeout(runBoardOpenAnimation, 100);
   // Populate all valid board words asynchronously (used in word list)
   setTimeout(function() { buildWordPrefixes(); allBoardWords = findAllBoardWords(); }, 50);
+
+  // If a best word exists from a previous play, show it on the board after the open animation
+  if (bestWord) {
+    var _bwSnapshot = bestWord;
+    _bestWordTimer = setTimeout(function() {
+      _bestWordTimer = null;
+      if (!_scoreHighlightMode && selectedPath.length === 0) {
+        highlightWordOnBoard(_bwSnapshot);
+        // Auto-fade after the highlight animation + 3.5s display time
+        var revealDur = _bwSnapshot.length * 80 + 400;
+        _scoreHighlightFadeTimer = setTimeout(function() {
+          _scoreHighlightFadeTimer = null;
+          fadeOutScoreHighlight();
+        }, revealDur + 3500);
+      }
+    }, 1500);
+  }
 
   // Board starts fully neutral — no indigo played tiles on reload
 
