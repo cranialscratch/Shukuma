@@ -3822,11 +3822,21 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.74";
+const VERSION = "2.0.75";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.75",
+    date: "2026-06-30",
+    title: "Fix: all found words (including 4-letter) show in score sheet",
+    changes: [
+      "Score sheet now shows every word you found, including 4-letter words, on both today and past days",
+      "Removed the confusing '4 or lower' bucket row from the word list — individual found words replace it",
+      "Past-day score sheets now merge your saved found words into the list (previously only today's session did this)",
+    ],
+  },
   {
     version: "2.0.74",
     date: "2026-06-30",
@@ -7187,26 +7197,15 @@ function buildScratchAnswers(answers, playersByWord, isToday, totalPlayers, load
   if (!container) return;
   container.innerHTML = "";
 
-  // All valid words ≥ 4 letters from this puzzle
-  var allWords = (answers || []).filter(function(a) { return (a.word || "").length >= 4; })
-    .slice().sort(function(a, b) { return b.word.length - a.word.length; });
-
-  // Merge in any words the user found today that aren't in the pre-stored list
-  if (isToday) {
-    var inList = new Set(allWords.map(function(a) { return a.word.toUpperCase(); }));
-    foundWords.forEach(function(w) {
-      var wu = w.toUpperCase();
-      if (!inList.has(wu)) {
-        allWords.push({ word: wu, pct: -1 });
-        inList.add(wu);
-      }
-    });
-    allWords.sort(function(a, b) { return b.word.length - a.word.length; });
-  }
+  // All valid words ≥ 4 letters from this puzzle — exclude summary bucket entries like "4 or lower"
+  var allWords = (answers || []).filter(function(a) {
+    var w = (a.word || "");
+    return w.length >= 4 && /^[A-Za-z]+$/.test(w);
+  }).slice().sort(function(a, b) { return b.word.length - a.word.length; });
 
   var dateKey = getDateForOffset(lbDayOffset);
 
-  // Build myFound set (today = live, past = from localStorage)
+  // Build myFound set first (today = live, past = from localStorage)
   var myFound;
   if (isToday) {
     myFound = new Set(foundWords.map(function(w) { return w.toUpperCase(); }));
@@ -7221,6 +7220,16 @@ function buildScratchAnswers(answers, playersByWord, isToday, totalPlayers, load
       }
     } catch(_) {}
   }
+
+  // Merge in any words the user found that aren't in the pre-stored list (today AND past days)
+  var inList = new Set(allWords.map(function(a) { return a.word.toUpperCase(); }));
+  myFound.forEach(function(wu) {
+    if (!inList.has(wu)) {
+      allWords.push({ word: wu, pct: -1 });
+      inList.add(wu);
+    }
+  });
+  allWords.sort(function(a, b) { return b.word.length - a.word.length; });
 
   // Longest (target) word
   var targetWord = allWords.length > 0 ? allWords[0].word.toUpperCase() : "";
