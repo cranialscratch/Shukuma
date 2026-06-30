@@ -3822,11 +3822,22 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.80";
+const VERSION = "2.0.81";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.81",
+    date: "2026-06-30",
+    title: "Definition fallback: automatically tries base word when plural/inflected form isn't found",
+    changes: [
+      "Words like TYPEWRITINGS that aren't in the dictionary now fall back to the base form (TYPEWRITING) automatically",
+      "Fallback chain strips common English suffixes: plurals (-s/-es), past tense (-ed/-ied), comparatives (-er)",
+      "When a fallback word is used, a small 'via: typewriting' note is shown below the definition",
+      "Fix applies to both the word list definition panel and the define hint modal",
+    ],
+  },
   {
     version: "2.0.80",
     date: "2026-06-30",
@@ -6720,6 +6731,34 @@ function doDefineHint() {
   showDefineHint(targetWord);
 }
 
+// Build an ordered list of spellings to try for dictionary lookup.
+// Tries the exact word first, then common English inflection strips.
+function buildDefLookupChain(word) {
+  var w = word.toLowerCase();
+  var chain = [w];
+  if (w.length > 3) {
+    if (w.endsWith("ings") && w.length > 5) chain.push(w.slice(0, -1));     // typewritings → typewriting
+    if (w.endsWith("s") && !w.endsWith("ss")) chain.push(w.slice(0, -1));   // plurals → singular
+    if (w.endsWith("es") && w.length > 4)    chain.push(w.slice(0, -2));    // churches → church
+    if (w.endsWith("ied") && w.length > 4)   chain.push(w.slice(0, -3) + "y"); // tried → try
+    if (w.endsWith("ed") && w.length > 4)    chain.push(w.slice(0, -2));    // played → play
+    if (w.endsWith("er") && w.length > 4)    chain.push(w.slice(0, -2));    // faster → fast
+  }
+  return chain.filter(function(v, i, a) { return a.indexOf(v) === i; });
+}
+
+// Recursively try each word in the chain; calls onResult(data, resolvedKey) or onResult(null, null)
+function fetchWordDefChain(chain, idx, onResult) {
+  if (idx >= chain.length) { onResult(null, null); return; }
+  fetch("https://api.dictionaryapi.dev/api/v2/entries/en/" + encodeURIComponent(chain[idx]))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!Array.isArray(data) || !data[0]) throw new Error("no data");
+      onResult(data, chain[idx]);
+    })
+    .catch(function() { fetchWordDefChain(chain, idx + 1, onResult); });
+}
+
 function showDefineHint(word) {
   var modal = document.getElementById("define-hint-modal");
   var bodyEl = document.getElementById("define-hint-body");
@@ -6728,23 +6767,23 @@ function showDefineHint(word) {
   modal.hidden = false;
   var cached = _defCache[word];
   if (cached) { bodyEl.innerHTML = cached; return; }
-  var key = word.toLowerCase();
-  fetch("https://api.dictionaryapi.dev/api/v2/entries/en/" + encodeURIComponent(key))
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (!Array.isArray(data) || !data[0]) throw new Error("no data");
-      var html = "";
+  fetchWordDefChain(buildDefLookupChain(word), 0, function(data, resolvedKey) {
+    var html = "";
+    if (!data) {
+      html = '<em>Could not load definition.</em>';
+    } else {
+      if (resolvedKey && resolvedKey !== word.toLowerCase()) {
+        html += '<em class="wl-def-via">via: ' + escHtml(resolvedKey) + '</em>';
+      }
       (data[0].meanings || []).slice(0, 3).forEach(function(m) {
         var def = m.definitions && m.definitions[0] ? m.definitions[0].definition : "";
         if (def) html += '<div class="wl-def-entry"><span class="wl-def-pos">' + escHtml(m.partOfSpeech) + '</span> ' + escHtml(def) + '</div>';
       });
       if (!html) html = '<em>No definition found.</em>';
-      _defCache[word] = html;
-      if (bodyEl.parentNode) bodyEl.innerHTML = html;
-    })
-    .catch(function() {
-      if (bodyEl.parentNode) bodyEl.innerHTML = '<em>Could not load definition.</em>';
-    });
+    }
+    _defCache[word] = html;
+    if (bodyEl.parentNode) bodyEl.innerHTML = html;
+  });
 }
 
 function doDefeatHint() {
@@ -8098,25 +8137,23 @@ function toggleWordDefinition(word, rowEl, playersByWord) {
   var cached = _defCache[word];
   if (cached) { defDiv.innerHTML = cached; return; }
 
-  var key = word.toLowerCase();
-  fetch("https://api.dictionaryapi.dev/api/v2/entries/en/" + encodeURIComponent(key))
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (!Array.isArray(data) || !data[0]) throw new Error("no data");
-      var html = "";
+  fetchWordDefChain(buildDefLookupChain(word), 0, function(data, resolvedKey) {
+    var html = "";
+    if (!data) {
+      html = '<em>Could not load definition.</em>';
+    } else {
+      if (resolvedKey && resolvedKey !== word.toLowerCase()) {
+        html += '<em class="wl-def-via">via: ' + escHtml(resolvedKey) + '</em>';
+      }
       (data[0].meanings || []).slice(0, 2).forEach(function(m) {
         var def = m.definitions && m.definitions[0] ? m.definitions[0].definition : "";
         if (def) html += '<div class="wl-def-entry"><span class="wl-def-pos">' + escHtml(m.partOfSpeech) + '</span> ' + escHtml(def) + '</div>';
       });
       if (!html) html = '<em>No definition found.</em>';
-      _defCache[word] = html;
-      if (defDiv.parentNode) defDiv.innerHTML = html;
-    })
-    .catch(function() {
-      var html = '<em>Could not load definition.</em>';
-      _defCache[word] = html;
-      if (defDiv.parentNode) defDiv.innerHTML = html;
-    });
+    }
+    _defCache[word] = html;
+    if (defDiv.parentNode) defDiv.innerHTML = html;
+  });
 }
 
 function buildPlayersSection(players, targetWord) {

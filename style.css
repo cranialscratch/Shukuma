@@ -1719,6 +1719,7 @@ html[data-reduce-motion] .tile-hint-poly     { animation: none !important; fill:
   margin-right: 5px;
 }
 .wl-def-panel em { color: var(--text-muted); font-style: italic; }
+.wl-def-via { display: block; font-size: var(--fs-sm); color: var(--text-muted); margin-bottom: 4px; }
 /* Blank-tile substitute letter shown underlined in the word text */
 .wl-blank-letter { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 2px; }
 
