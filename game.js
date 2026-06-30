@@ -3822,11 +3822,25 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.88";
+const VERSION = "2.0.89";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.89",
+    date: "2026-06-30",
+    title: "Tomorrow's puzzle countdown screen + improved date labels",
+    changes: [
+      "Complete today's puzzle → swipe right to see Tomorrow's Puzzle countdown",
+      "Countdown displays HHMM / MMSS / SSss on the middle row of hex tiles",
+      "Background tile pulse animation loops continuously on tomorrow screen",
+      "Topbar cycles: 'Come back tomorrow', 'Share with friends', 'Compete', 'Not long now'",
+      "At midnight: tiles explode off-screen, 'GOOD LUCK' flashes, new puzzle loads",
+      "Yesterday shows 'YESTERDAY'S PUZZLE'; 2–7 days ago shows day name e.g. 'MONDAY'S PUZZLE'",
+      "Removed 'You're viewing a past puzzle' toast",
+    ],
+  },
   {
     version: "2.0.88",
     date: "2026-06-30",
@@ -4909,6 +4923,23 @@ function formatDateDisplay(ddmmyy) {
   return new Date(yy, mm, dd).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 }
 
+function getPuzzleDateLabel(ddmmyy) {
+  var todayStr = getDateString();
+  var tomorrowStr = getDateForOffset(1);
+  if (ddmmyy === tomorrowStr) return "TOMORROW'S PUZZLE";
+  if (ddmmyy === todayStr) return "TODAY'S PUZZLE";
+  var dd = parseInt(ddmmyy.slice(0, 2), 10);
+  var mm = parseInt(ddmmyy.slice(2, 4), 10) - 1;
+  var yy = 2000 + parseInt(ddmmyy.slice(4, 6), 10);
+  var date = new Date(yy, mm, dd);
+  var today = new Date(); today.setHours(0, 0, 0, 0);
+  var diffDays = Math.round((today.getTime() - date.getTime()) / 86400000);
+  if (diffDays === 1) return "YESTERDAY'S PUZZLE";
+  var DAY_NAMES = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
+  if (diffDays >= 2 && diffDays <= 7) return DAY_NAMES[date.getDay()] + "'S PUZZLE";
+  return "";
+}
+
 function formatTime(secs) {
   if (!secs || secs < 1) return "—";
   if (secs < 60) return secs + "s";
@@ -5587,6 +5618,19 @@ var _pastToastShown = false;
 var _swipeHintShown = false;
 var _cycleGen = 0; // incremented on stop/start to cancel stale setTimeouts
 
+// ── Tomorrow mode ────────────────────────────────────────────────────────────
+var _tomorrowMode = false;
+var _tomorrowCountdownInterval = null;
+var _tomorrowAnimTimeout = null;
+var _tomorrowMsgTimer = null;
+var _tomorrowMsgGen = 0;
+var TOMORROW_MESSAGES = [
+  "Come back tomorrow for another word",
+  "Share with friends and earn tickets",
+  "Compete with friends",
+  "Not long now",
+];
+
 // Board highlight auto-clear timer
 var _highlightTimer = null;
 // True while the board is showing a score-card word highlight (view-only, not submittable)
@@ -5834,6 +5878,23 @@ function buildColours() {
 function renderTile(tile) {
   const g = document.getElementById("tile-" + tile.id);
   if (!g) return;
+
+  // In tomorrow mode: neutral style, countdown digits kept on row 2 tiles
+  if (_tomorrowMode) {
+    const poly = g.querySelector("polygon:not(.hatch-overlay)");
+    const txt  = g.querySelector("text");
+    var s = tile.row === 2 ? COLOURS.selected : COLOURS.neutral;
+    if (poly) { poly.setAttribute("fill", s.fill); poly.setAttribute("stroke", s.stroke); }
+    if (txt)  {
+      txt.setAttribute("fill", s.text);
+      if (tile.row !== 2) txt.textContent = "";
+      txt.setAttribute("font-size", tile.row === 2 ? "26" : "0");
+    }
+    var hatch = g.querySelector(".hatch-overlay");
+    if (hatch) hatch.remove();
+    return;
+  }
+
   const c = COLOURS[tile.state] || COLOURS.neutral;
   // Keep ARIA label current so screen readers see letter + state
   var ariaLetter = tile.blank ? (tile._resolvedLetter ? tile._resolvedLetter.toUpperCase() + " (blank)" : "blank") : tile.letter.toUpperCase();
@@ -6276,6 +6337,7 @@ function tileIdFromPoint(clientX, clientY) {
 // ─── Pointer handlers ─────────────────────────────────────────────────────────
 function onPointerDown(e) {
   if (isChecking) return;
+  if (_tomorrowMode) return;
   e.preventDefault();
   // If the board is showing a score-card highlight, clear it on first tap
   if (_scoreHighlightMode) {
@@ -7228,8 +7290,13 @@ function initInfoPanel() {
 function loadBoardForDate(ddmmyy) {
   document.dispatchEvent(new Event("date-navigated"));
   const isToday = ddmmyy === getDateString();
-  browsedDateStr = isToday ? null : ddmmyy;
+  const tomorrowStr = getDateForOffset(1);
+  const isTomorrow = ddmmyy === tomorrowStr;
+  browsedDateStr = (isToday || isTomorrow) ? null : ddmmyy;
   puzzle = isToday ? getTodaysPuzzle() : getPuzzleForDate(ddmmyy);
+
+  // Stop any active tomorrow countdown/animation when navigating away
+  stopTomorrowMode();
 
   // Cancel any pending best-word display timer from the previous board
   if (_bestWordTimer) { clearTimeout(_bestWordTimer); _bestWordTimer = null; }
@@ -7256,7 +7323,7 @@ function loadBoardForDate(ddmmyy) {
   let tileIndex = 0;
   for (let row = 0; row < ROW_SIZES.length; row++) {
     for (let col = 0; col < ROW_SIZES[row]; col++) {
-      const letter = (puzzle.letters[tileIndex] !== undefined) ? puzzle.letters[tileIndex] : "";
+      const letter = (!isTomorrow && puzzle && puzzle.letters[tileIndex] !== undefined) ? puzzle.letters[tileIndex] : "";
       tiles.push(makeTile(tileIndex, row, col, letter));
       tileIndex++;
     }
@@ -7264,6 +7331,29 @@ function loadBoardForDate(ddmmyy) {
   adjacency = buildAdjacency();
   buildBoard();
   requestAnimationFrame(alignBoardControls);
+
+  // Date display
+  const dateEl = document.getElementById("puzzle-date");
+  if (dateEl) dateEl.textContent = formatDateDisplay(ddmmyy);
+
+  // Header label
+  const labelEl = document.getElementById("header-label");
+  if (labelEl) labelEl.textContent = getPuzzleDateLabel(ddmmyy);
+
+  // Prev/next arrows — right is unlocked one extra step when today is completed
+  var maxBrowseOffset = (targetWordFound && isToday) ? 1 : 0;
+  const prevBtn = document.getElementById("board-date-prev");
+  const nextBtn = document.getElementById("board-date-next");
+  if (prevBtn) prevBtn.disabled = browseOffset <= -13;
+  if (nextBtn) nextBtn.disabled = browseOffset >= maxBrowseOffset;
+
+  if (isTomorrow) {
+    _tomorrowMode = true;
+    updateAnswerArea();
+    startTomorrowMode();
+    return; // skip all game logic
+  }
+
   setTimeout(runBoardOpenAnimation, 100);
   // Populate all valid board words asynchronously (used in word list)
   setTimeout(function() { buildWordPrefixes(); allBoardWords = findAllBoardWords(); }, 50);
@@ -7285,33 +7375,12 @@ function loadBoardForDate(ddmmyy) {
     }, 1500);
   }
 
-  // Board starts fully neutral — no indigo played tiles on reload
-
   updateScoreDisplay(null);
   updateTicketDisplay();
   updateAnswerArea();
   updateShareBtn();
   updateHintBtn();
   updateDifficultyBadge();
-
-  // Date display
-  const dateEl = document.getElementById("puzzle-date");
-  if (dateEl) dateEl.textContent = formatDateDisplay(ddmmyy);
-
-  // Header label — "TODAY'S PUZZLE" for today, empty for past dates
-  const labelEl = document.getElementById("header-label");
-  if (labelEl) labelEl.textContent = isToday ? "TODAY'S PUZZLE" : "";
-
-  // Prev/next arrows
-  const prevBtn = document.getElementById("board-date-prev");
-  const nextBtn = document.getElementById("board-date-next");
-  if (prevBtn) prevBtn.disabled = browseOffset <= -13;
-  if (nextBtn) nextBtn.disabled = browseOffset >= 0;
-
-  if (!isToday && !_pastToastShown) {
-    _pastToastShown = true;
-    setTimeout(function() { showToast("You're viewing a past puzzle"); }, 800);
-  }
 
   // Restore word-area message based on loaded game state
   if (gameCompleted) {
@@ -9558,6 +9627,119 @@ function stopCyclingMessages() {
   if (promptEl) { promptEl.style.opacity = "1"; promptEl.textContent = "Find today's longest word"; }
 }
 
+// ─── Tomorrow mode ────────────────────────────────────────────────────────────
+
+function msTillMidnight() {
+  var now = new Date();
+  var midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+  return midnight.getTime() - now.getTime();
+}
+
+function formatCountdown(ms) {
+  if (ms <= 0) return "0000";
+  var totalSeconds = Math.floor(ms / 1000);
+  var totalMins = Math.floor(totalSeconds / 60);
+  var hours = Math.floor(totalMins / 60);
+  var mins = totalMins % 60;
+  var secs = totalSeconds % 60;
+  var centis = Math.floor((ms % 1000) / 10);
+  if (totalSeconds >= 3600) return String(hours).padStart(2, "0") + String(mins).padStart(2, "0");
+  if (totalSeconds >= 60)   return String(mins).padStart(2, "0")  + String(secs).padStart(2, "0");
+  return String(secs).padStart(2, "0") + String(centis).padStart(2, "0");
+}
+
+function stopTomorrowMode() {
+  _tomorrowMode = false;
+  _tomorrowMsgGen++;
+  if (_tomorrowCountdownInterval) { clearInterval(_tomorrowCountdownInterval); _tomorrowCountdownInterval = null; }
+  if (_tomorrowAnimTimeout)       { clearTimeout(_tomorrowAnimTimeout);         _tomorrowAnimTimeout = null; }
+  if (_tomorrowMsgTimer)          { clearInterval(_tomorrowMsgTimer);           _tomorrowMsgTimer = null; }
+}
+
+function startTomorrowMode() {
+  stopCyclingMessages();
+
+  // Disable game controls
+  var prompt = document.getElementById("game-prompt");
+  if (prompt) { prompt.style.opacity = "1"; prompt.textContent = TOMORROW_MESSAGES[0]; }
+
+  // Cycle through tomorrow messages in the topbar
+  var gen = ++_tomorrowMsgGen;
+  var msgIdx = 1;
+  _tomorrowMsgTimer = setInterval(function() {
+    if (_tomorrowMsgGen !== gen) return;
+    if (!prompt) prompt = document.getElementById("game-prompt");
+    if (!prompt) return;
+    prompt.style.opacity = "0";
+    var capture = msgIdx;
+    msgIdx = (msgIdx + 1) % TOMORROW_MESSAGES.length;
+    setTimeout(function() {
+      if (_tomorrowMsgGen !== gen) return;
+      prompt.textContent = TOMORROW_MESSAGES[capture];
+      prompt.style.opacity = "1";
+    }, 520);
+  }, 4500);
+
+  // Continuously loop the board open animation
+  function loopAnim() {
+    if (!_tomorrowMode) return;
+    runBoardOpenAnimation();
+    _tomorrowAnimTimeout = setTimeout(loopAnim, 2400);
+  }
+  loopAnim();
+
+  // Countdown ticker — every 100ms for centisecond precision
+  var midTileIds = tiles.filter(function(t) { return t.row === 2; }).map(function(t) { return t.id; });
+  function tickCountdown() {
+    var ms = msTillMidnight();
+    if (ms <= 0) {
+      stopTomorrowMode();
+      explodeBoardAndReload();
+      return;
+    }
+    var str = formatCountdown(ms);
+    midTileIds.forEach(function(id, i) {
+      var g = document.getElementById("tile-" + id);
+      if (!g) return;
+      var txt = g.querySelector("text");
+      if (txt) txt.textContent = str[i] || "0";
+    });
+  }
+  tickCountdown();
+  _tomorrowCountdownInterval = setInterval(tickCountdown, 100);
+}
+
+function explodeBoardAndReload() {
+  var svg = document.getElementById("hex-board");
+  if (!svg) { loadBoardForDate(getDateString()); return; }
+
+  var cx = parseFloat(svg.getAttribute("width") || 0) / 2;
+  var cy = parseFloat(svg.getAttribute("height") || 0) / 2;
+
+  tiles.forEach(function(tile) {
+    var g = document.getElementById("tile-" + tile.id);
+    if (!g) return;
+    var center = hexCenter(tile.row, tile.col);
+    var angle = Math.atan2(center.y - cy, center.x - cx) + (Math.random() - 0.5) * 0.8;
+    var dist = 180 + Math.random() * 120;
+    g.style.setProperty("--ex", Math.cos(angle) * dist + "px");
+    g.style.setProperty("--ey", Math.sin(angle) * dist + "px");
+    g.style.setProperty("--er", (Math.random() * 360 - 180) + "deg");
+    g.style.animationDelay = (Math.random() * 0.15) + "s";
+    g.classList.add("tile-exploding");
+  });
+
+  // Brief "GOOD LUCK" in topbar, then load the new day
+  setTimeout(function() {
+    var promptEl = document.getElementById("game-prompt");
+    if (promptEl) { promptEl.style.opacity = "1"; promptEl.textContent = "GOOD LUCK"; }
+    browseOffset = 0;
+    setTimeout(function() {
+      loadBoardForDate(getDateString());
+    }, 1400);
+  }, 700);
+}
+
 // ─── Version / changelog ──────────────────────────────────────────────────────
 function initVersionPanel() {
   // Ensure modal is hidden on startup regardless of CSS specificity issues
@@ -10135,6 +10317,7 @@ function initIdleHint() {
   document.addEventListener("touchstart",  resetTimer, { passive: true });
   setInterval(function() {
     if (gameCompleted) return;
+    if (_tomorrowMode) return;
     if (reduceMotion) return;
     if (selectedPath.length > 0) return;
     if (Date.now() - lastInteraction < 10000) return;
@@ -10163,7 +10346,8 @@ function initSwipeNavigation() {
     var dx = e.touches[0].clientX - startX;
     var dy = e.touches[0].clientY - startY;
     if (Math.abs(dy) > Math.abs(dx) * 0.9) { swiping = false; return; }
-    var canLeft = browseOffset > -13, canRight = browseOffset < 0;
+    var canLeft = browseOffset > -13;
+    var canRight = browseOffset < (_tomorrowMode ? 1 : (targetWordFound && !browsedDateStr ? 1 : 0));
     var limited = (dx > 0 && !canLeft) || (dx < 0 && !canRight);
     front.style.transform = "translateX(" + (limited ? dx * 0.25 : dx * 0.42) + "px)";
     front.style.opacity = String(Math.max(0.65, 1 - Math.abs(dx) / 380));
@@ -10172,7 +10356,8 @@ function initSwipeNavigation() {
   function endSwipe(dx) {
     if (!swiping) return;
     swiping = false;
-    var canLeft = browseOffset > -13, canRight = browseOffset < 0;
+    var canLeft = browseOffset > -13;
+    var canRight = browseOffset < (_tomorrowMode ? 1 : (targetWordFound && !browsedDateStr ? 1 : 0));
     if (dx > MIN_SWIPE && canLeft) {
       doDateNavigate("prev");
     } else if (dx < -MIN_SWIPE && canRight) {
@@ -10201,8 +10386,9 @@ function doDateNavigate(direction) {
   front.style.transform = direction === "prev" ? "translateX(55%)" : "translateX(-55%)";
   front.style.opacity = "0";
   setTimeout(function() {
+    var maxOff = _tomorrowMode ? 1 : (targetWordFound && !browsedDateStr ? 1 : 0);
     if (direction === "prev" && browseOffset > -13) { browseOffset--; loadBoardForDate(getDateForOffset(browseOffset)); }
-    else if (direction === "next" && browseOffset < 0) { browseOffset++; loadBoardForDate(getDateForOffset(browseOffset)); }
+    else if (direction === "next" && browseOffset < maxOff) { browseOffset++; loadBoardForDate(getDateForOffset(browseOffset)); }
     front.style.transition = "";
     front.style.transform = direction === "prev" ? "translateX(-40%)" : "translateX(40%)";
     front.style.opacity = "0";

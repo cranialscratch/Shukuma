@@ -737,6 +737,18 @@ html[data-reduce-motion] .swipe-hint-hand    { animation: none !important; }
 html[data-reduce-motion] .tile-hint          { animation: none !important; fill: var(--tile-pulse-fill); }
 html[data-reduce-motion] .tile-hint-poly     { animation: none !important; fill: var(--tile-pulse-fill); }
 
+/* ── Tomorrow board — tile explosion on midnight ────────────────────── */
+@keyframes tile-explode {
+  to {
+    transform: translate(var(--ex, 0px), var(--ey, 0px)) scale(0) rotate(var(--er, 0deg));
+    opacity: 0;
+  }
+}
+.tile-exploding {
+  animation: tile-explode 0.7s cubic-bezier(0.55, 0, 1, 0.45) forwards;
+  transform-origin: center;
+}
+
 /* ── Past game banner ───────────────────────────────────────────────── */
 #past-game-banner {
   background: rgba(124,77,255,0.08);
