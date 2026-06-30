@@ -3830,12 +3830,13 @@ const CHANGELOG = [
   {
     version: "2.0.58",
     date: "2026-06-30",
-    title: "UX: loading skeleton on word list while server data fetches",
+    title: "UX: loading skeleton on word list; remove 'share' language from scores",
     changes: [
       "Word list bar and percentage now show a shimmer skeleton while waiting for Firestore — no guessed values",
       "Replaced local-estimate fallback (100%/0%) with proper loading state",
       "Once server data arrives, real community percentages fill in seamlessly",
       "Past days or today with genuinely no scores show '—' after load completes",
+      "Scores section no longer uses 'share' language — scores are recorded automatically when the longest word is found",
     ],
   },
   {
@@ -3845,7 +3846,7 @@ const CHANGELOG = [
     changes: [
       "Word rows always show a percentage — no more blank or letter-count fallback",
       "When server scores haven't loaded yet (e.g. right after finding the longest word), percentage is derived from local play: 100% for words you found, 0% for words you haven't",
-      "Once other players share their scores the real community percentage replaces the local estimate automatically",
+      "Once other players' scores are recorded the real community percentage replaces the local estimate automatically",
       "Past days with genuinely no data show '—'",
     ],
   },
@@ -6914,10 +6915,10 @@ function buildPlayersSection(players, targetWord) {
     empty.className = "scores-empty";
     if (isToday) {
       empty.textContent = currentUser && bestScore > 0
-        ? "Your score has been added. Check back later to see how others compare!"
-        : "No one has shared a score yet today — be the first!";
+        ? "Your score has been recorded. Check back later to see how others compare!"
+        : "No scores yet today — find the longest word to get on the board!";
     } else {
-      empty.textContent = "No scores were shared for this day.";
+      empty.textContent = "No scores were recorded for this day.";
     }
     container.appendChild(empty);
     return;
