@@ -3822,13 +3822,13 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.89";
+const VERSION = "2.0.90";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
   {
-    version: "2.0.89",
+    version: "2.0.90",
     date: "2026-06-30",
     title: "Tomorrow's puzzle countdown screen + improved date labels",
     changes: [
@@ -6655,6 +6655,7 @@ async function submitTappedWord() {
 }
 
 function pulseTileSubmitHint() {
+  if (reduceMotion) return;
   if (selectedPath.length < 2) return;
   var lastId = selectedPath[selectedPath.length - 1];
   var g = document.getElementById("tile-" + lastId);
@@ -10258,11 +10259,9 @@ function runBoardOpenAnimation() {
 
   var ordered = PATTERNS[Math.floor(Math.random() * PATTERNS.length)]();
   var STEP = 38; // ms between each tile
-  var pulseColors = getThemePulseColors(_activeTheme);
 
   ordered.forEach(function(tile, idx) {
-    var colorHex = pulseColors[idx % pulseColors.length];
-    pulseTileOnce(tile, idx * STEP, colorHex);
+    pulseTileOnce(tile, idx * STEP);
   });
 }
 

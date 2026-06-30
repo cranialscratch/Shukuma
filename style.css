@@ -144,6 +144,15 @@ html[data-textsize="xl"] {
     transition-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
   }
+  /* Nudge and swipe-hint respect in-app Reduce Animations only, not OS setting */
+  .tile-submit-hint {
+    animation-duration: 0.8s !important;
+    animation-iteration-count: 1 !important;
+  }
+  .swipe-hint-hand {
+    animation-duration: 1.3s !important;
+    animation-iteration-count: 3 !important;
+  }
 }
 
 :focus-visible {
