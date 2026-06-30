@@ -4752,6 +4752,8 @@ var CYCLE_MESSAGES_DEFAULT = [
 var cycleMessages = CYCLE_MESSAGES_DEFAULT.slice();
 var _cycleTimer = null;
 var _cycleAttemptCount = 0;
+var _pastToastShown = false;
+var _swipeHintShown = false;
 var _cycleGen = 0; // incremented on stop/start to cancel stale setTimeouts
 
 // Board highlight auto-clear timer
@@ -5918,6 +5920,7 @@ function initInfoPanel() {
 
 // ─── Board date browsing ──────────────────────────────────────────────────────
 function loadBoardForDate(ddmmyy) {
+  document.dispatchEvent(new Event("date-navigated"));
   const isToday = ddmmyy === getDateString();
   browsedDateStr = isToday ? null : ddmmyy;
   puzzle = isToday ? getTodaysPuzzle() : getPuzzleForDate(ddmmyy);
@@ -5974,7 +5977,10 @@ function loadBoardForDate(ddmmyy) {
   if (prevBtn) prevBtn.disabled = browseOffset <= -13;
   if (nextBtn) nextBtn.disabled = browseOffset >= 0;
 
-  if (!isToday) setTimeout(function() { showToast("You're viewing a past puzzle"); }, 800);
+  if (!isToday && !_pastToastShown) {
+    _pastToastShown = true;
+    setTimeout(function() { showToast("You're viewing a past puzzle"); }, 800);
+  }
 
   // Restore word-area message based on loaded game state
   if (gameCompleted) {
@@ -8536,12 +8542,35 @@ function runBoardOpenAnimation() {
     setTimeout(function() {
       var g = document.getElementById("tile-" + tile.id);
       if (!g) return;
-      g.classList.remove("tile-pulse");
-      void g.offsetWidth; // flush reflow so animation restarts cleanly
       g.classList.add("tile-pulse");
-      setTimeout(function() { g.classList.remove("tile-pulse"); }, 650);
+      setTimeout(function() { g.classList.remove("tile-pulse"); }, 600);
     }, idx * STEP);
   });
+}
+
+// ─── Swipe-to-browse-days hint ────────────────────────────────────────────────
+function initSwipeDayHint() {
+  var hint = document.getElementById("swipe-day-hint");
+  if (!hint) return;
+  var hand = hint.querySelector(".swipe-hint-hand");
+  var lastNav = Date.now();
+
+  // Reset idle timer whenever the user navigates dates
+  document.addEventListener("date-navigated", function() { lastNav = Date.now(); });
+
+  setTimeout(function() {
+    if (_swipeHintShown) return;
+    if (Date.now() - lastNav < 25000) return; // reset if they already browsed
+    _swipeHintShown = true;
+    hint.hidden = false;
+    requestAnimationFrame(function() { hint.classList.add("visible"); });
+    if (hand) {
+      hand.addEventListener("animationend", function() {
+        hint.classList.remove("visible");
+        setTimeout(function() { hint.hidden = true; }, 650);
+      }, { once: true });
+    }
+  }, 30000);
 }
 
 // ─── Idle hint ────────────────────────────────────────────────────────────────
@@ -10162,6 +10191,7 @@ function init() {
   initVersionPanel();
   initPullToRefresh();
   initIdleHint();
+  initSwipeDayHint();
   initShakeDetect();
   initSwipeNavigation();
   initSettings();
