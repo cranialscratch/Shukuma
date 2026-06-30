@@ -3822,11 +3822,21 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.87";
+const VERSION = "2.0.88";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.88",
+    date: "2026-06-30",
+    title: "Tiles fade to neutral after every word — board always resets",
+    changes: [
+      "Word submission: tiles now colour-fade from green to neutral (same animation as score-card review)",
+      "Board no longer holds any persistent tile colour between selections",
+      "Score-card review fade also returns all tiles to neutral",
+    ],
+  },
   {
     version: "2.0.87",
     date: "2026-06-30",
@@ -6083,8 +6093,6 @@ function clearSelection() {
   _scoreHighlightMode = false;
   tiles.forEach(function(t) { t.state = "neutral"; t._resolvedLetter = ""; });
   selectedPath = [];
-  // Restore played tiles for current best word
-  if (playedPath) playedPath.forEach(function(id) { if (tiles[id]) tiles[id].state = "played"; });
   renderAllTiles();
   // Restore submit button label (may have been set to "Submitted ✓" after lockValidWord)
   var sBtn = document.getElementById("submit-btn");
@@ -6129,30 +6137,58 @@ function fadeOutScoreHighlight() {
       renderTile(tile);
     });
 
-    // After fade-out completes: restore played tiles with a gentle fade-in
+    // After fade-out: clear inline transitions, board stays neutral
     setTimeout(function() {
-      var RESTORE = "fill 0.4s ease-in, stroke 0.4s ease-in";
       fadingIds.forEach(function(id) {
         var g = document.getElementById("tile-" + id);
         if (!g) return;
         var poly = g.querySelector("polygon:not(.hatch-overlay)");
         var txt  = g.querySelector("text");
-        // Clear the fade-out transition
         if (poly) poly.style.transition = "";
         if (txt)  txt.style.transition  = "";
-        // If this tile belongs to the best word, ease it back to played blue
-        var tile = tiles[id];
-        if (tile && playedPath && playedPath.indexOf(id) !== -1) {
-          if (poly) poly.style.transition = RESTORE;
-          if (txt)  txt.style.transition  = "fill 0.4s ease-in";
-          tile.state = "played";
-          renderTile(tile);
-          setTimeout(function() {
-            if (poly) poly.style.transition = "";
-            if (txt)  txt.style.transition  = "";
-          }, 450);
-        }
       });
+    }, 700);
+  });
+}
+
+// Fade valid (green) tiles back to neutral after a successful word lock —
+// same CSS colour-transition effect as the score-card word review fade.
+function fadeValidToNeutral() {
+  var fadingIds = selectedPath.slice();
+  selectedPath = [];
+  updateAnswerArea();
+
+  var TRANS = "fill 0.65s ease-out, stroke 0.65s ease-out";
+  fadingIds.forEach(function(id) {
+    var g = document.getElementById("tile-" + id);
+    if (!g) return;
+    var poly = g.querySelector("polygon:not(.hatch-overlay)");
+    var txt  = g.querySelector("text");
+    if (poly) poly.style.transition = TRANS;
+    if (txt)  txt.style.transition  = "fill 0.65s ease-out";
+  });
+
+  requestAnimationFrame(function() {
+    fadingIds.forEach(function(id) {
+      var tile = tiles[id];
+      if (!tile) return;
+      tile.state = "neutral";
+      tile._resolvedLetter = "";
+      renderTile(tile);
+    });
+    setTimeout(function() {
+      fadingIds.forEach(function(id) {
+        var g = document.getElementById("tile-" + id);
+        if (!g) return;
+        var poly = g.querySelector("polygon:not(.hatch-overlay)");
+        var txt  = g.querySelector("text");
+        if (poly) poly.style.transition = "";
+        if (txt)  txt.style.transition  = "";
+      });
+      var sBtn = document.getElementById("submit-btn");
+      if (sBtn) { sBtn.textContent = "Submit word"; sBtn.disabled = false; }
+      updateScoreDisplay(null);
+      updateShareBtn();
     }, 700);
   });
 }
@@ -6486,8 +6522,8 @@ function lockValidWord(word) {
   var _sBtn = document.getElementById("submit-btn");
   if (_sBtn && !_sBtn.hidden) { _sBtn.textContent = "Submitted ✓"; _sBtn.disabled = true; }
 
-  // After showing green, transition to played (indigo) state
-  setTimeout(clearSelection, 1500);
+  // After showing green, fade tiles back to neutral
+  setTimeout(fadeValidToNeutral, 1500);
 
   // Subtle share throb once tiles have settled (~300ms after clearSelection)
   setTimeout(function() {
