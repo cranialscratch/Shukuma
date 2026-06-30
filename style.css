@@ -138,22 +138,6 @@ html[data-textsize="xl"] {
   --fs-3xl:  3.2rem;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-  }
-  /* Nudge and swipe-hint respect in-app Reduce Animations only, not OS setting */
-  .tile-submit-hint {
-    animation-duration: 0.8s !important;
-    animation-iteration-count: 1 !important;
-  }
-  .swipe-hint-hand {
-    animation-duration: 1.3s !important;
-    animation-iteration-count: 3 !important;
-  }
-}
 
 :focus-visible {
   outline: 2px solid var(--brand);
@@ -735,7 +719,6 @@ html[data-theme="dark"] { --tile-pulse-fill: #585859; } /* lighter than #3a3a3c 
   .float-anim-wrapper    { display: none !important; }
   .is-throbbing          { animation: none !important; }
   .share-pulse           { animation: none !important; }
-  .swipe-hint-hand       { animation: none !important; }
   .tile-hint             { animation: none !important; fill: var(--tile-pulse-fill); }
   .tile-hint-poly        { animation: none !important; fill: var(--tile-pulse-fill); }
 }

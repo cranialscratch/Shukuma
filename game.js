@@ -3822,13 +3822,13 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.91";
+const VERSION = "2.0.92";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
   {
-    version: "2.0.91",
+    version: "2.0.92",
     date: "2026-06-30",
     title: "Tomorrow's puzzle countdown screen + improved date labels",
     changes: [
@@ -5886,7 +5886,9 @@ function renderTile(tile) {
     var n = COLOURS.neutral;
     if (poly) { poly.setAttribute("fill", n.fill); poly.setAttribute("stroke", "none"); }
     if (txt)  {
-      txt.setAttribute("fill", n.text);
+      // Use the same text colour as regular tile letters (resolved from --tile-text)
+      txt.setAttribute("fill", COLOURS.neutral.text);
+      txt.setAttribute("fill-opacity", tile.row === 2 ? "1" : "0");
       if (tile.row !== 2) txt.textContent = "";
       txt.setAttribute("font-size", tile.row === 2 ? "26" : "0");
     }
@@ -6660,8 +6662,13 @@ function pulseTileSubmitHint() {
   var lastId = selectedPath[selectedPath.length - 1];
   var g = document.getElementById("tile-" + lastId);
   if (!g) return;
-  g.classList.add("tile-submit-hint");
-  setTimeout(function() { g.classList.remove("tile-submit-hint"); }, 800);
+  // Web Animations API — immune to CSS prefers-reduced-motion rules
+  if (g.animate) {
+    g.animate(
+      [{ opacity: 1 }, { opacity: 0.35, offset: 0.35 }, { opacity: 1, offset: 0.7 }, { opacity: 1 }],
+      { duration: 800, easing: "ease-in-out" }
+    );
+  }
 }
 
 function undoLastTile() {
