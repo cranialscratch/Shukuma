@@ -3822,11 +3822,24 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.54";
+const VERSION = "2.0.55";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.55",
+    date: "2026-06-30",
+    title: "Timer freeze, auto-submit, word list fixes, profile locale",
+    changes: [
+      "Timer freezes the moment you find today's longest word — Time to Find shows your actual play time, not total session time",
+      "Tries counter now labelled 'Tries to Find' (vs 'Tries so far') so it's clear the count stops when you reach the target",
+      "Score is automatically submitted to the leaderboard the moment the longest word is found — no need to Share first to see your percentage",
+      "Word list now includes all words you've found today, even if they weren't in the pre-stored answer set",
+      "'No other scores yet today' replaced with a clearer message that explains what it means",
+      "Dictionary indicator added to profile — shows 🇬🇧 UK English or 🇺🇸 US English depending on your setting",
+    ],
+  },
   {
     version: "2.0.54",
     date: "2026-06-30",
@@ -5391,6 +5404,13 @@ function lockValidWord(word) {
     targetWordFound = true;
     gameCompleted = true;
     _cycleAttemptCount = attemptCount;
+    // Freeze the timer the moment the longest word is found
+    if (timerRunning) { activeTimeMs += (Date.now() - timerLastStart); timerRunning = false; }
+    saveState();
+    if (currentUser) submitScore().then(function() {
+      var t = document.getElementById("tab-scores");
+      if (t && !t.hidden) loadLeaderboard();
+    }).catch(function() {});
     var inOneMsgs = FLOAT_MSGS.in_one;
     var inOneCheer = inOneMsgs[Math.floor(Math.random() * inOneMsgs.length)];
     showFloatAnim({ type: "valid", score: len, level: "Grandmaster in One!", cheer: inOneCheer });
@@ -5407,6 +5427,13 @@ function lockValidWord(word) {
     targetWordFound = true;
     gameCompleted = true;
     _cycleAttemptCount = attemptCount;
+    // Freeze the timer the moment the longest word is found
+    if (timerRunning) { activeTimeMs += (Date.now() - timerLastStart); timerRunning = false; }
+    saveState();
+    if (currentUser) submitScore().then(function() {
+      var t = document.getElementById("tab-scores");
+      if (t && !t.hidden) loadLeaderboard();
+    }).catch(function() {});
     var msgs = FLOAT_MSGS.target_found;
     var cheer = msgs[Math.floor(Math.random() * msgs.length)];
     showFloatAnim({ type: "valid", score: len, level: level, cheer: cheer });
@@ -6435,6 +6462,19 @@ function buildScratchAnswers(answers, playersByWord, isToday, totalPlayers) {
   var allWords = (answers || []).filter(function(a) { return (a.word || "").length >= 4; })
     .slice().sort(function(a, b) { return b.word.length - a.word.length; });
 
+  // Merge in any words the user found today that aren't in the pre-stored list
+  if (isToday) {
+    var inList = new Set(allWords.map(function(a) { return a.word.toUpperCase(); }));
+    foundWords.forEach(function(w) {
+      var wu = w.toUpperCase();
+      if (!inList.has(wu)) {
+        allWords.push({ word: wu, pct: -1 });
+        inList.add(wu);
+      }
+    });
+    allWords.sort(function(a, b) { return b.word.length - a.word.length; });
+  }
+
   var dateKey = getDateForOffset(lbDayOffset);
 
   // Build myFound set (today = live, past = from localStorage)
@@ -6715,8 +6755,8 @@ function buildPlayersSection(players, targetWord) {
     var myCells = [
       { val: bestWord || "—", lbl: "Best Word" },
       { val: getScoreLevel(bestScore), lbl: "Ranking" },
-      { val: attemptCount || "—", lbl: "Tries" },
-      { val: formatTime(Math.round(elapsed / 1000)), lbl: "Time" },
+      { val: attemptCount || "—", lbl: targetWordFound ? "Tries to Find" : "Tries so far" },
+      { val: formatTime(Math.round(elapsed / 1000)), lbl: targetWordFound ? "Time to Find" : "Time so far" },
     ];
     if (hintsUsed > 0) myCells.push({ val: hintsUsed, lbl: "Hints Used" });
     myCells.forEach(function(s) {
@@ -6819,7 +6859,13 @@ function buildPlayersSection(players, targetWord) {
   if (!players || !players.length) {
     var empty = document.createElement("div");
     empty.className = "scores-empty";
-    empty.textContent = isToday ? "No other scores yet today." : "No scores recorded for this day.";
+    if (isToday) {
+      empty.textContent = currentUser && bestScore > 0
+        ? "Your score has been added. Check back later to see how others compare!"
+        : "No one has shared a score yet today — be the first!";
+    } else {
+      empty.textContent = "No scores were shared for this day.";
+    }
     container.appendChild(empty);
     return;
   }
@@ -7483,6 +7529,10 @@ function renderStatsPanel() {
   }
   var emailEl = document.getElementById("user-email-text");
   if (emailEl) emailEl.textContent = currentUser.email || "";
+  var localeEl = document.getElementById("user-locale-text");
+  if (localeEl) {
+    localeEl.textContent = selectedLocale === "en_GB" ? "🇬🇧 UK English dictionary" : "🇺🇸 US English dictionary";
+  }
 
   // Email verification banner — hide for Google/OAuth users
   var verifyBanner = document.getElementById("user-verify-banner");

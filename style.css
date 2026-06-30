@@ -2056,6 +2056,11 @@ html[data-textsize="xl"] {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+#user-locale-text {
+  font-size: 1.0625rem;
+  color: #999;
+  margin-top: 2px;
+}
 #signout-btn {
   background: none;
   border: 1px solid #ddd;
