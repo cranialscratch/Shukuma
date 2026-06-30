@@ -655,6 +655,14 @@ html[data-theme="dark"] { --tile-pulse-fill: #585859; } /* lighter than #3a3a3c 
 .tile-hint {
   animation: tilePulse 1.1s ease-in-out forwards;
 }
+/* Opening animation for non-neutral tiles (played/selected) — opacity only */
+@keyframes tilePulseAny {
+  0%, 100% { opacity: 1; }
+  45%       { opacity: 0.45; }
+}
+.tile-pulse-any {
+  animation: tilePulseAny 0.5s ease-in-out forwards;
+}
 
 /* ── Swipe-to-browse-days hint ───────────────────────────────────── */
 #swipe-day-hint {

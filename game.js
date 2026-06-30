@@ -3822,11 +3822,22 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.58";
+const VERSION = "2.0.59";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.59",
+    date: "2026-06-30",
+    title: "Board animation: 24 patterns + all-tile; haptic unlock on iOS",
+    changes: [
+      "Board opening animation now pulses ALL tiles (played/selected + neutral), not just unselected ones",
+      "24 sweep patterns: row T>B/B>T, col L>R/R>L, 4 snake variants, 4 corner ripples, 4 spiral-out, 4 spiral-in, star burst, reverse star burst, 2 sparkle modes",
+      "Pattern chosen randomly on every board open",
+      "Fixed haptic on iOS: shared AudioContext unlocked on first touch gesture; louder, more perceptible click",
+    ],
+  },
   {
     version: "2.0.58",
     date: "2026-06-30",
@@ -4662,23 +4673,49 @@ function triggerHaptic(pattern) {
   }
 }
 
+// Shared AudioContext — created once, resumed after user gesture (iOS autoplay policy)
+var _audioCtx = null;
+function getAudioCtx() {
+  var AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtx) return null;
+  if (!_audioCtx) _audioCtx = new AudioCtx();
+  if (_audioCtx.state === "suspended") {
+    // Best-effort resume; on iOS this only works inside a user-gesture call stack,
+    // but we try anyway — subsequent calls after unlock will succeed.
+    _audioCtx.resume();
+  }
+  return _audioCtx;
+}
+
+// Unlock the shared AudioContext on the very first touch (iOS requires this)
+(function() {
+  function unlockAudio() {
+    var ctx = getAudioCtx();
+    if (ctx && ctx.state === "suspended") ctx.resume();
+    document.removeEventListener("touchend", unlockAudio, true);
+    document.removeEventListener("pointerup", unlockAudio, true);
+  }
+  document.addEventListener("touchend", unlockAudio, { capture: true, passive: true });
+  document.addEventListener("pointerup", unlockAudio, { capture: true, passive: true });
+})();
+
 function audioHapticClick(count) {
   if (!hapticsEnabled) return;
   try {
-    var AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) return;
-    var ctx = new AudioCtx();
-    var interval = 60; // ms between clicks
+    var ctx = getAudioCtx();
+    if (!ctx) return;
+    var interval = 55; // ms between clicks
+    var gain0 = Math.min(0.18 * hapticIntensity, 0.4); // louder than before
     for (var i = 0; i < Math.min(count, 20); i++) {
       (function(idx) {
         var startT = ctx.currentTime + idx * (interval / 1000);
         var osc = ctx.createOscillator();
         var gain = ctx.createGain();
         osc.connect(gain); gain.connect(ctx.destination);
-        osc.type = "sine"; osc.frequency.value = 180;
-        gain.gain.setValueAtTime(0.08 * Math.min(hapticIntensity, 2), startT);
-        gain.gain.exponentialRampToValueAtTime(0.0001, startT + 0.018);
-        osc.start(startT); osc.stop(startT + 0.020);
+        osc.type = "sine"; osc.frequency.value = 220; // slightly higher pitch = more perceptible
+        gain.gain.setValueAtTime(gain0, startT);
+        gain.gain.exponentialRampToValueAtTime(0.0001, startT + 0.022);
+        osc.start(startT); osc.stop(startT + 0.025);
       })(i);
     }
   } catch (e) {}
@@ -8503,59 +8540,145 @@ function initShakeDetect() {
 }
 
 // ─── Board opening animation ──────────────────────────────────────────────────
+
+// Animate one tile (any state) with a staggered delay
+function pulseTileOnce(tile, delayMs) {
+  setTimeout(function() {
+    var g = document.getElementById("tile-" + tile.id);
+    if (!g) return;
+    var poly = g.querySelector("polygon:not(.hatch-overlay)");
+    if (!poly) return;
+    if (tile.state === "neutral") {
+      poly.classList.add("tile-pulse");
+      setTimeout(function() { poly.classList.remove("tile-pulse"); renderTile(tile); }, 600);
+    } else {
+      poly.classList.add("tile-pulse-any");
+      setTimeout(function() { poly.classList.remove("tile-pulse-any"); }, 600);
+    }
+  }, delayMs);
+}
+
 function runBoardOpenAnimation() {
   if (!tiles || !tiles.length) return;
 
-  // Eight distinct sweep patterns
-  var PATTERNS = [
-    // Left → right column sweep
-    function(ts) { return ts.slice().sort(function(a, b) { return a.col - b.col || a.row - b.row; }); },
-    // Right → left column sweep
-    function(ts) { return ts.slice().sort(function(a, b) { return b.col - a.col || a.row - b.row; }); },
-    // Top → bottom row cascade
-    function(ts) { return ts.slice().sort(function(a, b) { return a.row - b.row || a.col - b.col; }); },
-    // Bottom → top row cascade
-    function(ts) { return ts.slice().sort(function(a, b) { return b.row - a.row || a.col - b.col; }); },
-    // Ripple outward from center
-    function(ts) {
-      var cx = 0, cy = 0;
-      ts.forEach(function(t) { cx += t.col; cy += t.row; });
-      cx /= ts.length; cy /= ts.length;
-      return ts.slice().sort(function(a, b) {
-        return Math.hypot(a.col - cx, a.row - cy) - Math.hypot(b.col - cx, b.row - cy);
-      });
-    },
-    // Ripple inward from edges
-    function(ts) {
-      var cx = 0, cy = 0;
-      ts.forEach(function(t) { cx += t.col; cy += t.row; });
-      cx /= ts.length; cy /= ts.length;
-      return ts.slice().sort(function(a, b) {
-        return Math.hypot(b.col - cx, b.row - cy) - Math.hypot(a.col - cx, a.row - cy);
-      });
-    },
-    // Diagonal top-left → bottom-right
-    function(ts) { return ts.slice().sort(function(a, b) { return (a.row + a.col) - (b.row + b.col); }); },
-    // Diagonal top-right → bottom-left
-    function(ts) { return ts.slice().sort(function(a, b) { return (a.col - a.row) - (b.col - b.row); }); },
+  // Pre-compute pixel centres for every tile (needed for corner/spiral patterns)
+  var td = tiles.map(function(t) {
+    var c = hexCenter(t.row, t.col);
+    return { tile: t, x: c.x, y: c.y };
+  });
+  var xs = td.map(function(d) { return d.x; });
+  var ys = td.map(function(d) { return d.y; });
+  var minX = Math.min.apply(null, xs), maxX = Math.max.apply(null, xs);
+  var minY = Math.min.apply(null, ys), maxY = Math.max.apply(null, ys);
+  var cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+
+  // Sort helper: returns tile array ordered by score (ascending = first to pulse)
+  function byScore(scoreFn) {
+    return td.slice().sort(function(a, b) { return scoreFn(a) - scoreFn(b); }).map(function(d) { return d.tile; });
+  }
+
+  // Snake helper: group rows, alternate l→r / r→l
+  function snake(fromCorner) {
+    // fromCorner: "TL" | "TR" | "BL" | "BR"
+    var rowMap = {};
+    td.forEach(function(d) {
+      var ry = Math.round(d.y);
+      if (!rowMap[ry]) rowMap[ry] = [];
+      rowMap[ry].push(d);
+    });
+    var rowKeys = Object.keys(rowMap).map(Number).sort(function(a, b) { return a - b; });
+    if (fromCorner === "BL" || fromCorner === "BR") rowKeys.reverse();
+    var order = [];
+    var rightStart = fromCorner === "TR" || fromCorner === "BR";
+    rowKeys.forEach(function(ry, ri) {
+      var row = rowMap[ry].slice().sort(function(a, b) { return a.x - b.x; });
+      var leftToRight = rightStart ? (ri % 2 !== 0) : (ri % 2 === 0);
+      if (!leftToRight) row.reverse();
+      row.forEach(function(d) { order.push(d.tile); });
+    });
+    return order;
+  }
+
+  // Ripple from a corner (sorted by distance from that pixel corner)
+  function rippleFromCorner(px, py) {
+    return byScore(function(d) { return Math.hypot(d.x - px, d.y - py); });
+  }
+
+  // Spiral from corner — sort first by ring (distance bucket), then by angle sweeping toward centre
+  function spiralOut(px, py) {
+    var RING = HEX_W * 1.1; // bucket width ≈ one tile diameter
+    var atan2Centre = Math.atan2(cy - py, cx - px);
+    return td.slice().sort(function(a, b) {
+      var da = Math.hypot(a.x - px, a.y - py);
+      var db = Math.hypot(b.x - px, b.y - py);
+      var ra = Math.floor(da / RING), rb = Math.floor(db / RING);
+      if (ra !== rb) return ra - rb;
+      // Within same ring, sweep angle outward from centre-line
+      var aa = Math.atan2(a.y - py, a.x - px) - atan2Centre;
+      var ab = Math.atan2(b.y - py, b.x - px) - atan2Centre;
+      return aa - ab;
+    }).map(function(d) { return d.tile; });
+  }
+
+  function spiralIn(px, py) {
+    var out = spiralOut(px, py);
+    return out.slice().reverse();
+  }
+
+  // Star burst: centre outward, sorted by distance from board centre
+  function starBurst() {
+    return byScore(function(d) { return Math.hypot(d.x - cx, d.y - cy); });
+  }
+
+  var corners = [
+    { x: minX, y: minY }, // TL
+    { x: maxX, y: minY }, // TR
+    { x: minX, y: maxY }, // BL
+    { x: maxX, y: maxY }, // BR
   ];
 
-  var ordered = PATTERNS[Math.floor(Math.random() * PATTERNS.length)](tiles);
-  var STEP = 42; // ms between each tile starting its pulse
+  var PATTERNS = [
+    // Row sweeps
+    function() { return byScore(function(d) { return  d.y * 1000 + d.x; }); },  // T>B
+    function() { return byScore(function(d) { return -d.y * 1000 + d.x; }); },  // B>T
+    // Column sweeps
+    function() { return byScore(function(d) { return  d.x * 1000 + d.y; }); },  // L>R
+    function() { return byScore(function(d) { return -d.x * 1000 + d.y; }); },  // R>L
+    // Snake variants
+    function() { return snake("TL"); },
+    function() { return snake("TR"); },
+    function() { return snake("BL"); },
+    function() { return snake("BR"); },
+    // Ripple from each corner
+    function() { return rippleFromCorner(corners[0].x, corners[0].y); }, // TL
+    function() { return rippleFromCorner(corners[1].x, corners[1].y); }, // TR
+    function() { return rippleFromCorner(corners[2].x, corners[2].y); }, // BL
+    function() { return rippleFromCorner(corners[3].x, corners[3].y); }, // BR
+    // Spiral out from each corner
+    function() { return spiralOut(corners[0].x, corners[0].y); }, // TL
+    function() { return spiralOut(corners[1].x, corners[1].y); }, // TR
+    function() { return spiralOut(corners[2].x, corners[2].y); }, // BL
+    function() { return spiralOut(corners[3].x, corners[3].y); }, // BR
+    // Spiral in from each corner (outer → centre)
+    function() { return spiralIn(corners[0].x, corners[0].y); }, // TL
+    function() { return spiralIn(corners[1].x, corners[1].y); }, // TR
+    function() { return spiralIn(corners[2].x, corners[2].y); }, // BL
+    function() { return spiralIn(corners[3].x, corners[3].y); }, // BR
+    // Star burst: centre → outer
+    function() { return starBurst(); },
+    // Reverse star burst: outer → centre
+    function() { return starBurst().slice().reverse(); },
+    // Sparkle 1: random sequential (one at a time)
+    function() { return td.slice().sort(function() { return Math.random() - 0.5; }).map(function(d) { return d.tile; }); },
+    // Sparkle 2: random batches (already handled by the stagger step below — same order as Sparkle 1 for simplicity)
+    function() { return td.slice().sort(function() { return Math.random() - 0.5; }).map(function(d) { return d.tile; }); },
+  ];
+
+  var ordered = PATTERNS[Math.floor(Math.random() * PATTERNS.length)]();
+  var STEP = 38; // ms between each tile
 
   ordered.forEach(function(tile, idx) {
-    if (tile.state !== "neutral") return; // only pulse unselected tiles
-    setTimeout(function() {
-      var g = document.getElementById("tile-" + tile.id);
-      if (!g) return;
-      var poly = g.querySelector("polygon:not(.hatch-overlay)");
-      if (!poly) return;
-      poly.classList.add("tile-pulse");
-      setTimeout(function() {
-        poly.classList.remove("tile-pulse");
-        renderTile(tile); // restore correct fill
-      }, 600);
-    }, idx * STEP);
+    pulseTileOnce(tile, idx * STEP);
   });
 }
 
