@@ -3822,11 +3822,20 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.73";
+const VERSION = "2.0.74";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.74",
+    date: "2026-06-30",
+    title: "Fix: Word Area messages always reflect the active day's board",
+    changes: [
+      "Fixed cross-day state bleed: 'Found in X attempts' no longer shows on boards that haven't been played",
+      "_cycleAttemptCount is now reset to 0 when navigating to a new date, preventing a completed day's message from leaking into an unplayed day",
+    ],
+  },
   {
     version: "2.0.73",
     date: "2026-06-30",
@@ -6593,6 +6602,7 @@ function loadBoardForDate(ddmmyy) {
   attemptCount = 0; validAttemptCount = 0; activeTimeMs = 0; timerRunning = false; timerLastStart = 0;
   inOneAchieved = false; targetWordFound = false;
   targetFoundMs = 0; targetFoundAttempts = 0;
+  _cycleAttemptCount = 0; stopCyclingMessages();
 
   loadState();
 
