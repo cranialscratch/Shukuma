@@ -3822,11 +3822,21 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.84";
+const VERSION = "2.0.85";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.85",
+    date: "2026-06-30",
+    title: "Remove automatic bonus words from blank tile paths",
+    changes: [
+      "Blank tile paths now award only one word per submission — the first valid substitution that hasn't been found yet",
+      "Players can trace the same path again to discover a different word (e.g. KISS then MISS on a second attempt)",
+      "Removed the 'Bonus word' toast and automatic multi-award behaviour",
+    ],
+  },
   {
     version: "2.0.84",
     date: "2026-06-30",
@@ -5698,23 +5708,6 @@ async function resolveBlankPath(path) {
   return Array.from(found);
 }
 
-// Award a bonus word found via a different blank substitution on the same tile path
-function awardBonusWord(word, path) {
-  if (foundWords.includes(word.toUpperCase())) return;
-  // Record blank position for underline display
-  if (path && path.length) {
-    path.forEach(function(id, i) {
-      if (tiles[id] && tiles[id].blank) foundWordBlanks[word.toUpperCase()] = i;
-    });
-  }
-  foundWords.push(word.toUpperCase());
-  var len = word.length;
-  if (len > bestScore) { bestScore = len; bestWord = word; }
-  saveState();
-  updateScoreDisplay(word);
-  updateShareBtn();
-  showToast("Bonus word: " + word.toUpperCase() + " (" + len + " letters)");
-}
 
 // Returns all valid 4+ letter words on the current board using the WORDS set
 function findAllBoardWords() {
@@ -6284,16 +6277,10 @@ async function onPointerUp(e) {
       isChecking = false; if (answerEl) answerEl.classList.remove("checking");
       var freshWords = allValid.filter(function(w) { return !foundWords.includes(w.toUpperCase()); });
       if (freshWords.length) {
-        var savedPath = selectedPath.slice();
         lockValidWord(freshWords[0]);
-        freshWords.slice(1).forEach(function(w, i) {
-          setTimeout(function() {
-            if (!foundWords.includes(w.toUpperCase())) awardBonusWord(w, savedPath);
-          }, 1900 + i * 900);
-        });
         return;
       } else if (allValid.length) {
-        // All valid variants already found
+        // All valid variants already found — player can still retry for a different path
         showAlreadyFoundAnim();
         triggerHaptic([40, 20, 40, 20, 40, 20, 40, 20, 40]);
         setTimeout(clearSelection, 1500);
@@ -6529,16 +6516,10 @@ async function submitTappedWord() {
     isChecking = false; if (answerEl2) answerEl2.classList.remove("checking");
     var freshWords2 = allValid2.filter(function(w) { return !foundWords.includes(w.toUpperCase()); });
     if (freshWords2.length) {
-      var savedPath2 = selectedPath.slice();
       lockValidWord(freshWords2[0]);
-      freshWords2.slice(1).forEach(function(w, i) {
-        setTimeout(function() {
-          if (!foundWords.includes(w.toUpperCase())) awardBonusWord(w, savedPath2);
-        }, 1900 + i * 900);
-      });
       return;
     } else if (allValid2.length) {
-      // All valid variants already found
+      // All valid variants already found — player can still retry for a different path
       showAlreadyFoundAnim();
       triggerHaptic([40, 20, 40, 20, 40, 20, 40, 20, 40]);
       setTimeout(clearSelection, 1500);
