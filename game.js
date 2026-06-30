@@ -3822,11 +3822,20 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.85";
+const VERSION = "2.0.86";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.86",
+    date: "2026-06-30",
+    title: "Best-word on-open fade now visibly animates",
+    changes: [
+      "The best-word highlight on game open now fades visibly: blue → cream (0.65s), then cream → blue (0.4s) for the persisted best-word tiles",
+      "Previously the fade was invisible because highlighted tiles were already blue, so animating blue→blue changed nothing",
+    ],
+  },
   {
     version: "2.0.85",
     date: "2026-06-30",
@@ -6107,24 +6116,41 @@ function fadeOutScoreHighlight() {
     if (txt)  txt.style.transition  = "fill 0.65s ease-out";
   });
 
-  // Next frame: switch tile states — the CSS transition animates the color shift
+  // Next frame: always fade to neutral so the animation is visible even when
+  // the tile's resting state is already "played" (blue → cream is visible;
+  // blue → blue would be invisible). PlayedPath tiles are restored afterward.
   requestAnimationFrame(function() {
     fadingIds.forEach(function(id) {
       var tile = tiles[id];
       if (!tile) return;
-      tile.state = (playedPath && playedPath.indexOf(id) !== -1) ? "played" : "neutral";
+      tile.state = "neutral";
       tile._resolvedLetter = "";
       renderTile(tile);
     });
-    // After transition: remove inline styles so later renderTile calls are unaffected
+
+    // After fade-out completes: restore played tiles with a gentle fade-in
     setTimeout(function() {
+      var RESTORE = "fill 0.4s ease-in, stroke 0.4s ease-in";
       fadingIds.forEach(function(id) {
         var g = document.getElementById("tile-" + id);
         if (!g) return;
         var poly = g.querySelector("polygon:not(.hatch-overlay)");
         var txt  = g.querySelector("text");
+        // Clear the fade-out transition
         if (poly) poly.style.transition = "";
         if (txt)  txt.style.transition  = "";
+        // If this tile belongs to the best word, ease it back to played blue
+        var tile = tiles[id];
+        if (tile && playedPath && playedPath.indexOf(id) !== -1) {
+          if (poly) poly.style.transition = RESTORE;
+          if (txt)  txt.style.transition  = "fill 0.4s ease-in";
+          tile.state = "played";
+          renderTile(tile);
+          setTimeout(function() {
+            if (poly) poly.style.transition = "";
+            if (txt)  txt.style.transition  = "";
+          }, 450);
+        }
       });
     }, 700);
   });
