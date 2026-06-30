@@ -3822,11 +3822,20 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.60";
+const VERSION = "2.0.61";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.61",
+    date: "2026-06-30",
+    title: "Haptic: Android only; remove non-functional iOS code",
+    changes: [
+      "Haptic feedback works on Android via navigator.vibrate()",
+      "iOS haptic removed — Safari does not expose a programmatic haptic API for web apps",
+    ],
+  },
   {
     version: "2.0.60",
     date: "2026-06-30",
@@ -4670,38 +4679,14 @@ var textSize      = "normal";  // "normal" | "large" | "xl"
 // Haptic intensity multiplier (1 = normal, admin-adjustable)
 var hapticIntensity = parseFloat(localStorage.getItem("shukuma-haptic-intensity") || "1");
 
-// iOS detection — used to choose haptic strategy
-var _isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) ||
-             (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-
-// triggerHaptic — fires the iOS Taptic Engine via the native checkbox switch trick,
-// falls back to navigator.vibrate() on Android, no-ops elsewhere.
-//
-// pattern: number (ms) or vibration API array [on, off, on, off, ...]
-// On iOS each "on" segment in the pattern produces one haptic tap, spaced by the
-// cumulative on+off durations from the pattern.
+// triggerHaptic — Android only via navigator.vibrate(); no-ops on iOS (not supported in Safari).
+// pattern: number (ms duration) or vibration API array [on, off, on, off, ...]
 function triggerHaptic(pattern) {
-  if (!hapticsEnabled) return;
-
-  if (_isIOS) {
-    var el = document.getElementById("ios-haptic-trigger");
-    if (!el) return;
-    // Normalise to [on, off, on, off, ...] — a plain number becomes a single-element array
-    var seq = Array.isArray(pattern) ? pattern : [pattern || 10];
-    var delay = 0;
-    for (var i = 0; i < seq.length; i += 2) {
-      // Odd-indexed entries are "off" (silence) gaps; even-indexed are "on" pulses → one toggle each
-      (function(d) {
-        setTimeout(function() { el.checked = !el.checked; }, d);
-      })(delay);
-      delay += (seq[i] || 0) + (seq[i + 1] || 0);
-    }
-  } else if (navigator.vibrate) {
-    var scaled = Array.isArray(pattern)
-      ? pattern.map(function(v) { return Math.round(v * hapticIntensity); })
-      : Math.round((pattern || 10) * hapticIntensity);
-    navigator.vibrate(scaled);
-  }
+  if (!hapticsEnabled || !navigator.vibrate) return;
+  var scaled = Array.isArray(pattern)
+    ? pattern.map(function(v) { return Math.round(v * hapticIntensity); })
+    : Math.round((pattern || 10) * hapticIntensity);
+  navigator.vibrate(scaled);
 }
 
 function applyDarkMode(on) {
