@@ -3822,11 +3822,21 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.95";
+const VERSION = "2.0.96";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.96",
+    date: "2026-06-30",
+    title: "Fix idle hint, swipe hint, and countdown reveal animation",
+    changes: [
+      "Idle hint: rewritten using inline style opacity transitions on tile polygons — CSS keyframes on SVG elements were unreliable on iOS Safari; now 3-4 adjacent neutral tiles pulse in sequence",
+      "Swipe hint: pointing finger emoji that sweeps left/right (CSS translateX animation on an HTML span), with 'Swipe for more puzzles' label beneath",
+      "Countdown reveal: rewritten using CSS transitions on the board container div (not SVG elements) — burst outward then spring-zoom in today's new board",
+    ],
+  },
   {
     version: "2.0.95",
     date: "2026-06-30",
@@ -7117,13 +7127,14 @@ function confirmTicketSpend(opts, onConfirm) {
 }
 
 function triggerHint() {
+  if (reduceMotion) return;
   var neutralTiles = tiles.filter(function(t) { return t.state === "neutral"; });
   if (neutralTiles.length < 2) return;
   var seed = neutralTiles[Math.floor(Math.random() * neutralTiles.length)];
   var chain = [seed];
   var seen = {};
   seen[seed.id] = true;
-  for (var i = 0; i < 2; i++) {
+  for (var i = 0; i < 3; i++) {
     var last = chain[chain.length - 1];
     var adj = Array.from(adjacency[last.id] || []).filter(function(id) {
       return !seen[id] && tiles[id] && tiles[id].state === "neutral";
@@ -7139,11 +7150,16 @@ function triggerHint() {
     var poly = g.querySelector("polygon:not(.hatch-overlay)");
     if (!poly) return;
     setTimeout(function() {
-      poly.classList.add("tile-hint");
+      poly.style.transition = "opacity 0.35s ease-in-out";
+      poly.style.opacity = "0.3";
       setTimeout(function() {
-        poly.classList.remove("tile-hint");
-      }, 1600);
-    }, idx * 200);
+        poly.style.opacity = "1";
+        setTimeout(function() {
+          poly.style.transition = "";
+          poly.style.opacity = "";
+        }, 400);
+      }, 650);
+    }, idx * 180);
   });
 }
 
@@ -9730,34 +9746,40 @@ function startTomorrowMode() {
 }
 
 function explodeBoardAndReload() {
-  var svg = document.getElementById("hex-board");
-  if (!svg) { loadBoardForDate(getDateString()); return; }
+  var boardContainer = document.getElementById("board-container");
+  var promptEl = document.getElementById("game-prompt");
 
-  var cx = parseFloat(svg.getAttribute("width") || 0) / 2;
-  var cy = parseFloat(svg.getAttribute("height") || 0) / 2;
+  // Show "NEW PUZZLE!" in topbar
+  if (promptEl) { promptEl.style.opacity = "1"; promptEl.textContent = "NEW PUZZLE!"; }
 
-  tiles.forEach(function(tile) {
-    var g = document.getElementById("tile-" + tile.id);
-    if (!g) return;
-    var center = hexCenter(tile.row, tile.col);
-    var angle = Math.atan2(center.y - cy, center.x - cx) + (Math.random() - 0.5) * 0.8;
-    var dist = 180 + Math.random() * 120;
-    g.style.setProperty("--ex", Math.cos(angle) * dist + "px");
-    g.style.setProperty("--ey", Math.sin(angle) * dist + "px");
-    g.style.setProperty("--er", (Math.random() * 360 - 180) + "deg");
-    g.style.animationDelay = (Math.random() * 0.15) + "s";
-    g.classList.add("tile-exploding");
-  });
+  if (boardContainer) {
+    // Burst outward — scale up + fade out the whole board div
+    boardContainer.style.transition = "transform 0.55s cubic-bezier(0.55,0,1,0.45), opacity 0.55s ease-out";
+    boardContainer.style.transform = "scale(1.25)";
+    boardContainer.style.opacity = "0";
+  }
 
-  // Brief "GOOD LUCK" in topbar, then load the new day
+  browseOffset = 0;
+
   setTimeout(function() {
-    var promptEl = document.getElementById("game-prompt");
-    if (promptEl) { promptEl.style.opacity = "1"; promptEl.textContent = "GOOD LUCK"; }
-    browseOffset = 0;
-    setTimeout(function() {
-      loadBoardForDate(getDateString());
-    }, 1400);
-  }, 700);
+    loadBoardForDate(getDateString());
+    if (boardContainer) {
+      // Start small and invisible, then spring in
+      boardContainer.style.transition = "";
+      boardContainer.style.transform = "scale(0.75)";
+      boardContainer.style.opacity = "0";
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+          boardContainer.style.transition = "transform 0.5s cubic-bezier(0.34,1.56,0.64,1), opacity 0.35s ease-out";
+          boardContainer.style.transform = "";
+          boardContainer.style.opacity = "";
+          setTimeout(function() {
+            boardContainer.style.transition = boardContainer.style.transform = boardContainer.style.opacity = "";
+          }, 600);
+        });
+      });
+    }
+  }, 600);
 }
 
 // ─── Version / changelog ──────────────────────────────────────────────────────

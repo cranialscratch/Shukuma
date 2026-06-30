@@ -671,6 +671,22 @@ html[data-theme="dark"] { --tile-pulse-fill: #585859; } /* lighter than #3a3a3c 
   flex-shrink: 0;
 }
 #swipe-day-hint.visible { opacity: 1; }
+.swipe-hint-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.swipe-hint-hand {
+  font-size: 1.4rem;
+  display: inline-block;
+  animation: swipeFinger 1.4s ease-in-out infinite;
+}
+@keyframes swipeFinger {
+  0%   { transform: translateX(-18px); }
+  50%  { transform: translateX(18px); }
+  100% { transform: translateX(-18px); }
+}
 .swipe-hint-text {
   font-size: var(--fs-sm);
   font-weight: 600;
@@ -711,6 +727,7 @@ html[data-reduce-motion] .is-throbbing       { animation: none !important; }
 html[data-reduce-motion] .share-pulse        { animation: none !important; }
 html[data-reduce-motion] .tile-hint          { animation: none !important; fill: var(--tile-pulse-fill); }
 html[data-reduce-motion] .tile-hint-poly     { animation: none !important; fill: var(--tile-pulse-fill); }
+html[data-reduce-motion] .swipe-hint-hand    { animation: none !important; }
 
 /* ── Tomorrow board — tile explosion on midnight ────────────────────── */
 @keyframes tile-explode {
