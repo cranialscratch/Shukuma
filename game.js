@@ -3822,7 +3822,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.99";
+const VERSION = "2.1.0";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
@@ -7506,7 +7506,7 @@ function loadBoardForDate(ddmmyy) {
 
   // Restore word-area message based on loaded game state
   if (gameCompleted) {
-    _cycleAttemptCount = attemptCount;
+    _cycleAttemptCount = targetFoundAttempts > 0 ? targetFoundAttempts : attemptCount;
     setTimeout(startCyclingMessages, isToday ? 200 : 500);
   } else if (!isToday && bestScore > 0) {
     stopCyclingMessages();
