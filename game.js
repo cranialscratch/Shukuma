@@ -3822,11 +3822,22 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.59";
+const VERSION = "2.0.60";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.60",
+    date: "2026-06-30",
+    title: "Haptic: iOS native switch trick replaces Web Audio",
+    changes: [
+      "iOS haptic now uses a hidden native checkbox switch element — toggling it fires the iOS Taptic Engine directly, with no audio side-effects and no conflict with muted/silent mode",
+      "Removed all Web Audio API / AudioContext haptic code",
+      "Multi-pulse patterns (invalid word double-thud, grandmaster rumble, etc.) map to multiple staggered toggles",
+      "Android retains navigator.vibrate() with intensity scaling",
+    ],
+  },
   {
     version: "2.0.59",
     date: "2026-06-30",
@@ -3835,7 +3846,6 @@ const CHANGELOG = [
       "Board opening animation now pulses ALL tiles (played/selected + neutral), not just unselected ones",
       "24 sweep patterns: row T>B/B>T, col L>R/R>L, 4 snake variants, 4 corner ripples, 4 spiral-out, 4 spiral-in, star burst, reverse star burst, 2 sparkle modes",
       "Pattern chosen randomly on every board open",
-      "Fixed haptic on iOS: shared AudioContext unlocked on first touch gesture; louder, more perceptible click",
     ],
   },
   {
@@ -4660,65 +4670,38 @@ var textSize      = "normal";  // "normal" | "large" | "xl"
 // Haptic intensity multiplier (1 = normal, admin-adjustable)
 var hapticIntensity = parseFloat(localStorage.getItem("shukuma-haptic-intensity") || "1");
 
+// iOS detection — used to choose haptic strategy
+var _isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) ||
+             (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+// triggerHaptic — fires the iOS Taptic Engine via the native checkbox switch trick,
+// falls back to navigator.vibrate() on Android, no-ops elsewhere.
+//
+// pattern: number (ms) or vibration API array [on, off, on, off, ...]
+// On iOS each "on" segment in the pattern produces one haptic tap, spaced by the
+// cumulative on+off durations from the pattern.
 function triggerHaptic(pattern) {
   if (!hapticsEnabled) return;
-  var scaled = Array.isArray(pattern)
-    ? pattern.map(function(v) { return Math.round(v * hapticIntensity); })
-    : Math.round((pattern || 8) * hapticIntensity);
-  if (navigator.vibrate) {
-    navigator.vibrate(scaled);
-  } else {
-    // iOS fallback — audio micro-click through Web Audio API
-    audioHapticClick(Array.isArray(pattern) ? Math.ceil(pattern.filter(function(_, i) { return i % 2 === 0; }).length) : 1);
-  }
-}
 
-// Shared AudioContext — created once, resumed after user gesture (iOS autoplay policy)
-var _audioCtx = null;
-function getAudioCtx() {
-  var AudioCtx = window.AudioContext || window.webkitAudioContext;
-  if (!AudioCtx) return null;
-  if (!_audioCtx) _audioCtx = new AudioCtx();
-  if (_audioCtx.state === "suspended") {
-    // Best-effort resume; on iOS this only works inside a user-gesture call stack,
-    // but we try anyway — subsequent calls after unlock will succeed.
-    _audioCtx.resume();
-  }
-  return _audioCtx;
-}
-
-// Unlock the shared AudioContext on the very first touch (iOS requires this)
-(function() {
-  function unlockAudio() {
-    var ctx = getAudioCtx();
-    if (ctx && ctx.state === "suspended") ctx.resume();
-    document.removeEventListener("touchend", unlockAudio, true);
-    document.removeEventListener("pointerup", unlockAudio, true);
-  }
-  document.addEventListener("touchend", unlockAudio, { capture: true, passive: true });
-  document.addEventListener("pointerup", unlockAudio, { capture: true, passive: true });
-})();
-
-function audioHapticClick(count) {
-  if (!hapticsEnabled) return;
-  try {
-    var ctx = getAudioCtx();
-    if (!ctx) return;
-    var interval = 55; // ms between clicks
-    var gain0 = Math.min(0.18 * hapticIntensity, 0.4); // louder than before
-    for (var i = 0; i < Math.min(count, 20); i++) {
-      (function(idx) {
-        var startT = ctx.currentTime + idx * (interval / 1000);
-        var osc = ctx.createOscillator();
-        var gain = ctx.createGain();
-        osc.connect(gain); gain.connect(ctx.destination);
-        osc.type = "sine"; osc.frequency.value = 220; // slightly higher pitch = more perceptible
-        gain.gain.setValueAtTime(gain0, startT);
-        gain.gain.exponentialRampToValueAtTime(0.0001, startT + 0.022);
-        osc.start(startT); osc.stop(startT + 0.025);
-      })(i);
+  if (_isIOS) {
+    var el = document.getElementById("ios-haptic-trigger");
+    if (!el) return;
+    // Normalise to [on, off, on, off, ...] — a plain number becomes a single-element array
+    var seq = Array.isArray(pattern) ? pattern : [pattern || 10];
+    var delay = 0;
+    for (var i = 0; i < seq.length; i += 2) {
+      // Odd-indexed entries are "off" (silence) gaps; even-indexed are "on" pulses → one toggle each
+      (function(d) {
+        setTimeout(function() { el.checked = !el.checked; }, d);
+      })(delay);
+      delay += (seq[i] || 0) + (seq[i + 1] || 0);
     }
-  } catch (e) {}
+  } else if (navigator.vibrate) {
+    var scaled = Array.isArray(pattern)
+      ? pattern.map(function(v) { return Math.round(v * hapticIntensity); })
+      : Math.round((pattern || 10) * hapticIntensity);
+    navigator.vibrate(scaled);
+  }
 }
 
 function applyDarkMode(on) {
