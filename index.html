@@ -552,12 +552,20 @@
 
   <!-- Admin Panel -->
   <div id="admin-panel" hidden>
+    <div id="admin-sidebar-overlay"></div>
+    <nav id="admin-nav" aria-label="Admin sections"></nav>
     <div id="admin-header">
       <div id="admin-header-top">
-        <h2>Admin</h2>
+        <button id="admin-menu-btn" aria-label="Open menu">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+        <h2 id="admin-section-title">Admin</h2>
         <button id="admin-close" aria-label="Close admin">✕</button>
       </div>
-      <nav id="admin-nav" aria-label="Admin sections"></nav>
     </div>
     <div id="admin-content">
 
@@ -586,6 +594,7 @@
       <!-- ── Colour Palette: side-by-side Light | Dark ────────────── -->
       <div class="admin-section">
         <h3>Colour Palette</h3>
+        <button class="admin-btn" id="palette-apply-btn" style="width:100%;margin-bottom:14px">Apply &amp; Save Changes</button>
         <div class="palette-header">
           <span></span>
           <span class="palette-mode-label">☀ Light</span>

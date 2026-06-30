@@ -3822,11 +3822,115 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.53";
+const VERSION = "2.0.54";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.54",
+    date: "2026-06-30",
+    title: "Admin sidebar, word row definitions, cycling text fix, font floor",
+    changes: [
+      "Admin nav converted from horizontal pill strip to a slide-in sidebar drawer — hamburger button opens it, overlay or section tap closes it",
+      "Colour Palette section now has its own 'Apply & Save Changes' button — no more hunting for it in the Data section",
+      "Info button removed from each word row — tap the word itself to show/hide its definition",
+      "Word length fallback label changed from '10L' (confusing) to '10 ltr'",
+      "Cycling messages after finding the longest word now start correctly without a stutter — duplicate startCyclingMessages call removed",
+      "gameCompleted flag set immediately on finding the longest word, so cycling text restores correctly after page reload",
+    ],
+  },
+  {
+    version: "2.0.53",
+    date: "2026-06-29",
+    title: "Profile panel polish — hex avatar, streak fix, freeze inventory",
+    changes: [
+      "Avatar now displays in a pointy-top hexagon shape to match the game tile design (was circle)",
+      "Username given higher visual weight; email address shown as secondary label",
+      "Streak count now computed from visible calendar dots — fixes edge case where count lagged behind the calendar display",
+      "Streak freeze inventory shown as a count badge on the freeze button",
+      "Font sizes raised to meet 17pt minimum throughout the profile panel",
+    ],
+  },
+  {
+    version: "2.0.52",
+    date: "2026-06-29",
+    title: "Scores area accessibility and layout overhaul",
+    changes: [
+      "Scores back-panel rebuilt with cleaner grid layout; column widths no longer overflow on short words",
+      "All text in scores area raised to minimum 17pt",
+      "Bar track and percentage column given fixed widths to prevent layout shift when definition panel expands",
+    ],
+  },
+  {
+    version: "2.0.51",
+    date: "2026-06-29",
+    title: "Fix: toast position over word box",
+    changes: [
+      "Toast notifications repositioned to appear over the word/answer box area rather than overlapping the board",
+    ],
+  },
+  {
+    version: "2.0.50",
+    date: "2026-06-29",
+    title: "Submit button moved to full-width bar between board and nav",
+    changes: [
+      "Submit button relocated from inside the topbar to a dedicated full-width bar below the board — easier to reach on mobile",
+      "Button only visible when ≥4 tiles are selected",
+    ],
+  },
+  {
+    version: "2.0.49",
+    date: "2026-06-29",
+    title: "Word list redesign, friends stats, single-tile drag fix",
+    changes: [
+      "Word list rows redesigned with bar + percentage + definition toggle layout",
+      "Friends stats tab added to back panel showing friends' scores for the same puzzle",
+      "Single-tile drag no longer triggers a submit — minimum 2 tiles required for drag-release submit",
+    ],
+  },
+  {
+    version: "2.0.47",
+    date: "2026-06-29",
+    title: "Profile/avatar, haptics, dark mode fix, icon alignment",
+    changes: [
+      "Profile avatar upload added — photos stored in Firebase Storage",
+      "Haptic feedback added for invalid words and tile selection",
+      "Dark mode auto-detection fixed — no longer overrides user preference on reload",
+      "Icon alignment corrected in topbar and nav buttons",
+    ],
+  },
+  {
+    version: "2.0.45",
+    date: "2026-06-29",
+    title: "Fix: friend profile tap — wrong function name and data shape",
+    changes: [
+      "Tapping a friend's row in the leaderboard now opens their profile correctly",
+      "Fixed data shape mismatch where friend object used different field names than profile renderer expected",
+    ],
+  },
+  {
+    version: "2.0.44",
+    date: "2026-06-29",
+    title: "Profile redesign — SVG badges, Duolingo-style streak, friends",
+    changes: [
+      "Profile panel redesigned: SVG achievement badges, streak calendar, friends list",
+      "Streak display styled like Duolingo — fire icon with day count and 7-day dot calendar",
+      "Friends tab on back panel shows avatar + streak for each friend",
+    ],
+  },
+  {
+    version: "2.0.43",
+    date: "2026-06-29",
+    title: "Accessibility overhaul — screen reader, dark mode, high contrast",
+    changes: [
+      "aria-live regions added for board announcements and answer area",
+      "Dark mode auto-detect added via prefers-color-scheme media query",
+      "High-contrast mode toggle added in settings",
+      "All tap targets raised to minimum 44×44pt",
+      "Font scale slider added to settings for text size preference",
+    ],
+  },
   {
     version: "2.0.42",
     date: "2026-06-29",
@@ -5285,6 +5389,7 @@ function lockValidWord(word) {
 
   if (isInOne) {
     targetWordFound = true;
+    gameCompleted = true;
     _cycleAttemptCount = attemptCount;
     var inOneMsgs = FLOAT_MSGS.in_one;
     var inOneCheer = inOneMsgs[Math.floor(Math.random() * inOneMsgs.length)];
@@ -5298,9 +5403,9 @@ function lockValidWord(word) {
       showToast("🎯 Grandmaster in One! First attempt perfection!");
     }, 1600);
     setTimeout(function() { giveAwardTickets("Grandmaster in One!"); }, 2000);
-    setTimeout(startCyclingMessages, 2200);
   } else if (foundTarget) {
     targetWordFound = true;
+    gameCompleted = true;
     _cycleAttemptCount = attemptCount;
     var msgs = FLOAT_MSGS.target_found;
     var cheer = msgs[Math.floor(Math.random() * msgs.length)];
@@ -5310,7 +5415,6 @@ function lockValidWord(word) {
       showToast("🏆 You found today's longest word!");
     }, 1600);
     setTimeout(function() { giveAwardTickets("today's longest word found!"); }, 2000);
-    setTimeout(startCyclingMessages, 2200);
   } else {
     var cheers = (FLOAT_MSGS.valid[level] || FLOAT_MSGS.valid["Average"]);
     var cheer2 = cheers[Math.floor(Math.random() * cheers.length)];
@@ -6522,20 +6626,6 @@ function buildWordRow(cfg) {
     leftCol.appendChild(revealRow);
   }
 
-  // Definition button (unlocked words)
-  if (!locked) {
-    var defBtn = document.createElement("button");
-    defBtn.className = "wl-def-btn";
-    defBtn.setAttribute("aria-label", "Definition of " + word);
-    defBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8" stroke-width="3"/></svg>';
-    (function(w, r) {
-      defBtn.addEventListener("click", function(e) {
-        e.stopPropagation();
-        toggleWordDefinition(w, r);
-      });
-    })(word, row);
-    leftCol.appendChild(defBtn);
-  }
 
   // ── BAR + PCT — direct grid children (columns 2 & 3) ────────────
   var barTrack = document.createElement("div");
@@ -6552,16 +6642,18 @@ function buildWordRow(cfg) {
     pctEl.title = pct + "% of players who played today found this word";
   } else {
     pctEl.className = "wl-len";
-    pctEl.textContent = word.length + "L";
+    pctEl.textContent = word.length + " ltr";
   }
 
   row.appendChild(leftCol);
   row.appendChild(barTrack);
   row.appendChild(pctEl);
 
-  // Tap unlocked word → highlight on board
+  // Tap unlocked word → show/hide definition
   if (!locked) {
-    row.addEventListener("click", function() { highlightWordOnBoard(word); });
+    (function(w, r) {
+      row.addEventListener("click", function() { toggleWordDefinition(w, r); });
+    })(word, row);
   }
 
   return row;
@@ -9095,25 +9187,44 @@ var ADMIN_SECTIONS = [
   { id: "backlog",    label: "Backlog"    },
 ];
 
+function openSidebar() {
+  var nav = document.getElementById("admin-nav");
+  var overlay = document.getElementById("admin-sidebar-overlay");
+  if (nav) nav.classList.add("open");
+  if (overlay) overlay.classList.add("open");
+}
+
+function closeSidebar() {
+  var nav = document.getElementById("admin-nav");
+  var overlay = document.getElementById("admin-sidebar-overlay");
+  if (nav) nav.classList.remove("open");
+  if (overlay) overlay.classList.remove("open");
+}
+
 function expandAdminSection(id) {
-  var nav     = document.getElementById("admin-nav");
-  var content = document.getElementById("admin-content");
-  var panel   = document.getElementById("admin-panel");
+  var content  = document.getElementById("admin-content");
+  var panel    = document.getElementById("admin-panel");
+  var titleEl  = document.getElementById("admin-section-title");
   if (!content) return;
   content.querySelectorAll(".admin-section").forEach(function(sec) {
     sec.style.display = (sec.dataset.section === id) ? "" : "none";
   });
-  if (nav) {
-    nav.querySelectorAll(".admin-nav-btn").forEach(function(btn) {
-      btn.classList.toggle("active", btn.dataset.section === id);
-    });
+  document.querySelectorAll(".admin-nav-btn").forEach(function(btn) {
+    btn.classList.toggle("active", btn.dataset.section === id);
+  });
+  if (titleEl) {
+    var def = ADMIN_SECTIONS.find(function(d) { return d.id === id; });
+    titleEl.textContent = def ? def.label : "Admin";
   }
+  closeSidebar();
   if (panel) panel.scrollTo({ top: 0, behavior: "instant" });
 }
 
 function initAdminNav() {
   var content = document.getElementById("admin-content");
   var nav     = document.getElementById("admin-nav");
+  var menuBtn = document.getElementById("admin-menu-btn");
+  var overlay = document.getElementById("admin-sidebar-overlay");
   if (!content || !nav) return;
 
   // Assign data-section and hide all sections initially
@@ -9124,7 +9235,7 @@ function initAdminNav() {
     sec.style.display = "none";
   });
 
-  // Build nav pills
+  // Build sidebar nav items
   nav.innerHTML = "";
   ADMIN_SECTIONS.forEach(function(def) {
     var btn = document.createElement("button");
@@ -9134,6 +9245,10 @@ function initAdminNav() {
     btn.addEventListener("click", function() { expandAdminSection(def.id); });
     nav.appendChild(btn);
   });
+
+  // Hamburger opens sidebar; overlay click closes it
+  if (menuBtn) menuBtn.addEventListener("click", openSidebar);
+  if (overlay) overlay.addEventListener("click", closeSidebar);
 
   // Open Backlog by default
   expandAdminSection("backlog");
@@ -9235,8 +9350,7 @@ function initAdmin() {
   }
 
   // Apply button — snapshot all pickers (light + dark) and save to server
-  var applyBtn = document.getElementById("admin-apply-btn");
-  if (applyBtn) applyBtn.addEventListener("click", function() {
+  function applyAndSaveTheme() {
     var overrides = {};
     Object.keys(ADMIN_CSS_MAP).forEach(function(inputId) {
       var input = document.getElementById(inputId);
@@ -9252,7 +9366,11 @@ function initAdmin() {
     saveServerTheme(themeData).then(function() {
       showToast("Theme saved and applied for all users.");
     });
-  });
+  }
+  var applyBtn = document.getElementById("admin-apply-btn");
+  if (applyBtn) applyBtn.addEventListener("click", applyAndSaveTheme);
+  var paletteApplyBtn = document.getElementById("palette-apply-btn");
+  if (paletteApplyBtn) paletteApplyBtn.addEventListener("click", applyAndSaveTheme);
 
   // Reset button — delete server theme so all clients revert to CSS defaults
   var resetBtn = document.getElementById("admin-reset-btn");
