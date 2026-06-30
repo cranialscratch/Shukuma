@@ -23,6 +23,7 @@
 
   /* Icons & action buttons */
   --icon-color:          #6e6e73;
+  --board-fg:            rgba(28,28,30,0.65);
 
   /* Leaderboard */
   --lb-row-border:       #f0f0ec;
@@ -679,6 +680,7 @@ html[data-theme="dark"] { --tile-pulse-fill: #585859; } /* lighter than #3a3a3c 
   flex-direction: column;
   align-items: center;
   gap: 8px;
+  color: var(--board-fg);
 }
 /* SVG hand sweeps left → right three times, then holds */
 .swipe-hint-hand {
@@ -694,7 +696,7 @@ html[data-theme="dark"] { --tile-pulse-fill: #585859; } /* lighter than #3a3a3c 
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.55);
+  color: inherit;
   text-align: center;
 }
 
@@ -4097,6 +4099,7 @@ html[data-theme="dark"] {
   --text-muted:          var(--dk-text-muted);
   --prompt-color:        var(--dk-prompt-color);
   --icon-color:          var(--dk-icon-color);
+  --board-fg:            rgba(242,242,247,0.70);
   --lb-row-border:       var(--dk-lb-row-border);
   --tile-neutral:        var(--dk-tile-neutral);
   --tile-neutral-stroke: var(--dk-tile-neutral-stroke);
