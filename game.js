@@ -3822,11 +3822,22 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.77";
+const VERSION = "2.0.78";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.78",
+    date: "2026-06-30",
+    title: "Score-card word highlight: view-only, fades on return, single open definition",
+    changes: [
+      "Score-card word tap: board highlight is now view-only — cannot be submitted (first board tap clears it)",
+      "Board highlight fades out automatically 2 seconds after closing the score sheet",
+      "Definition panels: tapping a second word now closes the first; tapping the same word closes it (true toggle)",
+      "Fixed: hintsUsed not reset between puzzles — now correctly starts at 0 for any puzzle played for the first time",
+    ],
+  },
   {
     version: "2.0.77",
     date: "2026-06-30",
@@ -5476,6 +5487,9 @@ var _cycleGen = 0; // incremented on stop/start to cancel stale setTimeouts
 
 // Board highlight auto-clear timer
 var _highlightTimer = null;
+// True while the board is showing a score-card word highlight (view-only, not submittable)
+var _scoreHighlightMode = false;
+var _scoreHighlightFadeTimer = null;
 
 // Definition cache { word: html }
 var _defCache = {};
@@ -5990,6 +6004,8 @@ function restoreTileDefault(t) {
 
 function clearSelection() {
   if (_highlightTimer) { clearTimeout(_highlightTimer); _highlightTimer = null; }
+  if (_scoreHighlightFadeTimer) { clearTimeout(_scoreHighlightFadeTimer); _scoreHighlightFadeTimer = null; }
+  _scoreHighlightMode = false;
   tiles.forEach(function(t) { t.state = "neutral"; t._resolvedLetter = ""; });
   selectedPath = [];
   renderAllTiles();
@@ -6082,6 +6098,11 @@ function tileIdFromPoint(clientX, clientY) {
 function onPointerDown(e) {
   if (isChecking) return;
   e.preventDefault();
+  // If the board is showing a score-card highlight, clear it on first tap
+  if (_scoreHighlightMode) {
+    clearSelection();
+    return; // absorb this tap — next tap starts a real selection
+  }
   pointerDownX = e.clientX;
   pointerDownY = e.clientY;
   pointerDownTile = tileIdFromPoint(e.clientX, e.clientY);
@@ -6457,7 +6478,9 @@ function highlightWordOnBoard(word) {
   if (!path || !path.length) return;
 
   if (_highlightTimer) { clearTimeout(_highlightTimer); _highlightTimer = null; }
+  if (_scoreHighlightFadeTimer) { clearTimeout(_scoreHighlightFadeTimer); _scoreHighlightFadeTimer = null; }
   clearSelection();
+  _scoreHighlightMode = true; // view-only: board is showing a score-card word
 
   // Sequential tile reveal (fast)
   path.forEach(function(id, idx) {
@@ -6475,7 +6498,7 @@ function highlightWordOnBoard(word) {
     path.forEach(function(id) { tiles[id].state = "valid"; });
     renderAllTiles();
     setTimeout(function() {
-      // Stay highlighted as selected — user clears by interacting or pressing ↺
+      // Stay highlighted as selected — not submittable, cleared on first board interaction
       path.forEach(function(id) { tiles[id].state = "selected"; });
       renderAllTiles();
     }, 300);
@@ -6848,6 +6871,14 @@ function closeSheet() {
   document.querySelectorAll(".nav-btn").forEach(function(b) {
     b.classList.toggle("active", b.dataset.panel === "play");
   });
+  // If a score-card word is still highlighted on the board, schedule a fade-out
+  if (_scoreHighlightMode) {
+    if (_scoreHighlightFadeTimer) clearTimeout(_scoreHighlightFadeTimer);
+    _scoreHighlightFadeTimer = setTimeout(function() {
+      _scoreHighlightFadeTimer = null;
+      if (_scoreHighlightMode) clearSelection();
+    }, 2200);
+  }
 }
 
 function initInfoPanel() {
@@ -7018,7 +7049,7 @@ function loadBoardForDate(ddmmyy) {
   attemptCount = 0; validAttemptCount = 0; activeTimeMs = 0; timerRunning = false; timerLastStart = 0;
   inOneAchieved = false; targetWordFound = false;
   targetFoundMs = 0; targetFoundAttempts = 0;
-  hintTicketsSpent = 0; defineHintUsed = false; gameDefeated = false;
+  hintTicketsSpent = 0; hintsUsed = 0; defineHintUsed = false; gameDefeated = false;
   _cycleAttemptCount = 0; stopCyclingMessages();
 
   loadState();
@@ -7934,11 +7965,18 @@ function buildWordRow(cfg) {
 }
 
 function toggleWordDefinition(word, rowEl, playersByWord) {
-  var existing = rowEl.nextElementSibling;
-  if (existing && existing.classList.contains("wl-def-panel")) {
-    existing.remove();
-    return;
-  }
+  var container = rowEl.parentNode;
+  // Find any currently open panel
+  var openPanel = container ? container.querySelector(".wl-def-panel") : null;
+  var ownPanel = (rowEl.nextElementSibling && rowEl.nextElementSibling.classList.contains("wl-def-panel"))
+    ? rowEl.nextElementSibling : null;
+
+  // Remove any open panel (different word or same word)
+  if (openPanel) openPanel.remove();
+
+  // Same word tapped again → just close (toggle off)
+  if (ownPanel) return;
+
   // Highlight the word on the game board simultaneously
   highlightWordOnBoard(word);
   var panel = document.createElement("div");
