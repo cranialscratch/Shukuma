@@ -3012,13 +3012,6 @@ html[data-theme="dark"] .settings-toggle { background: #48484a; }
 }
 #submit-btn:active { opacity: 0.85; transform: scale(0.98); }
 
-/* ── Tile fade-out animation (score-card highlight gradual clear) ────── */
-@keyframes tileGroupFadeOut {
-  from { opacity: 1; }
-  to   { opacity: 0; }
-}
-.tile-fade-out { animation: tileGroupFadeOut 0.65s ease-out forwards; }
-
 /* Keep me colourful sublabel */
 .settings-sublabel {
   display: block;

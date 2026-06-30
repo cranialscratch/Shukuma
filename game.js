@@ -3822,11 +3822,20 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.81";
+const VERSION = "2.0.82";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.82",
+    date: "2026-06-30",
+    title: "Tile highlight fades to board — tiles no longer disappear",
+    changes: [
+      "Score-card word highlight now fades the colour back to neutral rather than fading the tile to invisible",
+      "Tiles stay fully opaque throughout — only the pink highlight colour dissolves back to cream over 0.65s",
+    ],
+  },
   {
     version: "2.0.81",
     date: "2026-06-30",
@@ -5786,7 +5795,6 @@ function buildColours() {
 function renderTile(tile) {
   const g = document.getElementById("tile-" + tile.id);
   if (!g) return;
-  g.classList.remove("tile-fade-out"); // interrupt any in-progress fade
   const c = COLOURS[tile.state] || COLOURS.neutral;
   // Keep ARIA label current so screen readers see letter + state
   var ariaLetter = tile.blank ? (tile._resolvedLetter ? tile._resolvedLetter.toUpperCase() + " (blank)" : "blank") : tile.letter.toUpperCase();
@@ -6064,20 +6072,40 @@ function fadeOutScoreHighlight() {
   _scoreHighlightMode = false;
   selectedPath = [];
   updateAnswerArea();
-  // Animate fade on each tile's <g> element
+
+  // Add CSS color transitions to each tile's polygon and text so the
+  // highlight color fades to neutral rather than the whole tile disappearing.
+  var TRANS = "fill 0.65s ease-out, stroke 0.65s ease-out";
   fadingIds.forEach(function(id) {
     var g = document.getElementById("tile-" + id);
-    if (g) g.classList.add("tile-fade-out");
+    if (!g) return;
+    var poly = g.querySelector("polygon:not(.hatch-overlay)");
+    var txt  = g.querySelector("text");
+    if (poly) poly.style.transition = TRANS;
+    if (txt)  txt.style.transition  = "fill 0.65s ease-out";
   });
-  // After animation completes, snap tiles back to neutral state
-  setTimeout(function() {
+
+  // Next frame: switch tile states — the CSS transition animates the color shift
+  requestAnimationFrame(function() {
     fadingIds.forEach(function(id) {
-      var g = document.getElementById("tile-" + id);
-      if (g) g.classList.remove("tile-fade-out");
+      var tile = tiles[id];
+      if (!tile) return;
+      tile.state = (playedPath && playedPath.indexOf(id) !== -1) ? "played" : "neutral";
+      tile._resolvedLetter = "";
+      renderTile(tile);
     });
-    tiles.forEach(function(t) { t.state = "neutral"; t._resolvedLetter = ""; });
-    renderAllTiles();
-  }, 700);
+    // After transition: remove inline styles so later renderTile calls are unaffected
+    setTimeout(function() {
+      fadingIds.forEach(function(id) {
+        var g = document.getElementById("tile-" + id);
+        if (!g) return;
+        var poly = g.querySelector("polygon:not(.hatch-overlay)");
+        var txt  = g.querySelector("text");
+        if (poly) poly.style.transition = "";
+        if (txt)  txt.style.transition  = "";
+      });
+    }, 700);
+  });
 }
 
 function processWordState() {
