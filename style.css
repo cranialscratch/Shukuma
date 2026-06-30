@@ -1402,6 +1402,27 @@ html[data-textsize="xl"] {
   transition: width 0.4s ease;
 }
 .wl-bar-fill.wl-bar-found { background: var(--brand); }
+@keyframes wl-shimmer {
+  0%   { background-position: -200px 0; }
+  100% { background-position: 200px 0; }
+}
+.wl-bar-fill.wl-bar-loading {
+  width: 55% !important;
+  background: linear-gradient(90deg, rgba(0,0,0,0.10) 25%, rgba(0,0,0,0.22) 50%, rgba(0,0,0,0.10) 75%);
+  background-size: 400px 100%;
+  animation: wl-shimmer 1.4s infinite linear;
+  transition: none;
+}
+.wl-pct.wl-pct-loading {
+  color: transparent;
+  background: linear-gradient(90deg, rgba(0,0,0,0.10) 25%, rgba(0,0,0,0.22) 50%, rgba(0,0,0,0.10) 75%);
+  background-size: 400px 100%;
+  animation: wl-shimmer 1.4s infinite linear;
+  border-radius: 4px;
+  display: inline-block;
+  pointer-events: none;
+  user-select: none;
+}
 .wl-pct {
   font-size: var(--fs-sm);
   font-weight: 700;

@@ -3822,11 +3822,22 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.57";
+const VERSION = "2.0.58";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.58",
+    date: "2026-06-30",
+    title: "UX: loading skeleton on word list while server data fetches",
+    changes: [
+      "Word list bar and percentage now show a shimmer skeleton while waiting for Firestore — no guessed values",
+      "Replaced local-estimate fallback (100%/0%) with proper loading state",
+      "Once server data arrives, real community percentages fill in seamlessly",
+      "Past days or today with genuinely no scores show '—' after load completes",
+    ],
+  },
   {
     version: "2.0.57",
     date: "2026-06-30",
@@ -6450,8 +6461,8 @@ async function loadLeaderboard(filter) {
 
   updateLbDateNav();
 
-  // Render scratchcard immediately (no auth needed)
-  buildScratchAnswers(displayPuz ? displayPuz.prevAnswers : [], {}, isToday, 0);
+  // Render scratchcard immediately with loading skeleton (no auth needed)
+  buildScratchAnswers(displayPuz ? displayPuz.prevAnswers : [], {}, isToday, 0, true);
   buildPlayersSection([], "");
 
   if (!db) return;
@@ -6471,7 +6482,7 @@ async function loadLeaderboard(filter) {
     var targetWord = displayPuz && displayPuz.prevAnswers && displayPuz.prevAnswers[0]
       ? displayPuz.prevAnswers[0].word.toUpperCase() : "";
 
-    if (displayPuz) buildScratchAnswers(displayPuz.prevAnswers, playersByWord, isToday, allDocs.length);
+    if (displayPuz) buildScratchAnswers(displayPuz.prevAnswers, playersByWord, isToday, allDocs.length, false);
     buildPlayersSection(allDocs, targetWord);
   } catch (e) {
     console.warn("loadLeaderboard:", e.message);
@@ -6485,7 +6496,7 @@ function escHtml(s) {
 // ─── Scratchcard answers (v1.9.4) ─────────────────────────────────────────────
 var AVATAR_COLORS = ["#7c4dff","#ef4444","#22c55e","#f97316","#3b82f6","#ec4899","#0ea5e9","#a855f7"];
 
-function buildScratchAnswers(answers, playersByWord, isToday, totalPlayers) {
+function buildScratchAnswers(answers, playersByWord, isToday, totalPlayers, loading) {
   var container = document.getElementById("scratchcard-list");
   if (!container) return;
   container.innerHTML = "";
@@ -6556,7 +6567,7 @@ function buildScratchAnswers(answers, playersByWord, isToday, totalPlayers) {
   (function(ans, pbw, it, tp) {
     sortSelect.addEventListener("change", function() {
       wlSortMode = sortSelect.value;
-      buildScratchAnswers(ans, pbw, it, tp);
+      buildScratchAnswers(ans, pbw, it, tp, false);
     });
   })(answers, playersByWord, isToday, totalPlayers);
   sortBar.appendChild(sortSelect);
@@ -6590,18 +6601,10 @@ function buildScratchAnswers(answers, playersByWord, isToday, totalPlayers) {
     var isTarget = wu === targetWord;
     var isRevealedWord = isTarget && revealedTarget && !isFound;
     var count = totalPlayers > 0 ? (playersByWord[wu] || []).length : 0;
-    var pct;
-    if (totalPlayers > 0) {
-      pct = Math.round((count / totalPlayers) * 100);
-    } else if (isToday) {
-      // No server data yet — derive from local play state
-      pct = isFound ? 100 : 0;
-    } else {
-      pct = -1; // past day, genuinely no data
-    }
+    var pct = totalPlayers > 0 ? Math.round((count / totalPlayers) * 100) : -1;
     var row = buildWordRow({
       word: wu, found: isFound, isTarget: isTarget, revealed: isRevealedWord,
-      pct: pct, totalPlayers: totalPlayers, isToday: isToday,
+      pct: pct, totalPlayers: totalPlayers, isToday: isToday, loading: !!loading,
       answers: answers, playersByWord: playersByWord, dateKey: dateKey,
     });
     container.appendChild(row);
@@ -6611,7 +6614,7 @@ function buildScratchAnswers(answers, playersByWord, isToday, totalPlayers) {
 function buildWordRow(cfg) {
   var word = cfg.word, found = cfg.found, isTarget = cfg.isTarget;
   var revealed = cfg.revealed; // paid to reveal (target only, not yet found)
-  var pct = cfg.pct, totalPlayers = cfg.totalPlayers;
+  var pct = cfg.pct, totalPlayers = cfg.totalPlayers, loading = cfg.loading;
   var isToday = cfg.isToday, answers = cfg.answers, playersByWord = cfg.playersByWord, dateKey = cfg.dateKey;
   var locked = !found && !revealed;
 
@@ -6711,18 +6714,28 @@ function buildWordRow(cfg) {
   var barTrack = document.createElement("div");
   barTrack.className = "wl-bar-track";
   var barFill = document.createElement("div");
-  barFill.className = "wl-bar-fill" + (found ? " wl-bar-found" : "");
-  barFill.style.width = (pct >= 0 ? Math.max(4, pct) : 0) + "%";
+  if (loading) {
+    barFill.className = "wl-bar-fill wl-bar-loading";
+  } else {
+    barFill.className = "wl-bar-fill" + (found ? " wl-bar-found" : "");
+    barFill.style.width = (pct >= 0 ? Math.max(4, pct) : 0) + "%";
+  }
   barTrack.appendChild(barFill);
 
   var pctEl = document.createElement("span");
-  pctEl.className = "wl-pct";
-  if (pct >= 0) {
-    pctEl.textContent = pct + "%";
-    pctEl.title = pct + "% of players found this word";
+  if (loading) {
+    pctEl.className = "wl-pct wl-pct-loading";
+    pctEl.textContent = "00%"; // invisible placeholder for layout
+    pctEl.setAttribute("aria-hidden", "true");
   } else {
-    pctEl.textContent = "—";
-    pctEl.title = "No data for this day";
+    pctEl.className = "wl-pct";
+    if (pct >= 0) {
+      pctEl.textContent = pct + "%";
+      pctEl.title = pct + "% of players found this word";
+    } else {
+      pctEl.textContent = "—";
+      pctEl.title = "No data for this day";
+    }
   }
 
   row.appendChild(leftCol);
