@@ -638,16 +638,20 @@ html[data-textsize="xl"] {
 }
 .is-throbbing { animation: throb 0.75s ease-in-out infinite; }
 
-/* ── Tile pulse — opacity-based (reliable on iOS SVG elements) ───── */
+/* ── Tile pulse — fill animation on polygon (matches tile-hint-poly pattern) */
+/* Applied directly to <polygon> elements, not <g>, so fill animation works   */
+:root            { --tile-pulse-fill: #d4d4d4; } /* slightly darker than white  */
+html[data-theme="dark"] { --tile-pulse-fill: #585859; } /* lighter than #3a3a3c */
+
 @keyframes tilePulse {
-  0%, 100% { opacity: 1; }
-  45%       { opacity: 0.62; }
+  0%, 100% { fill: var(--tile-neutral); }
+  45%       { fill: var(--tile-pulse-fill); }
 }
-/* Opening board animation (all tiles, staggered by JS) */
+/* Opening board animation (neutral tile polygons, staggered by JS) */
 .tile-pulse {
   animation: tilePulse 0.5s ease-in-out forwards;
 }
-/* Idle hint (3-4 adjacent tiles, slower/softer) */
+/* Idle hint (3-4 adjacent neutral tile polygons, slower) */
 .tile-hint {
   animation: tilePulse 1.1s ease-in-out forwards;
 }

@@ -5759,9 +5759,14 @@ function triggerHint() {
   chain.forEach(function(tile, idx) {
     var g = document.getElementById("tile-" + tile.id);
     if (!g) return;
+    var poly = g.querySelector("polygon:not(.hatch-overlay)");
+    if (!poly) return;
     setTimeout(function() {
-      g.classList.add("tile-hint");
-      setTimeout(function() { g.classList.remove("tile-hint"); }, 1100);
+      poly.classList.add("tile-hint");
+      setTimeout(function() {
+        poly.classList.remove("tile-hint");
+        renderTile(tile); // restore correct fill
+      }, 1200);
     }, idx * 140);
   });
 }
@@ -8539,11 +8544,17 @@ function runBoardOpenAnimation() {
   var STEP = 42; // ms between each tile starting its pulse
 
   ordered.forEach(function(tile, idx) {
+    if (tile.state !== "neutral") return; // only pulse unselected tiles
     setTimeout(function() {
       var g = document.getElementById("tile-" + tile.id);
       if (!g) return;
-      g.classList.add("tile-pulse");
-      setTimeout(function() { g.classList.remove("tile-pulse"); }, 600);
+      var poly = g.querySelector("polygon:not(.hatch-overlay)");
+      if (!poly) return;
+      poly.classList.add("tile-pulse");
+      setTimeout(function() {
+        poly.classList.remove("tile-pulse");
+        renderTile(tile); // restore correct fill
+      }, 600);
     }, idx * STEP);
   });
 }
@@ -8552,25 +8563,42 @@ function runBoardOpenAnimation() {
 function initSwipeDayHint() {
   var hint = document.getElementById("swipe-day-hint");
   if (!hint) return;
-  var hand = hint.querySelector(".swipe-hint-hand");
-  var lastNav = Date.now();
+  var lastInteraction = Date.now();
+  var hintActive = false;
+  var IDLE_THRESHOLD = 10000; // show after 10s idle
+  var REPEAT = 15000;         // repeat every 15s of continued inactivity
 
-  // Reset idle timer whenever the user navigates dates
-  document.addEventListener("date-navigated", function() { lastNav = Date.now(); });
+  function resetIdle() { lastInteraction = Date.now(); }
+  document.addEventListener("pointerdown", resetIdle, { passive: true });
+  document.addEventListener("touchstart",  resetIdle, { passive: true });
+  document.addEventListener("date-navigated", function() {
+    lastInteraction = Date.now();
+    if (hintActive) dismissHint();
+  });
 
-  setTimeout(function() {
-    if (_swipeHintShown) return;
-    if (Date.now() - lastNav < 25000) return; // reset if they already browsed
-    _swipeHintShown = true;
+  function dismissHint() {
+    hintActive = false;
+    hint.classList.remove("visible");
+    setTimeout(function() { hint.hidden = true; }, 650);
+  }
+
+  function maybeShow() {
+    if (hintActive) return;
+    if (Date.now() - lastInteraction < IDLE_THRESHOLD) return;
+    hintActive = true;
     hint.hidden = false;
+    var hand = hint.querySelector(".swipe-hint-hand");
     requestAnimationFrame(function() { hint.classList.add("visible"); });
     if (hand) {
-      hand.addEventListener("animationend", function() {
-        hint.classList.remove("visible");
-        setTimeout(function() { hint.hidden = true; }, 650);
-      }, { once: true });
+      // Restart the CSS animation
+      hand.style.animation = "none";
+      void hand.getBoundingClientRect();
+      hand.style.animation = "";
+      hand.addEventListener("animationend", function() { dismissHint(); }, { once: true });
     }
-  }, 30000);
+  }
+
+  setInterval(maybeShow, REPEAT);
 }
 
 // ─── Idle hint ────────────────────────────────────────────────────────────────
