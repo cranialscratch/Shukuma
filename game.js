@@ -3822,11 +3822,32 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.67";
+const VERSION = "2.0.68";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.68",
+    date: "2026-06-30",
+    title: "HC full contrast audit: no grey or semitransparent text anywhere",
+    changes: [
+      "HC variables: --text-muted and --prompt-color changed from #cccccc to #ffffff — no grey text anywhere",
+      "HC variables: --text-secondary changed to #ffffff",
+      "HC variables: added --dk-* counterparts so HC wins even when dark mode is also active",
+      "HC badges: locked badges now visible (white outline, dim icon) instead of grayscale+opacity:0.4 invisible",
+      "HC badges: earned badges show yellow border + yellow icon on dark hex; name in yellow",
+      "HC streak: 'DAY STREAK' label, day names, freeze label all now white",
+      "HC streak: freeze icons now white border + white snowflake; used = dimmed white outline",
+      "HC profile: GAMES/BEST/AVERAGE/WORD COUNT/TOTAL TIME labels now white (was grey)",
+      "HC profile: Sign out button now white border + white text (was #ddd grey)",
+      "HC profile: email text now white; locale text now white; divider opacity increased",
+      "HC leaderboard: rank/level text now white (was #aaa/#888 grey)",
+      "HC settings: section titles, sub-text all white; section dividers more visible (0.35 opacity)",
+      "HC settings: action button borders increased from 0.40 to 0.70 opacity",
+      "HC theme-cat-label, reset-btn, swipe hints: all changed to solid white (removed grey alphas)",
+    ],
+  },
   {
     version: "2.0.67",
     date: "2026-06-30",

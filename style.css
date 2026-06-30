@@ -3565,11 +3565,11 @@ html[data-colour="highcontrast"] {
   --sheet-bg:            #000000;
   --word-box-bg:         #111111;
   --stat-box-bg:         #111111;
-  /* Text */
+  /* Text — all white; no grey or muted tones in HC */
   --text-primary:        #ffffff;
-  --text-secondary:      #eeeeee;
-  --text-muted:          #cccccc;
-  --prompt-color:        #cccccc;
+  --text-secondary:      #ffffff;
+  --text-muted:          #ffffff;
+  --prompt-color:        #ffffff;
   /* Icons */
   --icon-color:          #ffffff;
   /* Brand */
@@ -3592,6 +3592,21 @@ html[data-colour="highcontrast"] {
   --tile-played:         #00ff00;
   --tile-played-stroke:  #007700;
   --tile-text-light:     #000000;
+  /* Dark-mode counterpart overrides — html[data-colour] (0,1,1) beats :root (0,1,0)
+     for --dk-* vars, so dark-mode's var(--dk-...) references resolve to HC values. */
+  --dk-brand:            #ffff00;
+  --dk-brand-dark:       #cccc00;
+  --dk-board-bg:         #000000;
+  --dk-card-bg:          #111111;
+  --dk-sheet-bg:         #000000;
+  --dk-word-box-bg:      #111111;
+  --dk-stat-box-bg:      #111111;
+  --dk-text-primary:     #ffffff;
+  --dk-text-secondary:   #ffffff;
+  --dk-text-muted:       #ffffff;
+  --dk-prompt-color:     #ffffff;
+  --dk-icon-color:       #ffffff;
+  --dk-lb-row-border:    #333333;
 }
 
 /* HC-specific component fixes — override base styles for maximum legibility */
@@ -3606,7 +3621,7 @@ html[data-colour="highcontrast"] .settings-toggle:checked { background: #00CC00;
 
 /* 3. Text-size buttons: white outline + text on black; active = bright green */
 html[data-colour="highcontrast"] .text-size-btn {
-  border-color: rgba(255,255,255,0.55);
+  border-color: rgba(255,255,255,0.80);
   color: #ffffff;
   background: transparent;
 }
@@ -3618,8 +3633,8 @@ html[data-colour="highcontrast"] .text-size-btn.active {
 
 /* 4. Theme buttons: visible on dark card background */
 html[data-colour="highcontrast"] .colour-theme-btn {
-  border-color: rgba(255,255,255,0.40);
-  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.70);
+  background: rgba(255,255,255,0.10);
   color: #ffffff;
 }
 html[data-colour="highcontrast"] .colour-theme-btn.active {
@@ -3627,7 +3642,7 @@ html[data-colour="highcontrast"] .colour-theme-btn.active {
   background: rgba(255,255,0,0.14);
   color: #FFFF00;
 }
-html[data-colour="highcontrast"] .theme-cat-label { color: rgba(255,255,255,0.55); }
+html[data-colour="highcontrast"] .theme-cat-label { color: #FFFFFF; }
 
 /* 5. Nav pill: white outline, white icons for inactive; black icon on yellow for active */
 html[data-colour="highcontrast"] #nav-pill {
@@ -3646,8 +3661,8 @@ html[data-colour="highcontrast"] .nav-btn:not(.active):hover { background: rgba(
 html[data-colour="highcontrast"] #answer-text { color: #FFFFFF; }
 html[data-colour="highcontrast"] #game-prompt { color: #FFFFFF; font-size: 1.0625rem; }
 html[data-colour="highcontrast"] #reset-btn {
-  color: rgba(255,255,255,0.65);
-  background: rgba(255,255,255,0.12);
+  color: #FFFFFF;
+  background: rgba(255,255,255,0.15);
 }
 html[data-colour="highcontrast"] #reset-btn:hover { background: rgba(255,255,255,0.20); }
 
@@ -3663,18 +3678,18 @@ html[data-colour="highcontrast"] #hint-btn.hint-found { color: #FF4444; opacity:
 html[data-colour="highcontrast"] #hint-btn.hint-found:hover { color: #FF4444; background: rgba(255,68,68,0.10); }
 
 /* 9. Swipe-to-browse hint: brighter and minimum 17 pt */
-html[data-colour="highcontrast"] .swipe-hint-icon  { color: rgba(255,255,255,0.90); }
-html[data-colour="highcontrast"] .swipe-hint-label { color: rgba(255,255,255,0.90); font-size: 1.0625rem; }
+html[data-colour="highcontrast"] .swipe-hint-icon  { color: #FFFFFF; }
+html[data-colour="highcontrast"] .swipe-hint-label { color: #FFFFFF; font-size: 1.0625rem; }
 
 /* 10. Settings: section dividers, sub-labels, version label */
-html[data-colour="highcontrast"] .settings-section          { border-bottom-color: rgba(255,255,255,0.15); }
-html[data-colour="highcontrast"] .settings-section-title    { color: rgba(255,255,255,0.65); }
-html[data-colour="highcontrast"] .settings-sub              { color: rgba(255,255,255,0.55); }
-html[data-colour="highcontrast"] #settings-version-label    { color: rgba(255,255,255,0.40); }
+html[data-colour="highcontrast"] .settings-section          { border-bottom-color: rgba(255,255,255,0.35); }
+html[data-colour="highcontrast"] .settings-section-title    { color: #FFFFFF; }
+html[data-colour="highcontrast"] .settings-sub              { color: #FFFFFF; }
+html[data-colour="highcontrast"] #settings-version-label    { color: rgba(255,255,255,0.55); }
 
 /* 11. Settings action buttons: white outline on black; danger = red */
 html[data-colour="highcontrast"] .settings-action-btn {
-  border-color: rgba(255,255,255,0.40);
+  border-color: rgba(255,255,255,0.70);
   background: transparent;
   color: #FFFFFF;
   font-size: 1.0625rem;
@@ -3685,7 +3700,7 @@ html[data-colour="highcontrast"] .settings-danger-btn:hover { background: rgba(2
 
 /* 12. Locale buttons: inactive = white outline; active = black text on yellow */
 html[data-colour="highcontrast"] .locale-btn {
-  border-color: rgba(255,255,255,0.40);
+  border-color: rgba(255,255,255,0.70);
   background: transparent;
   color: #FFFFFF;
   font-size: 1.0625rem;
@@ -3696,6 +3711,57 @@ html[data-colour="highcontrast"] .locale-btn.active {
   color: #000000;
 }
 html[data-colour="highcontrast"] .locale-btn:hover:not(.active) { background: rgba(255,255,255,0.08); color: #FFFFFF; }
+
+/* 13. Profile page: stat labels, user info row, sign-out button */
+html[data-colour="highcontrast"] .stat-lbl         { color: #FFFFFF; }
+html[data-colour="highcontrast"] .stat-val          { color: #FFFF00; }
+html[data-colour="highcontrast"] #user-locale-text  { color: #FFFFFF; }
+html[data-colour="highcontrast"] #user-profile-row  { border-bottom-color: rgba(255,255,255,0.35); }
+html[data-colour="highcontrast"] #user-email-text   { color: #FFFFFF; }
+html[data-colour="highcontrast"] #signout-btn       { border-color: #FFFFFF; color: #FFFFFF; }
+html[data-colour="highcontrast"] #signout-btn:hover { border-color: #FFFF00; color: #FFFF00; }
+
+/* 14. Badges: earned = yellow hex + icon; locked = white outline, dim icon (not invisible) */
+html[data-colour="highcontrast"] .badge-hex {
+  background: #1a1a1a;
+  border: 2px solid rgba(255,255,255,0.30);
+}
+html[data-colour="highcontrast"] .badge-hex svg { color: rgba(255,255,255,0.35); }
+html[data-colour="highcontrast"] .badge-item.earned .badge-hex {
+  background: rgba(255,255,0,0.10);
+  border-color: #FFFF00;
+}
+html[data-colour="highcontrast"] .badge-item.earned .badge-hex svg  { color: #FFFF00; }
+html[data-colour="highcontrast"] .badge-item.locked .badge-hex       { filter: none; opacity: 1; }
+html[data-colour="highcontrast"] .badge-name                         { color: rgba(255,255,255,0.50); }
+html[data-colour="highcontrast"] .badge-item.earned .badge-name      { color: #FFFF00; font-weight: 700; }
+html[data-colour="highcontrast"] .badge-item:hover                   { background: rgba(255,255,0,0.07); }
+
+/* 15. Streak widget: hero label, day names, best text */
+html[data-colour="highcontrast"] #streak-widget          { background: #111111; }
+html[data-colour="highcontrast"] .streak-hero-label      { color: #FFFFFF; }
+html[data-colour="highcontrast"] .streak-day-name        { color: #FFFFFF; }
+html[data-colour="highcontrast"] .streak-day.today .streak-day-name { color: #FFFF00; }
+html[data-colour="highcontrast"] .streak-best            { color: #FFFFFF; }
+
+/* 16. Streak freeze row: divider, label, icons */
+html[data-colour="highcontrast"] .streak-freeze-row      { border-top-color: rgba(255,255,255,0.30); }
+html[data-colour="highcontrast"] .streak-freeze-label    { color: #FFFFFF; }
+html[data-colour="highcontrast"] .streak-freeze-icon     {
+  background: #222222;
+  border: 2px solid #FFFFFF;
+  color: #FFFFFF;
+}
+html[data-colour="highcontrast"] .streak-freeze-icon.used {
+  background: #111111;
+  border-color: rgba(255,255,255,0.25);
+  color: rgba(255,255,255,0.30);
+}
+
+/* 17. Leaderboard: rank/level/empty text hardcoded grey */
+html[data-colour="highcontrast"] .lb-rank  { color: #FFFFFF; }
+html[data-colour="highcontrast"] .lb-level { color: #FFFFFF; }
+html[data-colour="highcontrast"] .lb-empty { color: rgba(255,255,255,0.55); }
 
 /* ── Responsive ─────────────────────────────────────────────────────── */
 @media (max-width: 360px) {
