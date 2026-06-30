@@ -3822,11 +3822,23 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.64";
+const VERSION = "2.0.65";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.65",
+    date: "2026-06-30",
+    title: "Theme contrast fixes: dark mode text, Pride redesign, rainbow nav pill",
+    changes: [
+      "Fixed white-text-on-bright-tiles in dark mode across all themes — dk-tile-text-light now correctly controls functional tile text colour in dark mode",
+      "Default dark: selected tile deepened to #6D28D9 so off-white text is readable (was light purple → 2.4:1)",
+      "Red-Green dark: selected deepened to #3B3FA0; played tile lightened to #3AB0C8 for visibility on dark board",
+      "Pride: completely redesigned — clean white canvas, hot pink #FF006E selected, Material vivid green/red/blue for states, rainbow gradient on nav pill border and active tab button",
+      "Trans dark: bright sky blue played tiles now correctly use black text (13:1 contrast)",
+    ],
+  },
   {
     version: "2.0.64",
     date: "2026-06-30",
@@ -4743,8 +4755,8 @@ var THEMES = [
       "--dk-icon-color":"#aeaeb2",       "--dk-lb-row-border":"#3a3a3c",
       "--dk-tile-neutral":"#3a3a3c",     "--dk-tile-neutral-stroke":"#48484a",
       "--dk-tile-blank":"#3a3532",       "--dk-tile-text":"#f2f2f7",
-      "--dk-tile-text-light":"#ffffff",
-      "--dk-tile-selected":"#a78bfa",    "--dk-tile-selected-stroke":"#7c4dff",
+      "--dk-tile-text-light":"#000000",
+      "--dk-tile-selected":"#6D28D9",    "--dk-tile-selected-stroke":"#5B21B6",
       "--dk-tile-valid":"#4ade80",       "--dk-tile-valid-stroke":"#22c55e",
       "--dk-tile-invalid":"#f87171",     "--dk-tile-invalid-stroke":"#ef4444",
       "--dk-tile-played":"#86efac",      "--dk-tile-played-stroke":"#4ade80",
@@ -4783,11 +4795,11 @@ var THEMES = [
       "--dk-icon-color":"#7A9AB8",       "--dk-lb-row-border":"#20303E",
       "--dk-tile-neutral":"#20303E",     "--dk-tile-neutral-stroke":"#2A3E52",
       "--dk-tile-blank":"#18283A",       "--dk-tile-text":"#E2EAF5",
-      "--dk-tile-text-light":"#FFFFFF",
-      "--dk-tile-selected":"#7880DC",    "--dk-tile-selected-stroke":"#3B49C4",
+      "--dk-tile-text-light":"#000000",
+      "--dk-tile-selected":"#3B3FA0",    "--dk-tile-selected-stroke":"#2B2E80",
       "--dk-tile-valid":"#6A9ECC",       "--dk-tile-valid-stroke":"#2563A8",
       "--dk-tile-invalid":"#D98830",     "--dk-tile-invalid-stroke":"#C07020",
-      "--dk-tile-played":"#0A6078",      "--dk-tile-played-stroke":"#085065",
+      "--dk-tile-played":"#3AB0C8",      "--dk-tile-played-stroke":"#2A90A8",
     },
     dark:{"--tile-pulse-fill":"#6A9ECC"},
     pulse:["#3B49C4","#2563A8","#0A7282","#6A85D0","#2563A8","#3B49C4"] },
@@ -4833,44 +4845,45 @@ var THEMES = [
 
   // ── Community ───────────────────────────────────────────────────────────────
 
-  // Pride — vivid and joyful. Clean white board so every rainbow colour pops.
-  // Brand is vivid violet (purple stripe); valid = bright green, invalid = vivid
-  // red — universally legible. Played = warm orange. Pulse cycles all 6 flag colours.
+  // Pride — clean white canvas, rainbow gradient as the UI signature (nav pill,
+  // settings button border). Tile states use bold single colours from the Material
+  // accent palette: hot pink selected, vivid green valid, vivid red invalid, electric
+  // blue played. The rainbow itself is the decor — the tiles stay clean.
   { id:"pride", name:"Pride", emoji:"🌈", cat:"community",
     auto:{m1:6,d1:1,m2:6,d2:30},
     vars:{
-      "--brand":"#9333EA",               "--brand-dark":"#7C28C9",
-      "--board-bg":"#FEFFFE",            "--page-bg":"#FEFFFE",
+      "--brand":"#FF006E",               "--brand-dark":"#CC0058",
+      "--board-bg":"#FFFFFF",            "--page-bg":"#FFFFFF",
       "--card-bg":"#FFFFFF",
-      "--sheet-bg":"#F8F0FE",            "--word-box-bg":"#F2E4FD",
-      "--stat-box-bg":"#FEFFFE",
-      "--text-primary":"#1A0030",        "--text-secondary":"#6B458A",
-      "--text-muted":"#9E7AB8",          "--prompt-color":"#9E7AB8",
-      "--icon-color":"#6B458A",          "--lb-row-border":"#EBD8F8",
-      "--tile-neutral":"#FFFFFF",        "--tile-neutral-stroke":"#E0C8F4",
-      "--tile-blank":"#F8F0FE",          "--tile-text":"#1A0030",
+      "--sheet-bg":"#F8F0FF",            "--word-box-bg":"#F4E8FF",
+      "--stat-box-bg":"#FFFFFF",
+      "--text-primary":"#1A1A1A",        "--text-secondary":"#4A4A6A",
+      "--text-muted":"#8A8AAA",          "--prompt-color":"#8A8AAA",
+      "--icon-color":"#4A4A6A",          "--lb-row-border":"#EDE4FF",
+      "--tile-neutral":"#FFFFFF",        "--tile-neutral-stroke":"#DCC8FF",
+      "--tile-blank":"#F8F0FF",          "--tile-text":"#1A1A1A",
       "--tile-text-light":"#FFFFFF",
-      "--tile-selected":"#9333EA",       "--tile-selected-stroke":"#7C28C9",
-      "--tile-valid":"#16A34A",          "--tile-valid-stroke":"#15803D",
-      "--tile-invalid":"#DC2626",        "--tile-invalid-stroke":"#B91C1C",
-      "--tile-played":"#EA580C",         "--tile-played-stroke":"#C2410C",
-      "--tile-pulse-fill":"#C026D3",
-      "--dk-brand":"#C084FC",            "--dk-brand-dark":"#9333EA",
-      "--dk-board-bg":"#0E0818",         "--dk-card-bg":"#1A1028",
-      "--dk-sheet-bg":"#0E0818",         "--dk-word-box-bg":"#1A1028",
-      "--dk-stat-box-bg":"#22163A",
-      "--dk-text-primary":"#F5EEFF",     "--dk-text-secondary":"#B07CD8",
-      "--dk-text-muted":"#7A5098",       "--dk-prompt-color":"#7A5098",
-      "--dk-icon-color":"#B07CD8",       "--dk-lb-row-border":"#22163A",
-      "--dk-tile-neutral":"#22163A",     "--dk-tile-neutral-stroke":"#2E2050",
-      "--dk-tile-blank":"#1A1430",       "--dk-tile-text":"#F5EEFF",
-      "--dk-tile-text-light":"#FFFFFF",
-      "--dk-tile-selected":"#C084FC",    "--dk-tile-selected-stroke":"#9333EA",
-      "--dk-tile-valid":"#22C55E",       "--dk-tile-valid-stroke":"#16A34A",
-      "--dk-tile-invalid":"#F87171",     "--dk-tile-invalid-stroke":"#EF4444",
-      "--dk-tile-played":"#FB923C",      "--dk-tile-played-stroke":"#EA580C",
+      "--tile-selected":"#FF006E",       "--tile-selected-stroke":"#CC0058",
+      "--tile-valid":"#00C853",          "--tile-valid-stroke":"#009A3E",
+      "--tile-invalid":"#FF1744",        "--tile-invalid-stroke":"#CC0030",
+      "--tile-played":"#2979FF",         "--tile-played-stroke":"#1A5FCC",
+      "--tile-pulse-fill":"#FF006E",
+      "--dk-brand":"#D580FF",            "--dk-brand-dark":"#9333EA",
+      "--dk-board-bg":"#0A0A12",         "--dk-card-bg":"#141420",
+      "--dk-sheet-bg":"#0A0A12",         "--dk-word-box-bg":"#141420",
+      "--dk-stat-box-bg":"#1C1C2E",
+      "--dk-text-primary":"#F0EEFF",     "--dk-text-secondary":"#9898C8",
+      "--dk-text-muted":"#6060A0",       "--dk-prompt-color":"#6060A0",
+      "--dk-icon-color":"#9898C8",       "--dk-lb-row-border":"#1C1C2E",
+      "--dk-tile-neutral":"#1C1C2E",     "--dk-tile-neutral-stroke":"#2A2A40",
+      "--dk-tile-blank":"#14142A",       "--dk-tile-text":"#F0EEFF",
+      "--dk-tile-text-light":"#000000",
+      "--dk-tile-selected":"#7B29C9",    "--dk-tile-selected-stroke":"#6020AA",
+      "--dk-tile-valid":"#69F0AE",       "--dk-tile-valid-stroke":"#00C853",
+      "--dk-tile-invalid":"#FF5252",     "--dk-tile-invalid-stroke":"#FF1744",
+      "--dk-tile-played":"#448AFF",      "--dk-tile-played-stroke":"#2979FF",
     },
-    dark:{"--tile-pulse-fill":"#C026D3"},
+    dark:{"--tile-pulse-fill":"#D580FF"},
     pulse:["#E40303","#FF8C00","#FFED00","#008026","#004DFF","#750787"] },
 
   // Trans — the three flag stripes: sky blue brand, palest blush-pink board,
@@ -4904,7 +4917,7 @@ var THEMES = [
       "--dk-icon-color":"#7AB8D0",       "--dk-lb-row-border":"#1E2E3E",
       "--dk-tile-neutral":"#1E2E3E",     "--dk-tile-neutral-stroke":"#2A3E50",
       "--dk-tile-blank":"#162838",       "--dk-tile-text":"#EEF6FF",
-      "--dk-tile-text-light":"#FFFFFF",
+      "--dk-tile-text-light":"#000000",
       "--dk-tile-selected":"#0D6E9E",    "--dk-tile-selected-stroke":"#0A5A84",
       "--dk-tile-valid":"#22C55E",       "--dk-tile-valid-stroke":"#16A34A",
       "--dk-tile-invalid":"#F87171",     "--dk-tile-invalid-stroke":"#EF4444",
@@ -4999,7 +5012,7 @@ function applyTheme(id, persistPreference) {
   }
   styleEl.textContent = css;
 
-  document.documentElement.dataset.colour = (theme.cat === "access") ? id : "";
+  document.documentElement.dataset.colour = (id !== "default") ? id : "";
 
   buildColours();
   renderAllTiles();

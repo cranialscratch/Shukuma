@@ -3788,6 +3788,18 @@ html[data-theme="dark"] body {
 html[data-theme="dark"] #nav-pill { box-shadow: 0 4px 24px rgba(0,0,0,0.45); }
 html[data-theme="dark"] .nav-btn { color: rgba(255,255,255,0.28); }
 html[data-theme="dark"] .nav-btn:not(.active):hover { background: rgba(124,77,255,0.18); }
+
+/* Pride theme — rainbow gradient on nav pill border and active button */
+html[data-colour="pride"] #nav-pill {
+  border: 2.5px solid transparent;
+  background:
+    linear-gradient(var(--card-bg, #fff), var(--card-bg, #fff)) padding-box,
+    linear-gradient(135deg, #E40303 0%, #FF8C00 20%, #FFED00 40%, #008026 60%, #004DFF 80%, #750787 100%) border-box;
+}
+html[data-colour="pride"] .nav-btn.active {
+  background: linear-gradient(135deg, #E40303 0%, #FF8C00 20%, #FFED00 40%, #008026 60%, #004DFF 80%, #750787 100%);
+  color: #FFFFFF;
+}
 html[data-theme="dark"] #reset-btn { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.5); }
 html[data-theme="dark"] .stat-card { box-shadow: 0 1px 6px rgba(0,0,0,0.3); }
 html[data-theme="dark"] .action-btn:hover { background: rgba(124,77,255,0.15); }
