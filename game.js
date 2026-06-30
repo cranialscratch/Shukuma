@@ -3822,11 +3822,21 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.97";
+const VERSION = "2.0.98";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.98",
+    date: "2026-06-30",
+    title: "Swipe hint: SVG hand icon, proper position, 15 s idle; nudge tint subtler",
+    changes: [
+      "Swipe hint: replaced emoji with Lucide hand SVG icon; hand sweeps left→right 3 times (not infinite back-and-forth) then holds; hint now overlays the submit-area gap so it appears equidistant between board controls and nav pill",
+      "Swipe hint: idle threshold increased to 15 s; animation restarts cleanly each time the hint appears",
+      "Nudge: tint reduced to 28% blend toward the selected colour — subtle warmth, not a full colour change",
+    ],
+  },
   {
     version: "2.0.97",
     date: "2026-06-30",
@@ -7153,17 +7163,27 @@ function triggerHint() {
     seen[next.id] = true;
     chain.push(next);
   }
-  // Tint colour: use the theme's selected-tile fill (gold/yellow by default)
-  var tint = getComputedStyle(document.documentElement).getPropertyValue("--tile-selected").trim() || "#e8c840";
+  // Tint: blend 28% toward the theme's selected colour — subtle, not distracting
+  var cs = getComputedStyle(document.documentElement);
+  var rawTint    = cs.getPropertyValue("--tile-selected").trim() || "#e8c840";
+  var rawNeutral = cs.getPropertyValue("--tile-neutral").trim()  || "#e8dfc8";
+  function blendHex(c1, c2, t) {
+    var p = function(s) { return parseInt(s.replace("#","").slice(0,2) === s.replace("#","").slice(0,2) ? s.slice(1) : s.slice(1), 16) | 0; };
+    var parse = function(c) { var h = c.replace("#",""); return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)]; };
+    var a = parse(c1), b = parse(c2);
+    return "#" + a.map(function(v,i) { return ("0" + Math.round(v + (b[i]-v)*t).toString(16)).slice(-2); }).join("");
+  }
+  var blended = (/^#[0-9a-fA-F]{6}$/.test(rawTint) && /^#[0-9a-fA-F]{6}$/.test(rawNeutral))
+    ? blendHex(rawNeutral, rawTint, 0.28) : rawTint;
   chain.forEach(function(tile, idx) {
     var g = document.getElementById("tile-" + tile.id);
     if (!g) return;
     var poly = g.querySelector("polygon:not(.hatch-overlay)");
     if (!poly) return;
     setTimeout(function() {
-      // Fade fill to tint colour
+      // Fade fill to 28% tint blend — subtle warmth, not a full colour change
       poly.style.transition = "fill 0.45s ease-in-out";
-      poly.style.fill = tint;
+      poly.style.fill = blended;
       setTimeout(function() {
         // Fade fill back — clearing inline fill reverts to the setAttribute value
         poly.style.fill = "";
@@ -10327,8 +10347,8 @@ function initSwipeDayHint() {
   if (!hint) return;
   var lastInteraction = Date.now();
   var hintActive = false;
-  var IDLE_MS   = 8000;  // show after 8 s idle
-  var SHOW_MS   = 3000;  // visible for 3 s
+  var IDLE_MS   = 15000; // show after 15 s idle
+  var SHOW_MS   = 3500;  // visible for 3.5 s (covers 3 × 0.95 s sweeps)
   var REPEAT_MS = 16000; // re-check every 16 s
 
   function resetIdle() { lastInteraction = Date.now(); }
@@ -10351,7 +10371,10 @@ function initSwipeDayHint() {
     if (Date.now() - lastInteraction < IDLE_MS) return;
     hintActive = true;
     hint.hidden = false;
-    // Double-rAF ensures display:flex is painted before the opacity transition starts
+    // Restart the hand animation each time the hint appears (reflow trick)
+    var handEl = hint.querySelector(".swipe-hint-hand");
+    if (handEl) { handEl.style.animation = "none"; void handEl.offsetWidth; handEl.style.animation = ""; }
+    // Double-rAF ensures the element is painted before the opacity transition starts
     requestAnimationFrame(function() {
       requestAnimationFrame(function() { hint.classList.add("visible"); });
     });

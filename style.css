@@ -661,38 +661,41 @@ html[data-theme="dark"] { --tile-pulse-fill: #585859; } /* lighter than #3a3a3c 
 }
 
 /* ── Swipe-to-browse-days hint ───────────────────────────────────── */
+/* Overlays #submit-area (position: relative) — centred in the gap   */
+/* between board controls and nav pill, equidistant from both edges. */
 #swipe-day-hint {
+  position: absolute;
+  inset: 0;
   display: flex;
+  align-items: center;
   justify-content: center;
-  padding: 4px 0 2px;
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.5s ease;
-  flex-shrink: 0;
 }
 #swipe-day-hint.visible { opacity: 1; }
 .swipe-hint-inner {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: 8px;
 }
+/* SVG hand sweeps left → right three times, then holds */
 .swipe-hint-hand {
-  font-size: 1.4rem;
-  display: inline-block;
-  animation: swipeFinger 1.4s ease-in-out infinite;
+  display: block;
+  animation: swipeFinger 0.95s ease-in-out 3 forwards;
 }
 @keyframes swipeFinger {
-  0%   { transform: translateX(-18px); }
-  50%  { transform: translateX(18px); }
-  100% { transform: translateX(-18px); }
+  from { transform: translateX(-26px); }
+  to   { transform: translateX(26px); }
 }
 .swipe-hint-text {
   font-size: var(--fs-sm);
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.45);
+  color: rgba(255,255,255,0.55);
+  text-align: center;
 }
 
 /* ── Manual HINT button — still uses a more prominent fill throb ─── */
@@ -727,7 +730,7 @@ html[data-reduce-motion] .is-throbbing       { animation: none !important; }
 html[data-reduce-motion] .share-pulse        { animation: none !important; }
 html[data-reduce-motion] .tile-hint          { animation: none !important; fill: var(--tile-pulse-fill); }
 html[data-reduce-motion] .tile-hint-poly     { animation: none !important; fill: var(--tile-pulse-fill); }
-html[data-reduce-motion] .swipe-hint-hand    { animation: none !important; }
+html[data-reduce-motion] .swipe-hint-hand    { animation: none !important; transform: translateX(0) !important; }
 
 /* ── Tomorrow board — tile explosion on midnight ────────────────────── */
 @keyframes tile-explode {
@@ -3031,6 +3034,7 @@ html[data-theme="dark"] .settings-toggle { background: #48484a; }
   justify-content: center;
   padding: 0 16px;
   pointer-events: none;
+  position: relative;
 }
 #submit-btn {
   display: flex;
