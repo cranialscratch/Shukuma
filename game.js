@@ -3822,11 +3822,24 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.79";
+const VERSION = "2.0.80";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.80",
+    date: "2026-06-30",
+    title: "Score card centering, font sizes, uniform bars, ticket icons",
+    changes: [
+      "Score card: best word and rank are now centred; stats row columns are equally spaced and centred",
+      "Score card stat values enlarged to match the date label; stat labels raised to minimum 17pt",
+      "All text across the app now meets the 17pt minimum (swipe hint, settings, theme picker, hint picker, word list avatars)",
+      "Percentage bars in the word list are now a fixed 72px wide — all rows look even regardless of word length",
+      "Hint picker ticket icons enlarged from 13px to 18px to match icon sizes elsewhere",
+      "Removed 'No scores recorded for this day' message — past days now show nothing when there are no entries",
+    ],
+  },
   {
     version: "2.0.79",
     date: "2026-06-30",
@@ -8201,16 +8214,14 @@ function buildPlayersSection(players, targetWord) {
   }
 
   if (!players || !players.length) {
-    var empty = document.createElement("div");
-    empty.className = "scores-empty";
     if (isToday) {
+      var empty = document.createElement("div");
+      empty.className = "scores-empty";
       empty.textContent = currentUser && bestScore > 0
         ? "Your score has been recorded. Check back later to see how others compare!"
         : "No scores yet today — find the longest word to get on the board!";
-    } else {
-      empty.textContent = "No scores were recorded for this day.";
+      container.appendChild(empty);
     }
-    container.appendChild(empty);
     return;
   }
 

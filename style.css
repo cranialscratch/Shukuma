@@ -692,7 +692,7 @@ html[data-theme="dark"] { --tile-pulse-fill: #585859; } /* lighter than #3a3a3c 
   will-change: transform;
 }
 .swipe-hint-label {
-  font-size: 0.72rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -1121,7 +1121,7 @@ html[data-reduce-motion] .tile-hint-poly     { animation: none !important; fill:
 }
 .wl-row {
   display: grid;
-  grid-template-columns: 22px auto 1fr 38px;
+  grid-template-columns: 22px 1fr 72px 38px;
   grid-template-rows: 40px auto;
   column-gap: 6px;
   align-items: center;
@@ -1495,7 +1495,8 @@ html[data-reduce-motion] .tile-hint-poly     { animation: none !important; fill:
   flex-shrink: 0;
 }
 .wl-bar-track {
-  width: 100%;
+  width: 72px;
+  flex-shrink: 0;
   height: 5px;
   background: rgba(0,0,0,0.09);
   border-radius: 3px;
@@ -3020,7 +3021,7 @@ html[data-theme="dark"] .settings-toggle { background: #48484a; }
 /* Keep me colourful sublabel */
 .settings-sublabel {
   display: block;
-  font-size: 0.76rem;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
   font-weight: 400;
   margin-top: 2px;
@@ -3031,7 +3032,7 @@ html[data-theme="dark"] .settings-toggle { background: #48484a; }
 .theme-category:first-child { margin-top: 4px; }
 .theme-cat-label {
   display: block;
-  font-size: 0.70rem;
+  font-size: var(--fs-sm);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
@@ -3055,7 +3056,7 @@ html[data-theme="dark"] .settings-toggle { background: #48484a; }
   border: 2px solid rgba(0,0,0,0.10);
   background: rgba(0,0,0,0.03);
   color: rgba(0,0,0,0.65);
-  font-size: 0.80rem;
+  font-size: var(--fs-sm);
   font-family: inherit;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s, color 0.15s;
@@ -3067,7 +3068,7 @@ html[data-theme="dark"] .settings-toggle { background: #48484a; }
   background: rgba(124,77,255,0.06);
   color: var(--brand);
 }
-.theme-btn-label { font-size: 0.76rem; line-height: 1.25; }
+.theme-btn-label { font-size: var(--fs-sm); line-height: 1.25; }
 .theme-btn-emoji { font-size: 1.1rem; line-height: 1; }
 
 /* Pride theme button — rainbow gradient border */
@@ -4500,6 +4501,7 @@ html[data-theme="dark"] #ep-header h3 { color: white; }
   color: var(--text-primary);
   line-height: 1.1;
   margin-bottom: 3px;
+  text-align: center;
 }
 .sc-card-rank {
   font-size: var(--fs-sm);
@@ -4508,6 +4510,7 @@ html[data-theme="dark"] #ep-header h3 { color: white; }
   letter-spacing: 0.07em;
   color: var(--brand);
   margin-bottom: 10px;
+  text-align: center;
 }
 .sc-score-card-defeated .sc-card-rank { color: var(--text-muted); }
 .sc-card-stats-row {
@@ -4518,17 +4521,18 @@ html[data-theme="dark"] #ep-header h3 { color: white; }
 .sc-card-stat {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
+  text-align: center;
 }
 .sc-stat-val {
-  font-size: 1rem;
+  font-size: var(--fs-xl);
   font-weight: 700;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 .sc-stat-lbl {
-  font-size: 0.65rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -4553,7 +4557,7 @@ html[data-theme="dark"] #ep-header h3 { color: white; }
   height: 30px;
   border-radius: 50%;
   color: #fff;
-  font-size: 0.8rem;
+  font-size: var(--fs-sm);
   font-weight: 700;
   border: none;
   cursor: pointer;
@@ -4597,7 +4601,7 @@ html[data-theme="dark"] #ep-header h3 { color: white; }
   border-bottom: 1px solid var(--lb-row-border);
 }
 .hint-picker-title {
-  font-size: 1rem;
+  font-size: var(--fs-sm);
   font-weight: 700;
   color: var(--text-primary);
 }
@@ -4641,7 +4645,7 @@ html[data-theme="dark"] #ep-header h3 { color: white; }
   display: flex;
   align-items: center;
   gap: 2px;
-  font-size: 1rem;
+  font-size: var(--fs-sm);
   font-weight: 800;
   color: var(--brand);
   line-height: 1;
@@ -4649,7 +4653,7 @@ html[data-theme="dark"] #ep-header h3 { color: white; }
 .hpc-cost-num { font-variant-numeric: tabular-nums; }
 .hint-pick-danger .hpc-cost { color: #dc2626; }
 .hpc-label {
-  font-size: 0.78rem;
+  font-size: var(--fs-sm);
   font-weight: 700;
   color: var(--text-primary);
   text-align: center;
