@@ -5947,6 +5947,7 @@ function loadBoardForDate(ddmmyy) {
   adjacency = buildAdjacency();
   buildBoard();
   requestAnimationFrame(alignBoardControls);
+  setTimeout(runBoardOpenAnimation, 100);
 
   // Restore played path tiles to indigo
   playedPath.forEach(function(id) { if (tiles[id]) tiles[id].state = "played"; });
@@ -8490,6 +8491,59 @@ function initShakeDetect() {
   }
 }
 
+// ─── Board opening animation ──────────────────────────────────────────────────
+function runBoardOpenAnimation() {
+  if (!tiles || !tiles.length) return;
+
+  // Eight distinct sweep patterns
+  var PATTERNS = [
+    // Left → right column sweep
+    function(ts) { return ts.slice().sort(function(a, b) { return a.col - b.col || a.row - b.row; }); },
+    // Right → left column sweep
+    function(ts) { return ts.slice().sort(function(a, b) { return b.col - a.col || a.row - b.row; }); },
+    // Top → bottom row cascade
+    function(ts) { return ts.slice().sort(function(a, b) { return a.row - b.row || a.col - b.col; }); },
+    // Bottom → top row cascade
+    function(ts) { return ts.slice().sort(function(a, b) { return b.row - a.row || a.col - b.col; }); },
+    // Ripple outward from center
+    function(ts) {
+      var cx = 0, cy = 0;
+      ts.forEach(function(t) { cx += t.col; cy += t.row; });
+      cx /= ts.length; cy /= ts.length;
+      return ts.slice().sort(function(a, b) {
+        return Math.hypot(a.col - cx, a.row - cy) - Math.hypot(b.col - cx, b.row - cy);
+      });
+    },
+    // Ripple inward from edges
+    function(ts) {
+      var cx = 0, cy = 0;
+      ts.forEach(function(t) { cx += t.col; cy += t.row; });
+      cx /= ts.length; cy /= ts.length;
+      return ts.slice().sort(function(a, b) {
+        return Math.hypot(b.col - cx, b.row - cy) - Math.hypot(a.col - cx, a.row - cy);
+      });
+    },
+    // Diagonal top-left → bottom-right
+    function(ts) { return ts.slice().sort(function(a, b) { return (a.row + a.col) - (b.row + b.col); }); },
+    // Diagonal top-right → bottom-left
+    function(ts) { return ts.slice().sort(function(a, b) { return (a.col - a.row) - (b.col - b.row); }); },
+  ];
+
+  var ordered = PATTERNS[Math.floor(Math.random() * PATTERNS.length)](tiles);
+  var STEP = 42; // ms between each tile starting its pulse
+
+  ordered.forEach(function(tile, idx) {
+    setTimeout(function() {
+      var g = document.getElementById("tile-" + tile.id);
+      if (!g) return;
+      g.classList.remove("tile-pulse");
+      void g.offsetWidth; // flush reflow so animation restarts cleanly
+      g.classList.add("tile-pulse");
+      setTimeout(function() { g.classList.remove("tile-pulse"); }, 650);
+    }, idx * STEP);
+  });
+}
+
 // ─── Idle hint ────────────────────────────────────────────────────────────────
 function initIdleHint() {
   var lastInteraction = Date.now();
@@ -10081,6 +10135,7 @@ function init() {
   adjacency = buildAdjacency();
   buildBoard();
   requestAnimationFrame(alignBoardControls);
+  setTimeout(runBoardOpenAnimation, 100);
 
   // Restore played path tiles to indigo after board is built
   playedPath.forEach(function(id) { if (tiles[id]) tiles[id].state = "played"; });
