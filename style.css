@@ -273,7 +273,7 @@ html[data-textsize="xl"] {
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
   background: var(--word-box-bg);
-  border-radius: 12px;
+  border-radius: 26px;
   text-align: center;
   white-space: nowrap;
 }

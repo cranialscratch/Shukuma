@@ -3822,13 +3822,13 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.90";
+const VERSION = "2.0.91";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
   {
-    version: "2.0.90",
+    version: "2.0.91",
     date: "2026-06-30",
     title: "Tomorrow's puzzle countdown screen + improved date labels",
     changes: [
@@ -5879,14 +5879,14 @@ function renderTile(tile) {
   const g = document.getElementById("tile-" + tile.id);
   if (!g) return;
 
-  // In tomorrow mode: neutral style, countdown digits kept on row 2 tiles
+  // In tomorrow mode: uniform neutral style, no stroke, countdown digits on row 2
   if (_tomorrowMode) {
     const poly = g.querySelector("polygon:not(.hatch-overlay)");
     const txt  = g.querySelector("text");
-    var s = tile.row === 2 ? COLOURS.selected : COLOURS.neutral;
-    if (poly) { poly.setAttribute("fill", s.fill); poly.setAttribute("stroke", s.stroke); }
+    var n = COLOURS.neutral;
+    if (poly) { poly.setAttribute("fill", n.fill); poly.setAttribute("stroke", "none"); }
     if (txt)  {
-      txt.setAttribute("fill", s.text);
+      txt.setAttribute("fill", n.text);
       if (tile.row !== 2) txt.textContent = "";
       txt.setAttribute("font-size", tile.row === 2 ? "26" : "0");
     }
@@ -5930,13 +5930,13 @@ function renderTile(tile) {
       } else if (tile.state !== "neutral") {
         // selected / invalid / played — show resolved letter or star at full opacity
         text.removeAttribute("text-decoration");
-        text.setAttribute("font-size", tile._resolvedLetter ? "22" : "18");
+        text.setAttribute("font-size", "22");
         text.setAttribute("fill-opacity", tile._resolvedLetter ? "1" : "0.5");
         text.textContent = tile._resolvedLetter ? tile._resolvedLetter.toUpperCase() : "★";
       } else {
         // neutral — faint star, looks like a real tile
         text.removeAttribute("text-decoration");
-        text.setAttribute("font-size", "18");
+        text.setAttribute("font-size", "22");
         text.setAttribute("fill-opacity", "0.35");
         text.textContent = "★";
       }
@@ -6127,7 +6127,7 @@ function buildBoard() {
     text.setAttribute("y", y);
     text.setAttribute("text-anchor", "middle");
     text.setAttribute("dominant-baseline", "central");
-    text.setAttribute("font-size", tile.blank ? "18" : "22");
+    text.setAttribute("font-size", "22");
     text.setAttribute("font-weight", "700");
     text.setAttribute("font-family", "'Arial Black', 'Arial Bold', Arial, 'Helvetica Neue', sans-serif");
     text.setAttribute("fill", c.text);
@@ -10118,6 +10118,7 @@ function initShakeDetect() {
 // colorHex: optional hex string to override the CSS pulse color for this tile.
 function pulseTileOnce(tile, delayMs, colorHex) {
   setTimeout(function() {
+    if (tiles[tile.id] !== tile) return; // board rebuilt; skip stale tile
     var g = document.getElementById("tile-" + tile.id);
     if (!g) return;
     var poly = g.querySelector("polygon:not(.hatch-overlay)");
@@ -10126,6 +10127,7 @@ function pulseTileOnce(tile, delayMs, colorHex) {
     if (tile.state === "neutral") {
       poly.classList.add("tile-pulse");
       setTimeout(function() {
+        if (tiles[tile.id] !== tile) return; // board rebuilt during pulse
         poly.classList.remove("tile-pulse");
         poly.style.removeProperty("--pulse-color");
         renderTile(tile);
@@ -10133,6 +10135,7 @@ function pulseTileOnce(tile, delayMs, colorHex) {
     } else {
       poly.classList.add("tile-pulse-any");
       setTimeout(function() {
+        if (tiles[tile.id] !== tile) return;
         poly.classList.remove("tile-pulse-any");
         poly.style.removeProperty("--pulse-color");
       }, 600);
