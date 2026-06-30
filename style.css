@@ -713,6 +713,14 @@ html[data-theme="dark"] { --tile-pulse-fill: #585859; } /* lighter than #3a3a3c 
 }
 .tile-submit-hint { animation: tileSubmitHint 0.8s ease-in-out; }
 
+/* ── Nudge pulse on last selected tile ──────────────────────────────── */
+@keyframes tileNudge {
+  0%, 100% { opacity: 1; }
+  35%       { opacity: 0.45; }
+  70%       { opacity: 0.9; }
+}
+.tile-nudge { animation: tileNudge 0.8s ease-in-out forwards; }
+
 /* ── Reduce Motion: OS preference or in-app toggle ─────────────────── */
 /* Suppresses decorative/distracting animations; leaves functional ones  */
 @media (prefers-reduced-motion: reduce) {
@@ -728,6 +736,7 @@ html[data-reduce-motion] .share-pulse        { animation: none !important; }
 html[data-reduce-motion] .swipe-hint-hand    { animation: none !important; }
 html[data-reduce-motion] .tile-hint          { animation: none !important; fill: var(--tile-pulse-fill); }
 html[data-reduce-motion] .tile-hint-poly     { animation: none !important; fill: var(--tile-pulse-fill); }
+html[data-reduce-motion] .tile-nudge         { animation: none !important; }
 
 /* ── Tomorrow board — tile explosion on midnight ────────────────────── */
 @keyframes tile-explode {

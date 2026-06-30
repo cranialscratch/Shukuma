@@ -3822,11 +3822,24 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.92";
+const VERSION = "2.0.93";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.93",
+    date: "2026-06-30",
+    title: "Fix: nudge pulse, swipe hint, and best-word fade on refresh",
+    changes: [
+      "Nudge pulse now animates the tile polygon directly — fixes silent failure on iOS Safari with Web Animations API on SVG group elements",
+      "Nudge pulse also fires during drag (entering a new tile), not only on tap",
+      "Swipe-to-browse-days hint: removed reduce-motion JS guard — hint text always shows (animation still suppressed by Reduce Animations toggle)",
+      "Swipe hint fires after 10 s of idle on first load; previously required waiting up to 25 s for the first interval tick",
+      "Swipe hint auto-dismisses after 4.5 s even if animationend doesn't fire (fallback timer)",
+      "Best-word highlight on force-refresh: tiles now correctly fade out after 3.5 s — previously stayed blue indefinitely because the fade timer was only set in loadBoardForDate, not in init()",
+    ],
+  },
   {
     version: "2.0.92",
     date: "2026-06-30",
@@ -3839,6 +3852,36 @@ const CHANGELOG = [
       "At midnight: tiles explode off-screen, 'GOOD LUCK' flashes, new puzzle loads",
       "Yesterday shows 'YESTERDAY'S PUZZLE'; 2–7 days ago shows day name e.g. 'MONDAY'S PUZZLE'",
       "Removed 'You're viewing a past puzzle' toast",
+    ],
+  },
+  {
+    version: "2.0.91",
+    date: "2026-06-30",
+    title: "Tomorrow board cleanup, rounded topbar, tile sizes consistent",
+    changes: [
+      "Tomorrow board: removed pink hex outlines — all tiles use neutral fill with no stroke",
+      "Tomorrow board: countdown digits use the same text colour as regular tile letters (theme-aware)",
+      "All blank tile star icons now match regular letter font size — stars were smaller than letters",
+      "Topbar word-box border-radius increased to pill shape (26px)",
+      "Fixed: stale board-open animation callbacks no longer corrupt letter tiles after navigating away from Tomorrow screen",
+    ],
+  },
+  {
+    version: "2.0.90",
+    date: "2026-06-30",
+    title: "Board open animation: single subtle colour",
+    changes: [
+      "Board open colour sweep now uses one consistent subtle pulse colour (CSS variable) instead of varying hues per tile",
+    ],
+  },
+  {
+    version: "2.0.89",
+    date: "2026-06-30",
+    title: "Fix: nudge and swipe animations respect OS reduce-motion correctly",
+    changes: [
+      "Removed broad CSS prefers-reduced-motion override that was incorrectly suppressing nudge and swipe hint on all iPhones with Reduce Motion enabled at OS level",
+      "Swipe hint hand animation is now only suppressed by the in-app Reduce Animations toggle, not the OS setting",
+      "Nudge pulse switched to Web Animations API — immune to OS-level CSS prefers-reduced-motion overrides",
     ],
   },
   {
@@ -6316,6 +6359,7 @@ function enterTile(tileId) {
   selectedPath.push(tileId);
   triggerHaptic(8);
   processWordState();
+  pulseTileSubmitHint();
 }
 
 function tileIdFromPoint(clientX, clientY) {
@@ -6662,13 +6706,13 @@ function pulseTileSubmitHint() {
   var lastId = selectedPath[selectedPath.length - 1];
   var g = document.getElementById("tile-" + lastId);
   if (!g) return;
-  // Web Animations API — immune to CSS prefers-reduced-motion rules
-  if (g.animate) {
-    g.animate(
-      [{ opacity: 1 }, { opacity: 0.35, offset: 0.35 }, { opacity: 1, offset: 0.7 }, { opacity: 1 }],
-      { duration: 800, easing: "ease-in-out" }
-    );
-  }
+  var poly = g.querySelector("polygon:not(.hatch-overlay)");
+  if (!poly) return;
+  // CSS class on polygon — reliable across all iOS Safari versions
+  poly.classList.remove("tile-nudge");
+  void poly.getBoundingClientRect();
+  poly.classList.add("tile-nudge");
+  setTimeout(function() { poly.classList.remove("tile-nudge"); }, 850);
 }
 
 function undoLastTile() {
@@ -10299,7 +10343,6 @@ function initSwipeDayHint() {
   }
 
   function maybeShow() {
-    if (reduceMotion) return;
     if (hintActive) return;
     if (Date.now() - lastInteraction < IDLE_THRESHOLD) return;
     hintActive = true;
@@ -10311,10 +10354,18 @@ function initSwipeDayHint() {
       hand.style.animation = "none";
       void hand.getBoundingClientRect();
       hand.style.animation = "";
-      hand.addEventListener("animationend", function() { dismissHint(); }, { once: true });
+      // Fallback dismiss in case animationend doesn't fire (e.g. animation blocked by reduce-motion)
+      var dismissTimer = setTimeout(dismissHint, 4500);
+      hand.addEventListener("animationend", function() {
+        clearTimeout(dismissTimer);
+        dismissHint();
+      }, { once: true });
+    } else {
+      setTimeout(dismissHint, 4500);
     }
   }
 
+  setTimeout(maybeShow, IDLE_THRESHOLD); // first trigger after idle threshold
   setInterval(maybeShow, REPEAT);
 }
 
@@ -11937,6 +11988,22 @@ function init() {
   // Restore played path tiles to indigo after board is built
   playedPath.forEach(function(id) { if (tiles[id]) tiles[id].state = "played"; });
   if (playedPath.length > 0) renderAllTiles();
+
+  // Show best-word highlight briefly then fade — mirrors loadBoardForDate behaviour
+  if (bestWord && playedPath.length > 0) {
+    var _bwSnap = bestWord;
+    _bestWordTimer = setTimeout(function() {
+      _bestWordTimer = null;
+      if (!_scoreHighlightMode && selectedPath.length === 0) {
+        highlightWordOnBoard(_bwSnap);
+        var revealDur = _bwSnap.length * 80 + 400;
+        _scoreHighlightFadeTimer = setTimeout(function() {
+          _scoreHighlightFadeTimer = null;
+          fadeOutScoreHighlight();
+        }, revealDur + 3500);
+      }
+    }, 1500);
+  }
 
   const svg = document.getElementById("hex-board");
   if (svg) {
