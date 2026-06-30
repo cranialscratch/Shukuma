@@ -3822,11 +3822,20 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.82";
+const VERSION = "2.0.83";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.83",
+    date: "2026-06-30",
+    title: "Topbar word: blank-resolved letters shown underlined, not as plain text",
+    changes: [
+      "When a blank tile resolves to a letter (valid word), the topbar now shows that letter underlined — matching the underline used on the tile itself",
+      "During selection before validation, blank tiles still display as _ until the word is confirmed",
+    ],
+  },
   {
     version: "2.0.82",
     date: "2026-06-30",
@@ -5869,21 +5878,24 @@ function updateAnswerArea() {
   }
   // User is selecting — pause the cycling so prompt hides cleanly
   if (_cycleTimer) { clearInterval(_cycleTimer); _cycleTimer = null; }
-  var display = selectedPath.map(function(id) {
+  var parts = selectedPath.map(function(id) {
     var t = tiles[id];
-    if (t.blank) return (t.state === "valid" && t._resolvedLetter) ? t._resolvedLetter.toUpperCase() : "_";
-    return t.letter.toUpperCase();
-  }).join("");
+    if (t.blank) {
+      var r = t._resolvedLetter ? t._resolvedLetter.toUpperCase() : "";
+      return r ? "<u>" + r + "</u>" : "_";
+    }
+    return escHtml(t.letter.toUpperCase());
+  });
   var hasInvalid = selectedPath.some(function(id) { return tiles[id].state === "invalid"; });
-  if (hasInvalid) display += "?";
-  ansEl.textContent = display;
+  var htmlDisplay = parts.join("") + (hasInvalid ? "?" : "");
+  ansEl.innerHTML = htmlDisplay;
   ansEl.hidden = false;
   if (promptEl)  promptEl.hidden  = true;
   if (resetBtn)  resetBtn.hidden  = false;
   if (submitBtn) submitBtn.hidden = _scoreHighlightMode || selectedPath.length < 4;
 
   // Scale font down for longer words to prevent topbar overflow
-  var wordLen = display.replace("?", "").length;
+  var wordLen = htmlDisplay.replace(/<[^>]*>/g, "").replace("?", "").length;
   ansEl.style.fontSize    = wordLen <= 9  ? "" : wordLen <= 12 ? "1.2rem" : wordLen <= 15 ? "1rem" : "0.88rem";
   ansEl.style.letterSpacing = wordLen <= 9  ? "" : wordLen <= 12 ? "0.08em" : "0.04em";
 
