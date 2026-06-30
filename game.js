@@ -3822,11 +3822,25 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.72";
+const VERSION = "2.0.73";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.73",
+    date: "2026-06-30",
+    title: "Trans theme bold colours, white badge hexes, hex avatars, admin tile pickers",
+    changes: [
+      "Trans theme: valid/played tiles → bold sky blue (#2EC4F1); invalid tiles → bold hot pink (#F72F8C)",
+      "Trans theme: tile text changed to black (#000000) for contrast on bright tile fills",
+      "Trans theme: hint/pulse colour → purple (#8B5CF6); brand → deeper sky blue (#1BACD6)",
+      "Badges: hex backgrounds now white; locked icons grey (not near-invisible grayscale+opacity); badge name uses theme text-secondary",
+      "All avatars (friend list, leaderboard, profile popup, player cards) now use pointy-top hex shape matching game tile proportions (W:H = √3:2)",
+      "Avatar colours: all use deterministic hash of uid/username — same person always shows same colour everywhere",
+      "Admin tile colours: Valid tile colour/stroke and Invalid tile colour/stroke pickers added to Animation Themes panel",
+    ],
+  },
   {
     version: "2.0.72",
     date: "2026-06-30",
@@ -4995,7 +5009,7 @@ var THEMES = [
   { id:"trans", name:"Trans", emoji:"⚧️", cat:"community",
     auto:{m1:3,d1:31,m2:3,d2:31},
     vars:{
-      "--brand":"#5BC8F5",               "--brand-dark":"#38A8D8",
+      "--brand":"#1BACD6",               "--brand-dark":"#0E90BB",
       "--board-bg":"#FEF4F8",            "--page-bg":"#FEF4F8",
       "--card-bg":"#FFFFFF",
       "--sheet-bg":"#FCE8F2",            "--word-box-bg":"#FAE0EC",
@@ -5005,13 +5019,13 @@ var THEMES = [
       "--icon-color":"#5A7A8A",          "--lb-row-border":"#F0D8E8",
       "--tile-neutral":"#FFFFFF",        "--tile-neutral-stroke":"#F0C8DC",
       "--tile-blank":"#FEF0F8",          "--tile-text":"#1A202C",
-      "--tile-text-light":"#FFFFFF",
+      "--tile-text-light":"#000000",
       "--tile-selected":"#F7A8C4",       "--tile-selected-stroke":"#E888A8",
-      "--tile-valid":"#16A34A",          "--tile-valid-stroke":"#15803D",
-      "--tile-invalid":"#F43F5E",        "--tile-invalid-stroke":"#E11D48",
-      "--tile-played":"#5BC8F5",         "--tile-played-stroke":"#38A8D8",
-      "--tile-pulse-fill":"#F7A8C4",
-      "--dk-brand":"#7ADCF8",            "--dk-brand-dark":"#5BC8F5",
+      "--tile-valid":"#2EC4F1",          "--tile-valid-stroke":"#1AABB8",
+      "--tile-invalid":"#F72F8C",        "--tile-invalid-stroke":"#C2006A",
+      "--tile-played":"#2EC4F1",         "--tile-played-stroke":"#1AABB8",
+      "--tile-pulse-fill":"#8B5CF6",
+      "--dk-brand":"#1BACD6",            "--dk-brand-dark":"#0E90BB",
       "--dk-board-bg":"#0C1520",         "--dk-card-bg":"#16222E",
       "--dk-sheet-bg":"#0C1520",         "--dk-word-box-bg":"#16222E",
       "--dk-stat-box-bg":"#1E2E3E",
@@ -5022,13 +5036,13 @@ var THEMES = [
       "--dk-tile-blank":"#162838",       "--dk-tile-text":"#EEF6FF",
       "--dk-tile-text-light":"#000000",
       "--dk-tile-selected":"#0D6E9E",    "--dk-tile-selected-stroke":"#0A5A84",
-      "--dk-tile-valid":"#22C55E",       "--dk-tile-valid-stroke":"#16A34A",
-      "--dk-tile-invalid":"#F87171",     "--dk-tile-invalid-stroke":"#EF4444",
-      "--dk-tile-played":"#7ADCF8",      "--dk-tile-played-stroke":"#5BC8F5",
+      "--dk-tile-valid":"#2EC4F1",       "--dk-tile-valid-stroke":"#1AABB8",
+      "--dk-tile-invalid":"#F72F8C",     "--dk-tile-invalid-stroke":"#C2006A",
+      "--dk-tile-played":"#2EC4F1",      "--dk-tile-played-stroke":"#1AABB8",
     },
-    dark:{"--tile-pulse-fill":"#7ADCF8"},
-    pulse:["#55CDFC","#F7A8B8","#DCF4FF","#F7A8B8","#55CDFC","#B8DCEA"],
-    swatch:["#5BC8F5","#F7A8C4","#FFFFFF","#F7A8C4","#5BC8F5"] },
+    dark:{"--tile-pulse-fill":"#8B5CF6"},
+    pulse:["#2EC4F1","#F72F8C","#8B5CF6","#F7A8C4","#2EC4F1","#8B5CF6"],
+    swatch:["#2EC4F1","#F72F8C","#FFFFFF","#F72F8C","#2EC4F1"] },
 
 ];
 
@@ -5113,6 +5127,10 @@ function applyTheme(id, persistPreference) {
       if (ov.pulseFillDark)   darkVars["--tile-pulse-fill"]     = ov.pulseFillDark;
       if (ov.played)          lightVars["--tile-played"]        = ov.played;
       if (ov.playedStroke)    lightVars["--tile-played-stroke"] = ov.playedStroke;
+      if (ov.valid)           lightVars["--tile-valid"]         = ov.valid;
+      if (ov.validStroke)     lightVars["--tile-valid-stroke"]  = ov.validStroke;
+      if (ov.invalid)         lightVars["--tile-invalid"]       = ov.invalid;
+      if (ov.invalidStroke)   lightVars["--tile-invalid-stroke"]= ov.invalidStroke;
     }
   } catch (e) { /* ignore */ }
 
@@ -5220,6 +5238,10 @@ function initAdminAnimThemes() {
   var pulseDark   = document.getElementById("admin-anim-pulse-dark");
   var playedEl    = document.getElementById("admin-anim-played");
   var playedStr   = document.getElementById("admin-anim-played-stroke");
+  var validEl     = document.getElementById("admin-anim-valid");
+  var validStr    = document.getElementById("admin-anim-valid-stroke");
+  var invalidEl   = document.getElementById("admin-anim-invalid");
+  var invalidStr  = document.getElementById("admin-anim-invalid-stroke");
   var pulseColors = document.getElementById("admin-anim-pulse-colors");
   var autoStart   = document.getElementById("admin-anim-auto-start");
   var autoEnd     = document.getElementById("admin-anim-auto-end");
@@ -5246,6 +5268,10 @@ function initAdminAnimThemes() {
     if (pulseDark)   pulseDark.value   = ov.pulseFillDark  || theme.dark["--tile-pulse-fill"]    || "#ffffff";
     if (playedEl)    playedEl.value    = ov.played          || theme.vars["--tile-played"]        || "#4ade80";
     if (playedStr)   playedStr.value   = ov.playedStroke    || theme.vars["--tile-played-stroke"] || "#22c55e";
+    if (validEl)     validEl.value     = ov.valid           || theme.vars["--tile-valid"]         || "#4ade80";
+    if (validStr)    validStr.value    = ov.validStroke     || theme.vars["--tile-valid-stroke"]  || "#22c55e";
+    if (invalidEl)   invalidEl.value   = ov.invalid         || theme.vars["--tile-invalid"]       || "#f43f5e";
+    if (invalidStr)  invalidStr.value  = ov.invalidStroke   || theme.vars["--tile-invalid-stroke"]|| "#e11d48";
     var effectivePulse = (ov.pulseColors && ov.pulseColors.length) ? ov.pulseColors : theme.pulse;
     if (pulseColors) pulseColors.value = effectivePulse.join(", ");
     var a = theme.auto;
@@ -5271,6 +5297,10 @@ function initAdminAnimThemes() {
       pulseFillDark:  pulseDark  ? pulseDark.value  : null,
       played:         playedEl   ? playedEl.value   : null,
       playedStroke:   playedStr  ? playedStr.value  : null,
+      valid:          validEl    ? validEl.value    : null,
+      validStroke:    validStr   ? validStr.value   : null,
+      invalid:        invalidEl  ? invalidEl.value  : null,
+      invalidStroke:  invalidStr ? invalidStr.value : null,
       pulseColors:    cols.length ? cols : null,
     };
     localStorage.setItem("shukuma-anim-overrides", JSON.stringify(ov));
@@ -7490,7 +7520,7 @@ function buildPlayersSection(players, targetWord) {
         foundSub.textContent = "Found today's word";
         container.appendChild(foundSub);
         friendsWhoFound.forEach(function(p, i) {
-          var color = AVATAR_COLORS[i % AVATAR_COLORS.length];
+          var color = getAvatarColor(p.uid || p.username || String(i));
           var row = document.createElement("div");
           row.className = "player-row";
           row.innerHTML =
@@ -7507,7 +7537,7 @@ function buildPlayersSection(players, targetWord) {
         notFoundSub.textContent = "Still playing";
         container.appendChild(notFoundSub);
         friendsNotFound.forEach(function(p, i) {
-          var color = AVATAR_COLORS[i % AVATAR_COLORS.length];
+          var color = getAvatarColor(p.uid || p.username || String(i));
           var row = document.createElement("div");
           row.className = "player-row";
           row.innerHTML =
@@ -7579,7 +7609,7 @@ function buildPlayersSection(players, targetWord) {
     var row = document.createElement("div");
     row.className = "player-row";
 
-    var color = AVATAR_COLORS[i % AVATAR_COLORS.length];
+    var color = getAvatarColor(p.uid || p.username || String(i));
     var initials = (p.username || "?").charAt(0).toUpperCase();
     var foundTarget = targetWord && (p.word || "").toUpperCase() === targetWord.toUpperCase();
     var timeStr = p.timeSpent ? formatTime(p.timeSpent) : null;
@@ -7639,7 +7669,7 @@ function openPlayerModal(players, wordTitle) {
       metaParts.push(p.validAttempts + " ✓ / " + wrongAtt + " ✗");
     }
     if (p.timeSpent) metaParts.push(formatTime(p.timeSpent));
-    var color = AVATAR_COLORS[i % AVATAR_COLORS.length];
+    var color = getAvatarColor(p.uid || p.username || String(i));
 
     var row = document.createElement("div");
     row.className = "pm-row";
@@ -7675,7 +7705,7 @@ function openPlayerProfile(player, color) {
   var wordStr   = (player.word || "—").toUpperCase();
 
   body.innerHTML =
-    '<div class="ppm-avatar-lg" style="background:' + (color || "#7c4dff") + '">' + initials + "</div>" +
+    '<div class="ppm-avatar-lg" style="background:' + (color || getAvatarColor(player.uid || player.username || "")) + '">' + initials + "</div>" +
     '<div class="ppm-name">' + escHtml(player.username || "Player") + "</div>" +
     '<div class="ppm-stats-grid">' +
       '<div class="ppm-stat-box"><div class="ppm-stat-val">' + wordStr + '</div><div class="ppm-stat-lbl">Best Word</div></div>' +
@@ -8383,13 +8413,14 @@ async function renderFriends() {
         '<svg class="friend-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>';
       row.addEventListener("click", (function(prof) { return function() {
         openPlayerProfile({
+          uid:           prof.uid,
           username:      prof.username || "Player",
           word:          (prof.stats && prof.stats.bestWord)   || "—",
           score:         (prof.stats && prof.stats.bestScore)  || 0,
           validAttempts: (prof.stats && prof.stats.totalWords) || undefined,
           attempts:      (prof.stats && prof.stats.totalWords) || 0,
           timeSpent:     null,
-        }, null);
+        }, getAvatarColor(prof.uid || prof.username || ""));
       }; })(p));
       list.appendChild(row);
     });

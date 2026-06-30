@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2.0.72" />
+  <link rel="stylesheet" href="style.css?v=2.0.73" />
 </head>
 <body>
   <!-- Screen reader live region — JS calls srAnnounce() to update this -->
@@ -878,6 +878,22 @@
             Played tile stroke
             <input type="color" id="admin-anim-played-stroke" style="height:34px;border:1px solid #ddd;border-radius:6px;padding:2px 4px;width:100%;" />
           </label>
+          <label style="font-size:0.82rem;display:flex;flex-direction:column;gap:3px;">
+            Valid tile colour
+            <input type="color" id="admin-anim-valid" style="height:34px;border:1px solid #ddd;border-radius:6px;padding:2px 4px;width:100%;" />
+          </label>
+          <label style="font-size:0.82rem;display:flex;flex-direction:column;gap:3px;">
+            Valid tile stroke
+            <input type="color" id="admin-anim-valid-stroke" style="height:34px;border:1px solid #ddd;border-radius:6px;padding:2px 4px;width:100%;" />
+          </label>
+          <label style="font-size:0.82rem;display:flex;flex-direction:column;gap:3px;">
+            Invalid tile colour
+            <input type="color" id="admin-anim-invalid" style="height:34px;border:1px solid #ddd;border-radius:6px;padding:2px 4px;width:100%;" />
+          </label>
+          <label style="font-size:0.82rem;display:flex;flex-direction:column;gap:3px;">
+            Invalid tile stroke
+            <input type="color" id="admin-anim-invalid-stroke" style="height:34px;border:1px solid #ddd;border-radius:6px;padding:2px 4px;width:100%;" />
+          </label>
         </div>
         <label style="font-size:0.82rem;display:flex;flex-direction:column;gap:3px;margin-bottom:10px;">
           Gradient pulse colours (comma-separated hex)
@@ -1098,6 +1114,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 
-  <script src="game.js?v=2.0.72"></script>
+  <script src="game.js?v=2.0.73"></script>
 </body>
 </html>
