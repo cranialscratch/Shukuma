@@ -3822,11 +3822,22 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.56";
+const VERSION = "2.0.57";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.57",
+    date: "2026-06-30",
+    title: "Fix: always show % in word list; derive from local play when no server data",
+    changes: [
+      "Word rows always show a percentage — no more blank or letter-count fallback",
+      "When server scores haven't loaded yet (e.g. right after finding the longest word), percentage is derived from local play: 100% for words you found, 0% for words you haven't",
+      "Once other players share their scores the real community percentage replaces the local estimate automatically",
+      "Past days with genuinely no data show '—'",
+    ],
+  },
   {
     version: "2.0.56",
     date: "2026-06-30",
@@ -6579,7 +6590,15 @@ function buildScratchAnswers(answers, playersByWord, isToday, totalPlayers) {
     var isTarget = wu === targetWord;
     var isRevealedWord = isTarget && revealedTarget && !isFound;
     var count = totalPlayers > 0 ? (playersByWord[wu] || []).length : 0;
-    var pct = totalPlayers > 0 ? Math.round((count / totalPlayers) * 100) : -1;
+    var pct;
+    if (totalPlayers > 0) {
+      pct = Math.round((count / totalPlayers) * 100);
+    } else if (isToday) {
+      // No server data yet — derive from local play state
+      pct = isFound ? 100 : 0;
+    } else {
+      pct = -1; // past day, genuinely no data
+    }
     var row = buildWordRow({
       word: wu, found: isFound, isTarget: isTarget, revealed: isRevealedWord,
       pct: pct, totalPlayers: totalPlayers, isToday: isToday,
@@ -6697,13 +6716,13 @@ function buildWordRow(cfg) {
   barTrack.appendChild(barFill);
 
   var pctEl = document.createElement("span");
+  pctEl.className = "wl-pct";
   if (pct >= 0) {
-    pctEl.className = "wl-pct";
     pctEl.textContent = pct + "%";
-    pctEl.title = pct + "% of players who played today found this word";
+    pctEl.title = pct + "% of players found this word";
   } else {
-    pctEl.className = "wl-len";
-    pctEl.textContent = "";
+    pctEl.textContent = "—";
+    pctEl.title = "No data for this day";
   }
 
   row.appendChild(leftCol);
