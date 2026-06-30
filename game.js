@@ -3822,11 +3822,24 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.0.69";
+const VERSION = "2.0.70";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.0.70",
+    date: "2026-06-30",
+    title: "Reduce Animations setting + subtler idle hint",
+    changes: [
+      "New setting: Reduce Animations — hides floating score hex, nudge pulses, throb effects, and swipe-hint finger animation",
+      "Respects OS prefers-reduced-motion automatically (even without the toggle)",
+      "Idle hint now pulses only 2-3 tiles (was 4) with a gentle opacity dip instead of fill-colour change",
+      "Idle hint threshold increased to 10s of inactivity (was 7s) — less intrusive during play",
+      "Idle hint animation duration extended to 1.6s ease-in-out — slower, calmer appearance",
+      "reduce-motion state persisted to localStorage (shukuma-reduce-motion) across sessions",
+    ],
+  },
   {
     version: "2.0.69",
     date: "2026-06-30",
@@ -5261,6 +5274,8 @@ function initAdminAnimThemes() {
 // Haptic intensity multiplier (1 = normal, admin-adjustable)
 var hapticIntensity = parseFloat(localStorage.getItem("shukuma-haptic-intensity") || "1");
 
+var reduceMotion = false;
+
 // triggerHaptic — Android only via navigator.vibrate(); no-ops on iOS (not supported in Safari).
 // pattern: number (ms duration) or vibration API array [on, off, on, off, ...]
 function triggerHaptic(pattern) {
@@ -5292,6 +5307,12 @@ function applyTextSize(size) {
   localStorage.setItem("shukuma-text-size", textSize);
 }
 
+function applyReduceMotion(on) {
+  reduceMotion = on;
+  if (on) document.documentElement.setAttribute("data-reduce-motion", "");
+  else document.documentElement.removeAttribute("data-reduce-motion");
+}
+
 function loadUserSettings() {
   var savedDark  = localStorage.getItem("shukuma-dark-mode");
   darkMode       = savedDark !== null ? savedDark === "1" : window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -5300,8 +5321,10 @@ function loadUserSettings() {
   colourTheme    = localStorage.getItem("shukuma-colour-theme") || "default";
   keepColourful  = localStorage.getItem("shukuma-keep-colourful") === "1";
   textSize       = localStorage.getItem("shukuma-text-size") || "normal";
+  reduceMotion   = localStorage.getItem("shukuma-reduce-motion") === "1";
   document.documentElement.dataset.theme    = darkMode ? "dark" : "";
   document.documentElement.dataset.textsize = textSize === "normal" ? "" : textSize;
+  if (reduceMotion) document.documentElement.setAttribute("data-reduce-motion", "");
   // Apply colour theme (keepColourful auto-selects by date) — also updates theme-color meta
   applyTheme(keepColourful ? getAutoTheme() : colourTheme, false);
 }
@@ -6331,7 +6354,7 @@ function triggerHint() {
   var chain = [seed];
   var seen = {};
   seen[seed.id] = true;
-  for (var i = 0; i < 3; i++) {
+  for (var i = 0; i < 2; i++) {
     var last = chain[chain.length - 1];
     var adj = Array.from(adjacency[last.id] || []).filter(function(id) {
       return !seen[id] && tiles[id] && tiles[id].state === "neutral";
@@ -6350,9 +6373,8 @@ function triggerHint() {
       poly.classList.add("tile-hint");
       setTimeout(function() {
         poly.classList.remove("tile-hint");
-        renderTile(tile); // restore correct fill
-      }, 1200);
-    }, idx * 140);
+      }, 1600);
+    }, idx * 200);
   });
 }
 
@@ -8786,6 +8808,7 @@ function hideChangelog() {
 
 // ─── Float animation ──────────────────────────────────────────────────────────
 function showFloatAnim(opts) {
+  if (reduceMotion) return;
   var container = document.getElementById("board-container");
   if (!container) return;
 
@@ -9300,8 +9323,9 @@ function initIdleHint() {
   document.addEventListener("touchstart",  resetTimer, { passive: true });
   setInterval(function() {
     if (gameCompleted) return;
+    if (reduceMotion) return;
     if (selectedPath.length > 0) return;
-    if (Date.now() - lastInteraction < 7000) return;
+    if (Date.now() - lastInteraction < 10000) return;
     triggerHint();
   }, 8000);
 }
@@ -9430,6 +9454,8 @@ function renderSettingsPanel() {
   if (darkToggle)   darkToggle.checked   = darkMode;
   if (soundToggle)  soundToggle.checked  = soundEnabled;
   if (hapticToggle) hapticToggle.checked = hapticsEnabled;
+  var rmToggle = document.getElementById("setting-reduce-motion");
+  if (rmToggle) rmToggle.checked = reduceMotion;
 
   // Colour theme
   document.querySelectorAll(".colour-theme-btn").forEach(function(btn) {
@@ -9506,6 +9532,16 @@ function initSettings() {
     localStorage.setItem("shukuma-haptics", hapticsEnabled ? "1" : "0");
     if (hapticsEnabled) triggerHaptic(15); // confirm haptics are working
   });
+
+  // Reduce animations
+  var reduceMotionToggle = document.getElementById("setting-reduce-motion");
+  if (reduceMotionToggle) {
+    reduceMotionToggle.checked = reduceMotion;
+    reduceMotionToggle.addEventListener("change", function() {
+      applyReduceMotion(this.checked);
+      localStorage.setItem("shukuma-reduce-motion", this.checked ? "1" : "0");
+    });
+  }
 
   // Colour theme — build picker and wire keep-colourful toggle
   buildThemePicker();

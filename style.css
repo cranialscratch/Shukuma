@@ -651,9 +651,13 @@ html[data-theme="dark"] { --tile-pulse-fill: #585859; } /* lighter than #3a3a3c 
 .tile-pulse {
   animation: tilePulse 0.5s ease-in-out forwards;
 }
-/* Idle hint (3-4 adjacent neutral tile polygons, slower) */
+/* Idle hint (2-3 adjacent neutral tile polygons, gentle opacity dip) */
+@keyframes tileHintGentlePulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
 .tile-hint {
-  animation: tilePulse 1.1s ease-in-out forwards;
+  animation: tileHintGentlePulse 1.6s ease-in-out forwards;
 }
 /* Opening animation for non-neutral tiles (played/selected) — opacity only */
 @keyframes tilePulseAny {
@@ -716,6 +720,23 @@ html[data-theme="dark"] { --tile-pulse-fill: #585859; } /* lighter than #3a3a3c 
   70%       { opacity: 1; filter: brightness(1.12); }
 }
 .tile-submit-hint { animation: tileSubmitHint 0.8s ease-in-out; }
+
+/* ── Reduce Motion: OS preference or in-app toggle ─────────────────── */
+/* Suppresses decorative/distracting animations; leaves functional ones  */
+@media (prefers-reduced-motion: reduce) {
+  .float-anim-wrapper    { display: none !important; }
+  .is-throbbing          { animation: none !important; }
+  .share-pulse           { animation: none !important; }
+  .swipe-hint-hand       { animation: none !important; }
+  .tile-hint             { animation: none !important; }
+  .tile-hint-poly        { animation: none !important; }
+}
+html[data-reduce-motion] .float-anim-wrapper { display: none !important; }
+html[data-reduce-motion] .is-throbbing       { animation: none !important; }
+html[data-reduce-motion] .share-pulse        { animation: none !important; }
+html[data-reduce-motion] .swipe-hint-hand    { animation: none !important; }
+html[data-reduce-motion] .tile-hint          { animation: none !important; }
+html[data-reduce-motion] .tile-hint-poly     { animation: none !important; }
 
 /* ── Past game banner ───────────────────────────────────────────────── */
 #past-game-banner {
