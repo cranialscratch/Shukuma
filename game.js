@@ -3822,18 +3822,20 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.1.7";
+const VERSION = "2.1.8";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
   {
-    version: "2.1.7",
+    version: "2.1.8",
     date: "2026-07-01",
-    title: "Fix all-words-found celebration on past boards and old saved state",
+    title: "Fix all-words-found: correct parallel array, persistent state, silent reload restore",
     changes: [
-      "All-words-found: celebration now fires on past-date boards as well as today's — the browsedDateStr guard was incorrectly blocking it for any puzzle that isn't today",
-      "All-words-found: backwards-compatible with saved state from before v2.1.6 — if path data isn't recorded yet, falls back to word-matching so existing sessions aren't broken",
+      "All-words-found: fixed index mismatch — representative words (allBoardWordsByPath) are now a proper parallel array to allBoardPaths; previous fallback was indexing into the wrong (length-sorted) array",
+      "All-words-found: allWordsFound flag is now saved to localStorage — on any future visit to a completed board, the UI instantly shows 'All words found!' without requiring the celebration to re-fire",
+      "All-words-found: on page reload or date navigation, if the board is already complete, prompt and share button restore silently without animation",
+      "All-words-found: triple fallback — path match (v2.1.6+ data), representative-word match (pre-2.1.6 data), and full word-set match (broadest safety net)",
     ],
   },
   {
@@ -5752,9 +5754,11 @@ var _defCache = {};
 
 // All valid 4+ letter words findable on the current board (populated async at load)
 var allBoardWords = [];
-// Parallel array of path strings ("tileId,tileId,...") — one per allBoardWords entry; each path appears at most once
+// Unique tile paths — one entry per traversal sequence regardless of blank-letter variation
 var allBoardPaths = [];
-// Path strings recorded for each found word (allows blank-tile paths to count when user finds any valid word along that path)
+// Representative word for each entry in allBoardPaths (parallel array, same index = same path)
+var allBoardWordsByPath = [];
+// Path strings recorded for each found word (blank-tile-safe: any word on a path marks that path done)
 var foundPaths = [];
 
 // Maps found word (uppercase) → 0-based index of the blank tile in that word's path
@@ -5976,6 +5980,7 @@ function findAllBoardWords() {
   });
 
   allBoardPaths = pathsOut;
+  allBoardWordsByPath = wordsOut; // parallel to allBoardPaths — one representative word per unique tile path
   return Array.from(found).sort(function(a, b) { return b.length - a.length; });
 }
 
@@ -6316,24 +6321,39 @@ function restoreTileDefault(t) {
 function checkAllWordsFound() {
   if (allWordsFound) return;
   if (allBoardPaths.length === 0) return; // board words not yet computed
-  // Primary: path-based (blank-tile-safe, v2.1.6+).
-  // Fallback: word-based for saved state from before path tracking was added.
   var foundPathSet = new Set(foundPaths);
   var foundWordSet = new Set(foundWords);
-  var remaining = allBoardPaths.filter(function(p, i) {
-    return !foundPathSet.has(p) && !foundWordSet.has(allBoardWords[i]);
+  // Primary check: path-based (blank-tile-safe, v2.1.6+).
+  // allBoardWordsByPath[i] is the representative word for allBoardPaths[i] — correct parallel array.
+  // Fallback for pre-2.1.6 saved state (foundPaths empty): accept if the representative word is found.
+  // Extra fallback: if ALL allBoardWords are in foundWords, also accept (handles edge cases).
+  var pathsAllCovered = allBoardPaths.every(function(p, i) {
+    return foundPathSet.has(p) || foundWordSet.has(allBoardWordsByPath[i]);
   });
-  if (remaining.length > 0) return;
+  var wordsAllFound = allBoardWords.length > 0 && allBoardWords.every(function(w) {
+    return foundWordSet.has(w);
+  });
+  if (!pathsAllCovered && !wordsAllFound) return;
   onAllWordsFound();
 }
 
-function onAllWordsFound() {
-  if (allWordsFound) return; // idempotent
+// silent=true: restores UI state on reload without animation/confetti/toast (already celebrated)
+function onAllWordsFound(silent) {
+  if (allWordsFound && !silent) return; // idempotent for live trigger
   allWordsFound = true;
+  saveState(); // persist so reload knows this board is complete
+
+  var promptEl = document.getElementById("game-prompt");
+  var totalWords = allBoardWords.length || (foundWords.length > 0 ? foundWords.length : 0);
+
+  if (silent) {
+    // Just update the UI quietly — player already saw the celebration
+    if (promptEl) { promptEl.style.opacity = "1"; promptEl.textContent = "All words found!"; }
+    activateAllFoundShare();
+    return;
+  }
 
   var boardContainer = document.getElementById("board-container");
-  var promptEl = document.getElementById("game-prompt");
-  var totalWords = allBoardWords.length;
 
   showConfetti();
   triggerHaptic([50, 30, 100, 50, 150]);
@@ -7609,7 +7629,7 @@ function loadBoardForDate(ddmmyy) {
 
   // Reset game state for this date
   tiles = []; selectedPath = []; isDragging = false; playedPath = []; playedPathVisible = true; foundWords = [];
-  foundWordBlanks = {}; allBoardWords = []; allBoardPaths = []; foundPaths = []; allWordsFound = false;
+  foundWordBlanks = {}; allBoardWords = []; allBoardPaths = []; allBoardWordsByPath = []; foundPaths = []; allWordsFound = false;
   var shareBtn = document.getElementById("share-btn");
   if (shareBtn) shareBtn.classList.remove("all-found", "share-gentle-throb");
   bestScore = 0; bestWord = ""; gameCompleted = false;
@@ -7662,7 +7682,16 @@ function loadBoardForDate(ddmmyy) {
 
   setTimeout(runBoardOpenAnimation, 100);
   // Populate all valid board words asynchronously (used in word list)
-  setTimeout(function() { buildWordPrefixes(); allBoardWords = findAllBoardWords(); checkAllWordsFound(); }, 50);
+  setTimeout(function() {
+    buildWordPrefixes();
+    allBoardWords = findAllBoardWords();
+    if (allWordsFound) {
+      // Already completed in a prior session — silently restore the UI
+      onAllWordsFound(true);
+    } else {
+      checkAllWordsFound();
+    }
+  }, 50);
 
   // If a best word exists from a previous play, show it on the board after the open animation
   if (bestWord) {
@@ -9750,7 +9779,7 @@ function saveState() {
   const elapsed = timerRunning ? activeTimeMs + (Date.now() - timerLastStart) : activeTimeMs;
   try {
     localStorage.setItem(storageKey(), JSON.stringify({
-      bestWord, bestScore, gameCompleted, attemptCount, validAttemptCount, hintsUsed, hintTicketsSpent, defineHintUsed, gameDefeated, activeTimeMs: elapsed, playedPath, inOneAchieved, foundWords, foundPaths, foundWordBlanks, targetFoundMs, targetFoundAttempts,
+      bestWord, bestScore, gameCompleted, attemptCount, validAttemptCount, hintsUsed, hintTicketsSpent, defineHintUsed, gameDefeated, activeTimeMs: elapsed, playedPath, inOneAchieved, foundWords, foundPaths, allWordsFound, foundWordBlanks, targetFoundMs, targetFoundAttempts,
     }));
   } catch(_) {}
 }
@@ -9774,6 +9803,7 @@ function loadState() {
     inOneAchieved    = s.inOneAchieved || false;
     foundWords       = Array.isArray(s.foundWords) ? s.foundWords : [];
     foundPaths       = Array.isArray(s.foundPaths) ? s.foundPaths : [];
+    allWordsFound    = s.allWordsFound || false;
     targetFoundMs       = s.targetFoundMs || 0;
     targetFoundAttempts = s.targetFoundAttempts || 0;
     foundWordBlanks     = (s.foundWordBlanks && typeof s.foundWordBlanks === "object") ? s.foundWordBlanks : {};
