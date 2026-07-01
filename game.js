@@ -3822,15 +3822,24 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.1.6";
+const VERSION = "2.1.7";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
   {
+    version: "2.1.7",
+    date: "2026-07-01",
+    title: "Fix all-words-found celebration on past boards and old saved state",
+    changes: [
+      "All-words-found: celebration now fires on past-date boards as well as today's — the browsedDateStr guard was incorrectly blocking it for any puzzle that isn't today",
+      "All-words-found: backwards-compatible with saved state from before v2.1.6 — if path data isn't recorded yet, falls back to word-matching so existing sessions aren't broken",
+    ],
+  },
+  {
     version: "2.1.6",
     date: "2026-07-01",
-    title: "Fix all-words-found celebration; revert swipe-hint icon",
+    title: "Fix all-words-found celebration on blank-tile boards; revert swipe-hint icon",
     changes: [
       "All-words-found: fixed celebration not triggering on boards with blank tiles — blank tiles generate many valid words per tile path; game now tracks unique tile paths rather than unique words, so finding any one word along a path marks that path as complete",
       "All-words-found: also fires on page reload if all words were already found in a prior session",
@@ -6306,11 +6315,14 @@ function restoreTileDefault(t) {
 
 function checkAllWordsFound() {
   if (allWordsFound) return;
-  if (browsedDateStr) return; // only fires on today's board
   if (allBoardPaths.length === 0) return; // board words not yet computed
-  // Use path-based comparison: a blank-tile path is "found" if any valid word along that path was found
+  // Primary: path-based (blank-tile-safe, v2.1.6+).
+  // Fallback: word-based for saved state from before path tracking was added.
   var foundPathSet = new Set(foundPaths);
-  var remaining = allBoardPaths.filter(function(p) { return !foundPathSet.has(p); });
+  var foundWordSet = new Set(foundWords);
+  var remaining = allBoardPaths.filter(function(p, i) {
+    return !foundPathSet.has(p) && !foundWordSet.has(allBoardWords[i]);
+  });
   if (remaining.length > 0) return;
   onAllWordsFound();
 }
