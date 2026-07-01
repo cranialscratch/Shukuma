@@ -13,9 +13,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2.1.13" />
+  <link rel="stylesheet" href="style.css?v=2.1.14" />
 </head>
-<body data-app-version="2.1.13">
+<body data-app-version="2.1.14">
   <!-- Screen reader live region — JS calls srAnnounce() to update this -->
   <div id="sr-announce" aria-live="assertive" aria-atomic="true" class="sr-only"></div>
 
@@ -714,7 +714,7 @@
     <div id="admin-content">
 
       <!-- ── Preset Themes ───────────────────────────────────────── -->
-      <div class="admin-section admin-presets">
+      <div class="admin-section admin-presets" data-section="themes">
         <h3>Preset Themes</h3>
         <div class="theme-preset-grid">
           <button class="theme-preset" data-preset="default">
@@ -736,7 +736,7 @@
       </div>
 
       <!-- ── Colour Palette: side-by-side Light | Dark ────────────── -->
-      <div class="admin-section">
+      <div class="admin-section" data-section="palette">
         <h3>Colour Palette</h3>
         <button class="admin-btn" id="palette-apply-btn" style="width:100%;margin-bottom:14px">Apply &amp; Save Changes</button>
         <div class="palette-header">
@@ -930,7 +930,7 @@
       <div id="admin-pane-dark" hidden></div>
 
       <!-- ── Shared: Typography ────────────────────────────────── -->
-      <div class="admin-section">
+      <div class="admin-section" data-section="typography">
         <h3>Typography</h3>
         <div class="admin-row">
           <label for="ac-font">Font family</label>
@@ -948,7 +948,7 @@
       </div>
 
       <!-- ── Saved Palettes ────────────────────────────────────── -->
-      <div class="admin-section">
+      <div class="admin-section" data-section="saved">
         <h3>Saved Palettes</h3>
         <div id="admin-palette-list"><div style="color:#bbb;font-size:0.78rem;padding:2px 0">No saved palettes yet.</div></div>
         <div class="admin-palette-save-row">
@@ -958,7 +958,7 @@
       </div>
 
       <!-- ── Ticket Management ──────────────────────────────────── -->
-      <div class="admin-section">
+      <div class="admin-section" data-section="tickets">
         <h3>Ticket Management</h3>
         <p class="admin-mode-note">Set the ticket count for your account. Saved to Firestore if signed in.</p>
         <div class="admin-row" style="align-items:center;gap:12px;margin-top:6px;">
@@ -980,7 +980,7 @@
       </div>
 
       <!-- ── Completion Messages ───────────────────────────────── -->
-      <div class="admin-section">
+      <div class="admin-section" data-section="messages">
         <h3>Completion Messages</h3>
         <p class="admin-mode-note">Shown when a player finds today's longest word. One message per line. The attempt-count message is always shown first.</p>
         <textarea id="admin-cycle-messages" rows="5"
@@ -1055,7 +1055,7 @@
       </div>
 
       <!-- ── Data Tools ─────────────────────────────────────────── -->
-      <div class="admin-section">
+      <div class="admin-section" data-section="data">
         <h3>Data Tools</h3>
         <div class="admin-actions">
           <button class="admin-btn" id="admin-seed-btn">Seed demo scores (past 7 days)</button>
@@ -1068,7 +1068,7 @@
       </div>
 
       <!-- ── Game Card Audit ───────────────────────────────────────── -->
-      <div class="admin-section">
+      <div class="admin-section" data-section="audit">
         <h3>Game Card Audit</h3>
         <p class="admin-mode-note">Scans every puzzle's letter grid for all valid words (4+ letters). Flags cards where the target word is under 10 letters or where a longer valid word exists on the board. Blank tiles are treated as wildcards.</p>
         <div class="admin-actions">
@@ -1102,7 +1102,7 @@
       </div>
 
       <!-- ── Development Backlog ──────────────────────────────────── -->
-      <div class="admin-section">
+      <div class="admin-section" data-section="backlog">
         <h3>Development Backlog</h3>
         <p class="admin-mode-note">Track bugs and improvements. Blocked items have dependency notes. Items are stored in Firestore and shared across devices.</p>
         <div class="admin-backlog-toolbar">
@@ -1171,7 +1171,7 @@
       </div>
 
       <!-- ── Feedback Reports ───────────────────────────────────────── -->
-      <div class="admin-section">
+      <div class="admin-section" data-section="feedback">
         <h3>Feedback Reports</h3>
         <div style="display:flex;gap:8px;margin-bottom:12px">
           <button class="admin-btn" id="admin-feedback-load-btn" style="flex:1">Refresh</button>
@@ -1180,7 +1180,7 @@
       </div>
 
       <!-- ── Users ─────────────────────────────────────────────────── -->
-      <div class="admin-section">
+      <div class="admin-section" data-section="users">
         <h3>Users</h3>
         <div style="display:flex;gap:8px;margin-bottom:12px">
           <input id="admin-users-search" type="search" placeholder="Filter by name or email…" style="flex:1;border:1px solid #ddd;border-radius:8px;padding:8px 10px;font-size:0.85rem;font-family:inherit;box-sizing:border-box">
@@ -1271,6 +1271,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 
-  <script src="game.js?v=2.1.13"></script>
+  <script src="game.js?v=2.1.14"></script>
 </body>
 </html>

@@ -3822,7 +3822,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.1.13";
+const VERSION = "2.1.14";
 
 // Self-heal stale HTML: if the body data-app-version doesn't match,
 // the browser cached an old index.html while loading fresh JS.
@@ -11753,11 +11753,8 @@ function initAdminNav() {
   var overlay = document.getElementById("admin-sidebar-overlay");
   if (!content || !nav) return;
 
-  // Assign data-section and hide all sections initially
-  content.querySelectorAll(".admin-section").forEach(function(sec, i) {
-    var def = ADMIN_SECTIONS[i];
-    if (!def) return;
-    sec.dataset.section = def.id;
+  // Hide all sections; data-section IDs are pre-set in HTML or on dynamic sections
+  content.querySelectorAll(".admin-section").forEach(function(sec) {
     sec.style.display = "none";
   });
 
@@ -12112,6 +12109,7 @@ function initAdmin() {
     if (!adminContent) return;
     var sec = document.createElement("div");
     sec.className = "admin-section";
+    sec.dataset.section = "wordcheck";
     sec.innerHTML = '<h3>Word Check</h3><p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:12px">Hold the button to reveal today\'s hidden target word. Admin only.</p>';
     var revealBtn = document.createElement("button");
     revealBtn.className = "admin-btn";
