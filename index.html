@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2.1.1" />
+  <link rel="stylesheet" href="style.css?v=2.1.2" />
 </head>
 <body>
   <!-- Screen reader live region — JS calls srAnnounce() to update this -->
@@ -110,12 +110,12 @@
             </button>
             <div id="swipe-day-hint" hidden>
               <div class="swipe-hint-inner">
-                <svg class="swipe-hint-hand" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/>
-                  <path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/>
-                  <path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/>
-                  <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>
-                </svg>
+<span class="swipe-hint-icon">
+                  <svg class="swipe-hint-hand" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M9 11V4a3 3 0 0 1 6 0v7"/>
+                    <path d="M9 11a3 3 0 0 0-3 3v1a6 6 0 0 0 6 6h2a6 6 0 0 0 6-6V8.5a2.5 2.5 0 0 0-5 0V11"/>
+                  </svg>
+                </span>
                 <span class="swipe-hint-text">Swipe for more puzzles</span>
               </div>
             </div>
@@ -1198,6 +1198,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 
-  <script src="game.js?v=2.1.1"></script>
+  <script src="game.js?v=2.1.2"></script>
 </body>
 </html>

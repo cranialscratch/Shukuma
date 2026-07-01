@@ -3822,7 +3822,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.1.1";
+const VERSION = "2.1.2";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
@@ -5699,6 +5699,7 @@ var _pastToastShown = false;
 var _swipeHintShown = false;
 var _cycleGen = 0; // incremented on stop/start to cancel stale setTimeouts
 var _submitAnimating = false; // true while the hex submit button pop animation is playing
+var allWordsFound = false; // true once every findable word on today's board has been found
 
 // ── Tomorrow mode ────────────────────────────────────────────────────────────
 var _tomorrowMode = false;
@@ -6235,6 +6236,73 @@ function restoreTileDefault(t) {
   t._resolvedLetter = "";
 }
 
+function checkAllWordsFound() {
+  if (allWordsFound) return;
+  if (browsedDateStr) return; // only fires on today's board
+  if (allBoardWords.length === 0) return; // board words not yet computed
+  var remaining = allBoardWords.filter(function(w) { return !foundWords.includes(w); });
+  if (remaining.length > 0) return;
+  onAllWordsFound();
+}
+
+function onAllWordsFound() {
+  if (allWordsFound) return; // idempotent
+  allWordsFound = true;
+
+  var boardContainer = document.getElementById("board-container");
+  var promptEl = document.getElementById("game-prompt");
+  var totalWords = allBoardWords.length;
+
+  showConfetti();
+  triggerHaptic([50, 30, 100, 50, 150]);
+
+  // Explode board outward (same as tomorrow-board reveal)
+  if (boardContainer) {
+    boardContainer.style.transition = "transform 0.55s cubic-bezier(0.55,0,1,0.45), opacity 0.55s ease-out";
+    boardContainer.style.transform = "scale(1.25)";
+    boardContainer.style.opacity = "0";
+  }
+
+  setTimeout(function() {
+    if (boardContainer) {
+      boardContainer.style.transition = "";
+      boardContainer.style.transform = "scale(0.75)";
+      boardContainer.style.opacity = "0";
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+          boardContainer.style.transition = "transform 0.5s cubic-bezier(0.34,1.56,0.64,1), opacity 0.35s ease-out";
+          boardContainer.style.transform = "";
+          boardContainer.style.opacity = "";
+          setTimeout(function() {
+            boardContainer.style.transition = boardContainer.style.transform = boardContainer.style.opacity = "";
+          }, 600);
+        });
+      });
+    }
+    showToast("Amazing! You found all " + totalWords + " words!");
+    if (promptEl) { promptEl.style.opacity = "1"; promptEl.textContent = "All " + totalWords + " words found!"; }
+    activateAllFoundShare();
+  }, 600);
+}
+
+function activateAllFoundShare() {
+  var btn = document.getElementById("share-btn");
+  if (!btn) return;
+  btn.classList.add("all-found");
+
+  function throb() {
+    var b = document.getElementById("share-btn");
+    if (!b || !b.classList.contains("all-found")) return;
+    b.classList.remove("share-gentle-throb");
+    void b.offsetWidth;
+    b.classList.add("share-gentle-throb");
+    setTimeout(function() { b.classList.remove("share-gentle-throb"); }, 1000);
+  }
+  // Initial throb after a short delay, then every ~3.5s
+  setTimeout(throb, 900);
+  setInterval(throb, 3500);
+}
+
 function animateSubmitBtn() {
   if (reduceMotion || _submitAnimating) return;
   var btn = document.getElementById("submit-btn");
@@ -6599,6 +6667,7 @@ function lockValidWord(word) {
   renderAllTiles();
   const len = selectedPath.length;
   foundWords.push(word.toUpperCase());
+  setTimeout(checkAllWordsFound, 2200);
   if (len > bestScore) {
     bestScore = len;
     bestWord = word;
@@ -7436,7 +7505,9 @@ function loadBoardForDate(ddmmyy) {
 
   // Reset game state for this date
   tiles = []; selectedPath = []; isDragging = false; playedPath = []; playedPathVisible = true; foundWords = [];
-  foundWordBlanks = {}; allBoardWords = [];
+  foundWordBlanks = {}; allBoardWords = []; allWordsFound = false;
+  var shareBtn = document.getElementById("share-btn");
+  if (shareBtn) shareBtn.classList.remove("all-found", "share-gentle-throb");
   bestScore = 0; bestWord = ""; gameCompleted = false;
   attemptCount = 0; validAttemptCount = 0; activeTimeMs = 0; timerRunning = false; timerLastStart = 0;
   inOneAchieved = false; targetWordFound = false;
@@ -9471,7 +9542,10 @@ function initShare() {
     var doShare = function() {
       var dateStr = getDateString();
       var text;
-      if (bestScore > 0) {
+      if (allWordsFound && allBoardWords.length > 0) {
+        text = "I completed today's Shukuma puzzle finding all " + allBoardWords.length +
+          " words. How did you do?\nhttps://cranialscratch.github.io/Shukuma/\n#Shukuma" + dateStr;
+      } else if (bestScore > 0) {
         var level = getScoreLevel(bestScore);
         var displayLevel = inOneAchieved ? "Grandmaster in One!" : level;
         text = "I scored '" + displayLevel + "' with " + bestScore +
@@ -10381,8 +10455,8 @@ function initSwipeDayHint() {
     hintActive = true;
     hint.hidden = false;
     // Restart the hand animation each time the hint appears (reflow trick)
-    var handEl = hint.querySelector(".swipe-hint-hand");
-    if (handEl) { handEl.style.animation = "none"; void handEl.offsetWidth; handEl.style.animation = ""; }
+    var iconEl = hint.querySelector(".swipe-hint-icon");
+    if (iconEl) { iconEl.style.animation = "none"; void iconEl.offsetWidth; iconEl.style.animation = ""; }
     // Double-rAF ensures the element is painted before the opacity transition starts
     requestAnimationFrame(function() {
       requestAnimationFrame(function() { hint.classList.add("visible"); });
@@ -10403,7 +10477,7 @@ function initIdleHint() {
   // Check every 1.5 s; fire once 6 s of idle has elapsed, then reset so next
   // trigger requires another 6 s of idle — giving a natural ~6-second repeat.
   setInterval(function() {
-    if (gameCompleted) return;
+    if (allWordsFound) return;
     if (_tomorrowMode) return;
     if (reduceMotion) return;
     if (selectedPath.length > 0) return;

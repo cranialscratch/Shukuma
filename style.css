@@ -469,6 +469,20 @@ html[data-textsize="xl"] {
 #share-btn:hover { opacity: 0.75; }
 #share-btn:active { transform: scale(0.96); }
 
+#share-btn.all-found {
+  background: var(--brand);
+  color: #ffffff;
+  border-color: var(--brand);
+}
+
+@keyframes shareGentleThrob {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.09); filter: drop-shadow(0 0 8px rgba(124,77,255,0.45)); }
+}
+.share-gentle-throb {
+  animation: shareGentleThrob 0.9s ease-in-out forwards;
+}
+
 #share-ticket-badge {
   font-size: var(--fs-sm);
   font-weight: 800;
@@ -682,20 +696,27 @@ html[data-theme="dark"] { --tile-pulse-fill: #585859; } /* lighter than #3a3a3c 
   gap: 8px;
   color: var(--board-fg);
 }
-/* SVG hand sweeps left → right three times, then holds */
+/* Pointing finger sweeps left → right, eases out, fades, snaps back, repeats */
+.swipe-hint-icon {
+  display: block;
+  animation: swipeFinger 2s ease-out infinite;
+}
 .swipe-hint-hand {
   display: block;
-  animation: swipeFinger 0.95s ease-in-out 3 forwards;
+  transform: rotate(90deg);
 }
 @keyframes swipeFinger {
-  from { transform: translateX(-26px); }
-  to   { transform: translateX(26px); }
+  0%   { transform: translateX(-22px); opacity: 0; }
+  10%  { opacity: 1; }
+  72%  { transform: translateX(18px);  opacity: 1; }
+  88%  { transform: translateX(22px);  opacity: 0; }
+  89%  { transform: translateX(-22px); opacity: 0; }
+  100% { transform: translateX(-22px); opacity: 0; }
 }
 .swipe-hint-text {
   font-size: var(--fs-sm);
   font-weight: 600;
   letter-spacing: 0.07em;
-  text-transform: uppercase;
   color: inherit;
   text-align: center;
 }
@@ -732,7 +753,7 @@ html[data-reduce-motion] .is-throbbing       { animation: none !important; }
 html[data-reduce-motion] .share-pulse        { animation: none !important; }
 html[data-reduce-motion] .tile-hint          { animation: none !important; fill: var(--tile-pulse-fill); }
 html[data-reduce-motion] .tile-hint-poly     { animation: none !important; fill: var(--tile-pulse-fill); }
-html[data-reduce-motion] .swipe-hint-hand    { animation: none !important; transform: translateX(0) !important; }
+html[data-reduce-motion] .swipe-hint-icon    { animation: none !important; transform: translateX(0) !important; }
 
 /* ── Tomorrow board — tile explosion on midnight ────────────────────── */
 @keyframes tile-explode {
