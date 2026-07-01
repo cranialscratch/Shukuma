@@ -3822,7 +3822,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.1.2";
+const VERSION = "2.1.3";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
@@ -5489,7 +5489,11 @@ function buildThemePicker() {
       var swatch = document.createElement("div");
       swatch.className = "theme-gradient-swatch";
       var swatchColors = theme.swatch || theme.pulse;
-      swatch.style.background = "linear-gradient(90deg, " + swatchColors.join(", ") + ")";
+      var swatchN = swatchColors.length;
+      var swatchStops = swatchColors.map(function(c, si) {
+        return c + " " + (si/swatchN*100).toFixed(1) + "%, " + c + " " + ((si+1)/swatchN*100).toFixed(1) + "%";
+      }).join(", ");
+      swatch.style.background = "linear-gradient(90deg, " + swatchStops + ")";
       btn.appendChild(swatch);
 
       var nameEl = document.createElement("span");
@@ -5780,6 +5784,39 @@ function hexPoints(cx, cy, r) {
   return pts.join(" ");
 }
 
+// Returns SVG path data for a pointy-top regular hexagon with rounded corners.
+// cr = corner radius in user units (0 = sharp corners, same as hexPoints).
+function hexPath(cx, cy, r, cr) {
+  cr = cr || 0;
+  var N = 6;
+  var verts = [];
+  for (var hi = 0; hi < N; hi++) {
+    var ang = (Math.PI / 180) * (60 * hi - 30);
+    verts.push([cx + r * Math.cos(ang), cy + r * Math.sin(ang)]);
+  }
+  if (!cr) {
+    return "M " + verts.map(function(v) { return v[0].toFixed(1) + "," + v[1].toFixed(1); }).join(" L ") + " Z";
+  }
+  var parts = [];
+  for (var hi = 0; hi < N; hi++) {
+    var prev = verts[(hi + N - 1) % N];
+    var curr = verts[hi];
+    var next = verts[(hi + 1) % N];
+    var dx1 = curr[0] - prev[0], dy1 = curr[1] - prev[1];
+    var len1 = Math.sqrt(dx1*dx1 + dy1*dy1);
+    var ux1 = dx1/len1, uy1 = dy1/len1;
+    var dx2 = next[0] - curr[0], dy2 = next[1] - curr[1];
+    var len2 = Math.sqrt(dx2*dx2 + dy2*dy2);
+    var ux2 = dx2/len2, uy2 = dy2/len2;
+    var p1x = (curr[0] - cr * ux1).toFixed(2), p1y = (curr[1] - cr * uy1).toFixed(2);
+    var p2x = (curr[0] + cr * ux2).toFixed(2), p2y = (curr[1] + cr * uy2).toFixed(2);
+    parts.push((hi === 0 ? "M " : "L ") + p1x + "," + p1y);
+    parts.push("Q " + curr[0].toFixed(2) + "," + curr[1].toFixed(2) + " " + p2x + "," + p2y);
+  }
+  parts.push("Z");
+  return parts.join(" ");
+}
+
 // ─── Adjacency ────────────────────────────────────────────────────────────────
 function buildAdjacency() {
   const posMap = {};
@@ -5966,7 +6003,7 @@ function renderTile(tile) {
 
   // In tomorrow mode: uniform neutral style, no stroke, countdown digits on row 2
   if (_tomorrowMode) {
-    const poly = g.querySelector("polygon:not(.hatch-overlay)");
+    const poly = g.querySelector(".hex-fill");
     const txt  = g.querySelector("text");
     var n = COLOURS.neutral;
     if (poly) { poly.setAttribute("fill", n.fill); poly.setAttribute("stroke", "none"); }
@@ -5988,7 +6025,7 @@ function renderTile(tile) {
   var ariaState  = { neutral: "", selected: "selected", valid: "valid", invalid: "not a word", played: "best word" }[tile.state] || "";
   g.setAttribute("aria-label", ariaState ? ariaLetter + " — " + ariaState : ariaLetter);
   const NS = "http://www.w3.org/2000/svg";
-  const poly = g.querySelector("polygon:not(.hatch-overlay)");
+  const poly = g.querySelector(".hex-fill");
   const text = g.querySelector("text");
   if (poly) {
     poly.setAttribute("fill", c.fill);
@@ -5996,9 +6033,9 @@ function renderTile(tile) {
   var hatch = g.querySelector(".hatch-overlay");
   if (tile.state === "invalid") {
     if (!hatch && poly) {
-      hatch = document.createElementNS(NS, "polygon");
+      hatch = document.createElementNS(NS, "path");
       hatch.setAttribute("class", "hatch-overlay");
-      hatch.setAttribute("points", poly.getAttribute("points"));
+      hatch.setAttribute("d", poly.getAttribute("d"));
       hatch.setAttribute("fill", "url(#invalid-hatch)");
       hatch.setAttribute("pointer-events", "none");
       g.insertBefore(hatch, text);
@@ -6204,8 +6241,9 @@ function buildBoard() {
     g.setAttribute("role", "img");
     g.setAttribute("aria-label", tile.blank ? "blank tile" : tile.letter.toUpperCase() + " tile");
 
-    const poly = document.createElementNS(NS, "polygon");
-    poly.setAttribute("points", hexPoints(x, y, HEX_SIZE - 2));
+    const poly = document.createElementNS(NS, "path");
+    poly.setAttribute("class", "hex-fill");
+    poly.setAttribute("d", hexPath(x, y, HEX_SIZE - 2, 4));
     poly.setAttribute("fill", c.fill);
     poly.setAttribute("stroke", "none");
     poly.setAttribute("filter", "url(#tile-shadow)");
@@ -6345,7 +6383,7 @@ function fadeOutScoreHighlight() {
   fadingIds.forEach(function(id) {
     var g = document.getElementById("tile-" + id);
     if (!g) return;
-    var poly = g.querySelector("polygon:not(.hatch-overlay)");
+    var poly = g.querySelector(".hex-fill");
     var txt  = g.querySelector("text");
     if (poly) poly.style.transition = TRANS;
     if (txt)  txt.style.transition  = "fill 0.65s ease-out";
@@ -6368,7 +6406,7 @@ function fadeOutScoreHighlight() {
       fadingIds.forEach(function(id) {
         var g = document.getElementById("tile-" + id);
         if (!g) return;
-        var poly = g.querySelector("polygon:not(.hatch-overlay)");
+        var poly = g.querySelector(".hex-fill");
         var txt  = g.querySelector("text");
         if (poly) poly.style.transition = "";
         if (txt)  txt.style.transition  = "";
@@ -6388,7 +6426,7 @@ function fadeValidToNeutral() {
   fadingIds.forEach(function(id) {
     var g = document.getElementById("tile-" + id);
     if (!g) return;
-    var poly = g.querySelector("polygon:not(.hatch-overlay)");
+    var poly = g.querySelector(".hex-fill");
     var txt  = g.querySelector("text");
     if (poly) poly.style.transition = TRANS;
     if (txt)  txt.style.transition  = "fill 0.65s ease-out";
@@ -6406,7 +6444,7 @@ function fadeValidToNeutral() {
       fadingIds.forEach(function(id) {
         var g = document.getElementById("tile-" + id);
         if (!g) return;
-        var poly = g.querySelector("polygon:not(.hatch-overlay)");
+        var poly = g.querySelector(".hex-fill");
         var txt  = g.querySelector("text");
         if (poly) poly.style.transition = "";
         if (txt)  txt.style.transition  = "";
@@ -6825,7 +6863,7 @@ function nudgeLastTile() {
   var lastId = selectedPath[selectedPath.length - 1];
   var g = document.getElementById("tile-" + lastId);
   if (!g) return;
-  var poly = g.querySelector("polygon:not(.hatch-overlay)");
+  var poly = g.querySelector(".hex-fill");
   if (!poly) return;
   // Inline CSS transition — no keyframes, no Web Animations API; reliable on all iOS Safari
   poly.style.transition = "opacity 0.22s ease-out";
@@ -6966,7 +7004,7 @@ function updateHintBtn() {
 function pulseHintTile(tileId) {
   var g = document.getElementById("tile-" + tileId);
   if (!g) return;
-  var poly = g.querySelector("polygon:not(.hatch-overlay)");
+  var poly = g.querySelector(".hex-fill");
   if (!poly) return;
   // CSS keyframe on the polygon element — smooth fill throb, works on iOS Safari
   poly.classList.add("tile-hint-poly");
@@ -7256,7 +7294,7 @@ function triggerHint() {
   chain.forEach(function(tile, idx) {
     var g = document.getElementById("tile-" + tile.id);
     if (!g) return;
-    var poly = g.querySelector("polygon:not(.hatch-overlay)");
+    var poly = g.querySelector(".hex-fill");
     if (!poly) return;
     setTimeout(function() {
       // Fade fill to 28% tint blend — subtle warmth, not a full colour change
@@ -9972,30 +10010,20 @@ function showFloatAnim(opts) {
 
   if (opts.type === "valid") {
     // Pointy-top SVG hex styled like a game tile
-    var r = 52, cx = 60, cy = 62;
-    var pts = [];
-    for (var i = 0; i < 6; i++) {
-      var ang = (Math.PI / 180) * (60 * i - 30);
-      pts.push((cx + r * Math.cos(ang)).toFixed(1) + "," + (cy + r * Math.sin(ang)).toFixed(1));
-    }
+    var fhD = hexPath(60, 62, 52, 5);
     inner.innerHTML =
       '<svg class="float-hex-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 124" width="120" height="124" aria-hidden="true">' +
         '<defs><filter id="fh-shadow" x="-30%" y="-30%" width="160%" height="160%">' +
           '<feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="rgba(0,0,0,0.25)"/>' +
         '</filter></defs>' +
-        '<polygon points="' + pts.join(" ") + '" fill="var(--tile-neutral,#e8dfc8)" stroke="var(--tile-neutral-stroke,#c8b098)" stroke-width="2.5" filter="url(#fh-shadow)"/>' +
+        '<path d="' + fhD + '" fill="var(--tile-neutral,#e8dfc8)" stroke="var(--tile-neutral-stroke,#c8b098)" stroke-width="2.5" filter="url(#fh-shadow)"/>' +
         '<text x="60" y="66" font-family="Inter,sans-serif" font-size="54" font-weight="900" text-anchor="middle" dominant-baseline="middle" fill="var(--tile-text,#1a0a00)">' + escHtml(String(opts.score)) + '</text>' +
       '</svg>' +
       '<span class="float-level">' + escHtml(opts.level || "") + '</span>' +
       '<span class="float-cheer">' + escHtml(opts.cheer || "") + '</span>';
   } else {
     // wrong / neutral: hex with text inside at ≥17px
-    var r3 = 52, cx3 = 60, cy3 = 62;
-    var pts3 = [];
-    for (var i3 = 0; i3 < 6; i3++) {
-      var ang3 = (Math.PI / 180) * (60 * i3 - 30);
-      pts3.push((cx3 + r3 * Math.cos(ang3)).toFixed(1) + "," + (cy3 + r3 * Math.sin(ang3)).toFixed(1));
-    }
+    var fhD3 = hexPath(60, 62, 52, 5);
     var isWrong = (opts.type === "wrong");
     var hexFill   = isWrong ? "var(--tile-invalid,#d9534f)"        : "var(--tile-neutral,#e8dfc8)";
     var hexStroke = isWrong ? "var(--tile-invalid-stroke,#a02020)" : "var(--tile-neutral-stroke,#c8b098)";
@@ -10012,16 +10040,16 @@ function showFloatAnim(opts) {
       lines3 = sp3 > 0 ? [cheer3.substring(0, sp3), cheer3.substring(sp3 + 1)] : [cheer3];
     }
     var lineH3 = 22;
-    var startY3 = cy3 - ((lines3.length - 1) * lineH3) / 2;
+    var startY3 = 62 - ((lines3.length - 1) * lineH3) / 2;
     var textEls3 = lines3.map(function(line, li) {
-      return '<text x="' + cx3 + '" y="' + (startY3 + li * lineH3).toFixed(1) + '" font-family="Inter,sans-serif" font-size="18" font-weight="800" text-anchor="middle" dominant-baseline="middle" fill="' + hexText + '">' + escHtml(line) + '</text>';
+      return '<text x="60" y="' + (startY3 + li * lineH3).toFixed(1) + '" font-family="Inter,sans-serif" font-size="18" font-weight="800" text-anchor="middle" dominant-baseline="middle" fill="' + hexText + '">' + escHtml(line) + '</text>';
     }).join("");
     inner.innerHTML =
       '<svg class="float-hex-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 124" width="120" height="124" aria-hidden="true">' +
         '<defs><filter id="fh-shadow-wr" x="-30%" y="-30%" width="160%" height="160%">' +
           '<feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="rgba(0,0,0,0.25)"/>' +
         '</filter></defs>' +
-        '<polygon points="' + pts3.join(" ") + '" fill="' + hexFill + '" stroke="' + hexStroke + '" stroke-width="2.5" filter="url(#fh-shadow-wr)"/>' +
+        '<path d="' + fhD3 + '" fill="' + hexFill + '" stroke="' + hexStroke + '" stroke-width="2.5" filter="url(#fh-shadow-wr)"/>' +
         textEls3 +
       '</svg>';
   }
@@ -10042,17 +10070,13 @@ function showAlreadyFoundAnim() {
   wrapper.className = "float-anim-wrapper float-already";
   var inner = document.createElement("div");
   inner.className = "float-anim-inner";
-  var r = 52, cx = 60, cy = 62, pts = [];
-  for (var i = 0; i < 6; i++) {
-    var ang = (Math.PI / 180) * (60 * i - 30);
-    pts.push((cx + r * Math.cos(ang)).toFixed(1) + "," + (cy + r * Math.sin(ang)).toFixed(1));
-  }
+  var fhDaf = hexPath(60, 62, 52, 5);
   inner.innerHTML =
     '<svg class="float-hex-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 124" width="120" height="124" aria-hidden="true">' +
       '<defs><filter id="fh-shadow-af" x="-30%" y="-30%" width="160%" height="160%">' +
         '<feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="rgba(0,0,0,0.25)"/>' +
       '</filter></defs>' +
-      '<polygon points="' + pts.join(" ") + '" fill="var(--tile-neutral,#e8dfc8)" stroke="var(--tile-neutral-stroke,#c8b098)" stroke-width="2.5" filter="url(#fh-shadow-af)"/>' +
+      '<path d="' + fhDaf + '" fill="var(--tile-neutral,#e8dfc8)" stroke="var(--tile-neutral-stroke,#c8b098)" stroke-width="2.5" filter="url(#fh-shadow-af)"/>' +
       '<text x="60" y="51" font-family="Inter,sans-serif" font-size="18" font-weight="800" text-anchor="middle" dominant-baseline="middle" fill="var(--tile-text,#1a0a00)">Already</text>' +
       '<text x="60" y="73" font-family="Inter,sans-serif" font-size="18" font-weight="800" text-anchor="middle" dominant-baseline="middle" fill="var(--tile-text,#1a0a00)">Found</text>' +
     '</svg>';
@@ -10103,11 +10127,7 @@ function showSpellingVariantAnim(locale) {
   wrapper.className = "float-anim-wrapper float-spelling-variant";
   var inner = document.createElement("div");
   inner.className = "float-anim-inner";
-  var r = 52, cx = 60, cy = 62, pts = [];
-  for (var i = 0; i < 6; i++) {
-    var ang = (Math.PI / 180) * (60 * i - 30);
-    pts.push((cx + r * Math.cos(ang)).toFixed(1) + "," + (cy + r * Math.sin(ang)).toFixed(1));
-  }
+  var fhDsv = hexPath(60, 62, 52, 5);
   var flag = locale === 'GB' ? '🇬🇧' : '🇺🇸';
   var label = locale === 'GB' ? 'British' : 'American';
   inner.innerHTML =
@@ -10115,7 +10135,7 @@ function showSpellingVariantAnim(locale) {
       '<defs><filter id="fh-shadow-sv" x="-30%" y="-30%" width="160%" height="160%">' +
         '<feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="rgba(0,0,0,0.25)"/>' +
       '</filter></defs>' +
-      '<polygon points="' + pts.join(" ") + '" fill="var(--tile-selected,#e8c840)" stroke="var(--tile-selected-stroke,#c9a820)" stroke-width="2.5" filter="url(#fh-shadow-sv)"/>' +
+      '<path d="' + fhDsv + '" fill="var(--tile-selected,#e8c840)" stroke="var(--tile-selected-stroke,#c9a820)" stroke-width="2.5" filter="url(#fh-shadow-sv)"/>' +
       '<text x="60" y="46" font-family="Inter,sans-serif" font-size="22" text-anchor="middle" dominant-baseline="middle">' + flag + '</text>' +
       '<text x="60" y="68" font-family="Inter,sans-serif" font-size="11" font-weight="700" text-anchor="middle" dominant-baseline="middle" fill="var(--tile-text,#1a0a00)">' + label + '</text>' +
       '<text x="60" y="82" font-family="Inter,sans-serif" font-size="10" font-weight="500" text-anchor="middle" dominant-baseline="middle" fill="var(--tile-text,#1a0a00)">Spelling</text>' +
@@ -10277,7 +10297,7 @@ function pulseTileOnce(tile, delayMs, colorHex) {
     if (tiles[tile.id] !== tile) return; // board rebuilt; skip stale tile
     var g = document.getElementById("tile-" + tile.id);
     if (!g) return;
-    var poly = g.querySelector("polygon:not(.hatch-overlay)");
+    var poly = g.querySelector(".hex-fill");
     if (!poly) return;
     if (colorHex) poly.style.setProperty("--pulse-color", colorHex);
     if (tile.state === "neutral") {
