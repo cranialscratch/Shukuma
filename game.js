@@ -3822,11 +3822,22 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.1.11";
+const VERSION = "2.1.12";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.1.12",
+    date: "2026-07-01",
+    title: "Admin Users section: browse all users, grant/revoke tester per row",
+    changes: [
+      "New 'Users' admin section replaces 'Testers': lists all registered users with name, email, ticket count and tester status",
+      "Filter bar lets you search by name or email; Grant/Revoke tester buttons update instantly without reloading",
+      "Firestore rules updated: admin can now list all users; feedback collection rules added (create for signed-in users, read/write for admin)",
+      "Users query no longer uses orderBy — sorted client-side to avoid index requirement that was causing the permissions error",
+    ],
+  },
   {
     version: "2.1.11",
     date: "2026-07-01",
@@ -11458,7 +11469,7 @@ var ADMIN_SECTIONS = [
   { id: "audit",      label: "Audit"      },
   { id: "backlog",    label: "Backlog"    },
   { id: "feedback",   label: "Reports"    },
-  { id: "testers",    label: "Testers"    },
+  { id: "users",      label: "Users"      },
 ];
 
 // ─── Bug reporting ────────────────────────────────────────────────────────────
@@ -11579,41 +11590,76 @@ async function loadAdminFeedback() {
 
 // ─── Admin: Testers ───────────────────────────────────────────────────────────
 
-async function renderAdminTesters() {
-  var listEl = document.getElementById("admin-testers-list");
+// ─── Admin: Users (all users + tester toggle) ─────────────────────────────────
+
+var _adminUsersCache = [];
+
+async function loadAdminUsers() {
+  var listEl = document.getElementById("admin-users-list");
   if (!listEl) return;
   if (!db || !isAdmin()) { listEl.textContent = "Admin only."; return; }
   listEl.textContent = "Loading…";
   try {
-    var snap = await db.collection("users").orderBy("usernameLower").limit(100).get();
-    if (snap.empty) { listEl.innerHTML = '<span style="color:#bbb">No registered users yet.</span>'; return; }
-    var html = "";
+    var snap = await db.collection("users").limit(200).get();
+    _adminUsersCache = [];
     snap.forEach(function(doc) {
       var d = doc.data();
-      var uid = doc.id;
-      var isTesterUser = d.tester === true;
-      var name = d.username || d.displayName || "";
-      var email = d.email || uid;
-      var label = name ? escHtml(name) + ' <span style="color:#aaa;font-size:0.75rem">' + escHtml(email) + '</span>' : escHtml(email);
-      html += '<div class="admin-tester-row">';
-      html += '<span class="admin-tester-email">' + label + '</span>';
-      if (isTesterUser) {
-        html += '<button class="admin-tester-revoke" data-uid="' + escHtml(uid) + '">Revoke</button>';
-      } else {
-        html += '<button class="admin-tester-grant" data-uid="' + escHtml(uid) + '">Grant</button>';
-      }
-      html += '</div>';
+      d._uid = doc.id;
+      _adminUsersCache.push(d);
     });
-    listEl.innerHTML = html;
-    listEl.querySelectorAll(".admin-tester-grant").forEach(function(btn) {
-      btn.addEventListener("click", function() { setTesterByUid(btn.dataset.uid, true, btn); });
+    // Sort client-side by username/email
+    _adminUsersCache.sort(function(a, b) {
+      var aKey = (a.username || a.email || "").toLowerCase();
+      var bKey = (b.username || b.email || "").toLowerCase();
+      return aKey < bKey ? -1 : aKey > bKey ? 1 : 0;
     });
-    listEl.querySelectorAll(".admin-tester-revoke").forEach(function(btn) {
-      btn.addEventListener("click", function() { setTesterByUid(btn.dataset.uid, false, btn); });
-    });
+    renderAdminUsersList("");
   } catch (e) {
     listEl.textContent = "Error: " + e.message;
   }
+}
+
+function renderAdminUsersList(filter) {
+  var listEl = document.getElementById("admin-users-list");
+  if (!listEl) return;
+  var lower = filter.toLowerCase();
+  var users = _adminUsersCache.filter(function(d) {
+    if (!lower) return true;
+    return (d.username || "").toLowerCase().includes(lower) ||
+           (d.displayName || "").toLowerCase().includes(lower) ||
+           (d.email || "").toLowerCase().includes(lower);
+  });
+  if (!users.length) {
+    listEl.innerHTML = '<span style="color:#bbb">' + (filter ? "No matches." : "No users yet.") + '</span>';
+    return;
+  }
+  var html = "";
+  users.forEach(function(d) {
+    var uid = d._uid;
+    var isTesterUser = d.tester === true;
+    var name = d.username || d.displayName || "";
+    var email = d.email || uid;
+    var tickets = typeof d.tickets === "number" ? d.tickets : "—";
+    html += '<div class="admin-user-row">';
+    html += '<div class="admin-user-info">';
+    html += '<span class="admin-user-name">' + escHtml(name || email) + '</span>';
+    if (name) html += ' <span class="admin-user-email">' + escHtml(email) + '</span>';
+    html += '<span class="admin-user-meta">tickets: ' + escHtml(String(tickets)) + (isTesterUser ? ' · tester' : '') + '</span>';
+    html += '</div>';
+    if (isTesterUser) {
+      html += '<button class="admin-tester-revoke" data-uid="' + escHtml(uid) + '">Revoke tester</button>';
+    } else {
+      html += '<button class="admin-tester-grant" data-uid="' + escHtml(uid) + '">Make tester</button>';
+    }
+    html += '</div>';
+  });
+  listEl.innerHTML = html;
+  listEl.querySelectorAll(".admin-tester-grant").forEach(function(btn) {
+    btn.addEventListener("click", function() { setTesterByUid(btn.dataset.uid, true, btn); });
+  });
+  listEl.querySelectorAll(".admin-tester-revoke").forEach(function(btn) {
+    btn.addEventListener("click", function() { setTesterByUid(btn.dataset.uid, false, btn); });
+  });
 }
 
 async function setTesterByUid(uid, grant, btn) {
@@ -11621,46 +11667,26 @@ async function setTesterByUid(uid, grant, btn) {
   if (btn) { btn.disabled = true; btn.textContent = "…"; }
   try {
     await db.collection("users").doc(uid).update({ tester: grant });
+    // Update cache so the list reflects the change without a full reload
+    var cached = _adminUsersCache.find(function(d) { return d._uid === uid; });
+    if (cached) cached.tester = grant;
+    var searchInput = document.getElementById("admin-users-search");
+    renderAdminUsersList(searchInput ? searchInput.value : "");
     showToast(grant ? "Tester access granted." : "Tester access revoked.");
-    renderAdminTesters();
   } catch (e) {
     showToast("Error: " + e.message);
-    if (btn) { btn.disabled = false; btn.textContent = grant ? "Grant" : "Revoke"; }
-  }
-}
-
-async function grantTesterByEmail() {
-  var input = document.getElementById("tester-grant-email");
-  var email = input ? input.value.trim().toLowerCase() : "";
-  if (!email) { if (input) input.focus(); return; }
-  if (!db || !isAdmin()) return;
-  var btn = document.getElementById("tester-grant-btn");
-  if (btn) { btn.disabled = true; btn.textContent = "…"; }
-  try {
-    var snap = await db.collection("users").where("email", "==", email).limit(1).get();
-    if (snap.empty) {
-      showToast("No account found for " + email);
-    } else {
-      await snap.docs[0].ref.update({ tester: true });
-      if (input) input.value = "";
-      showToast("Tester access granted to " + email);
-      renderAdminTesters();
-    }
-  } catch (e) {
-    showToast("Error: " + e.message);
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = "Grant"; }
+    if (btn) { btn.disabled = false; btn.textContent = grant ? "Make tester" : "Revoke tester"; }
   }
 }
 
 function initAdminFeedback() {
   var loadBtn = document.getElementById("admin-feedback-load-btn");
   if (loadBtn) loadBtn.addEventListener("click", loadAdminFeedback);
-  var grantBtn = document.getElementById("tester-grant-btn");
-  if (grantBtn) grantBtn.addEventListener("click", grantTesterByEmail);
-  var emailInput = document.getElementById("tester-grant-email");
-  if (emailInput) emailInput.addEventListener("keydown", function(e) {
-    if (e.key === "Enter") grantTesterByEmail();
+  var usersLoadBtn = document.getElementById("admin-users-load-btn");
+  if (usersLoadBtn) usersLoadBtn.addEventListener("click", loadAdminUsers);
+  var searchInput = document.getElementById("admin-users-search");
+  if (searchInput) searchInput.addEventListener("input", function() {
+    renderAdminUsersList(searchInput.value);
   });
 }
 
@@ -11696,7 +11722,7 @@ function expandAdminSection(id) {
   closeSidebar();
   if (panel) panel.scrollTo({ top: 0, behavior: "instant" });
   // Lazy-load data sections when navigated to
-  if (id === "testers")  renderAdminTesters();
+  if (id === "users")    loadAdminUsers();
   if (id === "feedback") loadAdminFeedback();
 }
 

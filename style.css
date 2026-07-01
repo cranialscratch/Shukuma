@@ -5007,3 +5007,39 @@ html[data-theme="dark"] .sc-score-card { background: #1c1c1e; }
   transition: background 0.15s;
 }
 .admin-tester-grant:active { background: #d8f5e5; }
+
+/* ── Admin user rows ─────────────────────────────────────────────── */
+.admin-user-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.admin-user-row:last-child { border-bottom: none; }
+.admin-user-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.admin-user-name {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #222;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.admin-user-email {
+  font-size: 0.72rem;
+  color: #888;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.admin-user-meta {
+  font-size: 0.7rem;
+  color: #aaa;
+}

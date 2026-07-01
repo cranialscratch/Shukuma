@@ -10,9 +10,10 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Users — any signed-in user can read (for friend profiles); only own doc can be written
+    // Users — own doc: signed-in user can read/write their own; admin: full access to all
     match /users/{uid} {
-      allow read: if isSignedIn();
+      allow get: if isSignedIn();
+      allow list: if isAdmin();
       allow write: if isSignedIn() && request.auth.uid == uid;
       allow read, write: if isAdmin();
     }
@@ -27,6 +28,12 @@ service cloud.firestore {
     match /config/{doc} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
+    }
+
+    // Feedback (bug reports) — any signed-in user can create; admin can read all
+    match /feedback/{doc} {
+      allow create: if isSignedIn();
+      allow read, write: if isAdmin();
     }
   }
 }

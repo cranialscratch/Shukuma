@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2.1.11" />
+  <link rel="stylesheet" href="style.css?v=2.1.12" />
 </head>
 <body>
   <!-- Screen reader live region — JS calls srAnnounce() to update this -->
@@ -1172,19 +1172,19 @@
       <div class="admin-section">
         <h3>Feedback Reports</h3>
         <div style="display:flex;gap:8px;margin-bottom:12px">
-          <button class="admin-btn" id="admin-feedback-load-btn" style="flex:1">Load Reports</button>
+          <button class="admin-btn" id="admin-feedback-load-btn" style="flex:1">Refresh</button>
         </div>
         <div id="admin-feedback-list" style="font-size:0.8rem;color:#bbb">—</div>
       </div>
 
-      <!-- ── Testers ───────────────────────────────────────────────── -->
+      <!-- ── Users ─────────────────────────────────────────────────── -->
       <div class="admin-section">
-        <h3>Testers</h3>
+        <h3>Users</h3>
         <div style="display:flex;gap:8px;margin-bottom:12px">
-          <input id="tester-grant-email" type="email" placeholder="user@email.com" style="flex:1;border:1px solid #ddd;border-radius:8px;padding:8px 10px;font-size:0.85rem;font-family:inherit;box-sizing:border-box">
-          <button class="admin-btn" id="tester-grant-btn">Grant</button>
+          <input id="admin-users-search" type="search" placeholder="Filter by name or email…" style="flex:1;border:1px solid #ddd;border-radius:8px;padding:8px 10px;font-size:0.85rem;font-family:inherit;box-sizing:border-box">
+          <button class="admin-btn" id="admin-users-load-btn">Load</button>
         </div>
-        <div id="admin-testers-list" style="font-size:0.8rem;color:#bbb">—</div>
+        <div id="admin-users-list" style="font-size:0.8rem;color:#bbb">—</div>
       </div>
 
     </div>
@@ -1269,6 +1269,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 
-  <script src="game.js?v=2.1.11"></script>
+  <script src="game.js?v=2.1.12"></script>
 </body>
 </html>
