@@ -3822,11 +3822,19 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.1.9";
+const VERSION = "2.1.10";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.1.10",
+    date: "2026-07-01",
+    title: "Fix admin Reports/Testers sections loading before auth resolves",
+    changes: [
+      "Reports and Testers admin sections now lazy-load when you navigate to them — previously they fetched before Firebase auth resolved, always showing 'Admin only'",
+    ],
+  },
   {
     version: "2.1.9",
     date: "2026-07-01",
