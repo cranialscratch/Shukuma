@@ -320,7 +320,7 @@ html[data-textsize="xl"] {
   margin: 0 40px 4px;
   height: 2px;
   position: relative;
-  background: rgba(0,0,0,0.07);
+  background: transparent;
   flex-shrink: 0;
 }
 
@@ -891,6 +891,7 @@ html[data-reduce-motion] .swipe-hint-icon    { animation: none !important; trans
   grid-template-columns: 44px 1fr 44px;
   align-items: center;
   padding: 6px 0 10px;
+  position: relative;
 }
 
 #back-panel-title {
@@ -1162,6 +1163,11 @@ html[data-reduce-motion] .swipe-hint-icon    { animation: none !important; trans
   filter: blur(5px);
   user-select: none;
   -webkit-user-select: none;
+}
+.wl-locked.wl-admin-peek .wl-word {
+  filter: none;
+  user-select: text;
+  -webkit-user-select: text;
 }
 .wl-len {
   font-size: var(--fs-sm);
@@ -1465,14 +1471,14 @@ html[data-reduce-motion] .swipe-hint-icon    { animation: none !important; trans
 /* ── Scores tab: compact date nav ────────────────────────────────── */
 /* ── Scores date header (no arrows — swipe or tap date to navigate) ─── */
 #scores-date-hdr {
-  display: grid;
-  grid-template-columns: 44px 1fr 44px;
+  display: flex;
+  justify-content: center;
   align-items: center;
   padding: 10px 4px 2px;
   position: relative;
 }
-#lb-date-btn { justify-self: center; }
 .scores-sort-hdr-btn {
+  grid-column: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1481,14 +1487,15 @@ html[data-reduce-motion] .swipe-hint-icon    { animation: none !important; trans
   background: none;
   border: none;
   border-radius: 50%;
-  color: var(--text-secondary);
+  color: rgba(255,255,255,0.85);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  margin: 0 auto;
 }
 .scores-sort-hdr-btn:active { opacity: 0.6; }
 .scores-hdr-sort-popup {
   top: 100%;
-  left: 4px;
+  left: 0;
 }
 .admin-word-reveal-display {
   margin-top: 12px;

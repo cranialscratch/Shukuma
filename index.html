@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2.1.4" />
+  <link rel="stylesheet" href="style.css?v=2.1.5" />
 </head>
 <body>
   <!-- Screen reader live region — JS calls srAnnounce() to update this -->
@@ -120,9 +120,9 @@
             <div id="swipe-day-hint" hidden>
               <div class="swipe-hint-inner">
 <span class="swipe-hint-icon">
-                  <svg class="swipe-hint-hand" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M12 21 L12 6"/>
-                    <path d="M9 12 L9 18 Q9 21 12 21 Q15 21 15 18 L15 12"/>
+                  <svg class="swipe-hint-hand" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M 10 13 L 10 4.5 Q 10 2.5 12 2.5 Q 14 2.5 14 4.5 L 14 13"/>
+                    <path d="M 14 12 Q 16 8.5 18 12 Q 19.5 9.5 21 12.5 L 21 18 Q 21 22 17 22 L 7 22 Q 3 22 3 18 L 3 14.5 Q 3 12.5 5.5 12.5 L 10 12.5"/>
                   </svg>
                 </span>
                 <span class="swipe-hint-text">Swipe for more puzzles</span>
@@ -185,6 +185,9 @@
           <div id="back-header">
             <div id="panel-drag-handle"></div>
             <div id="back-header-row">
+              <button id="scores-sort-btn" class="scores-sort-hdr-btn" aria-label="Sort words" hidden>
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
+              </button>
               <span id="back-panel-title"></span>
               <button id="back-btn" aria-label="Close panel">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
@@ -334,14 +337,10 @@
 
               <!-- Date display — tappable, opens calendar; swipe tab to navigate days -->
               <div id="scores-date-hdr">
-                <button id="scores-sort-btn" class="scores-sort-hdr-btn" aria-label="Sort words">
-                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
-                </button>
                 <button id="lb-date-btn" class="scores-date-btn" aria-label="Browse dates">
                   <span id="lb-date-label">Today</span>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
                 </button>
-                <div aria-hidden="true"></div>
               </div>
 
               <!-- Score card — built by buildMyScoreCard() -->
@@ -1207,6 +1206,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 
-  <script src="game.js?v=2.1.4"></script>
+  <script src="game.js?v=2.1.5"></script>
 </body>
 </html>

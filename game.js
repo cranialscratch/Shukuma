@@ -3822,7 +3822,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.1.4";
+const VERSION = "2.1.5";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
@@ -9572,6 +9572,8 @@ function switchBackTab(tabName) {
   });
   var titleEl = document.getElementById("back-panel-title");
   if (titleEl) titleEl.textContent = PANEL_TITLES[tabName] || tabName;
+  var sortBtn = document.getElementById("scores-sort-btn");
+  if (sortBtn) sortBtn.hidden = (tabName !== "scores");
   if (tabName === "scores")   { lbDayOffset = browseOffset; loadLeaderboard(lbFilter || "date"); }
   if (tabName === "stats")    renderStatsPanel();
   if (tabName === "settings") renderSettingsPanel();
@@ -10469,8 +10471,8 @@ function initSwipeDayHint() {
   var lastInteraction = Date.now();
   var hintActive = false;
   var IDLE_MS   = 15000; // show after 15 s idle
-  var SHOW_MS   = 3500;  // visible for 3.5 s (covers 3 × 0.95 s sweeps)
-  var REPEAT_MS = 16000; // re-check every 16 s
+  var SHOW_MS   = 5000;  // visible for 5 s
+  var REPEAT_MS = 20000; // re-check every 20 s
 
   function dismissHint() {
     if (!hintActive) return;
@@ -10525,7 +10527,7 @@ function initIdleHint() {
     if (_tomorrowMode) return;
     if (reduceMotion) return;
     if (selectedPath.length > 0) return;
-    if (Date.now() - lastInteraction < 6000) return;
+    if (Date.now() - lastInteraction < 9000) return;
     triggerHint();
     lastInteraction = Date.now(); // debounce: next hint after another 6 s idle
   }, 1500);
@@ -11436,7 +11438,7 @@ function initScoresSortBtn() {
     });
     popup.appendChild(opt);
   });
-  var hdr = document.getElementById("scores-date-hdr");
+  var hdr = document.getElementById("back-header-row");
   if (hdr) hdr.appendChild(popup);
 
   btn.addEventListener("click", function(e) {
@@ -11454,6 +11456,32 @@ function initScoresSortBtn() {
       }, 0);
     }
   });
+}
+
+function initAdminWordPeek() {
+  var holdTimer = null;
+  var peekRow = null;
+  document.addEventListener("pointerdown", function(e) {
+    if (!isAdmin()) return;
+    var wordEl = e.target.closest(".wl-word");
+    if (!wordEl) return;
+    var row = wordEl.closest(".wl-locked");
+    if (!row) return;
+    e.preventDefault();
+    holdTimer = setTimeout(function() {
+      peekRow = row;
+      row.classList.add("wl-admin-peek");
+    }, 450);
+    function release() {
+      clearTimeout(holdTimer);
+      holdTimer = null;
+      if (peekRow) { peekRow.classList.remove("wl-admin-peek"); peekRow = null; }
+      document.removeEventListener("pointerup", release);
+      document.removeEventListener("pointercancel", release);
+    }
+    document.addEventListener("pointerup", release, { once: true });
+    document.addEventListener("pointercancel", release, { once: true });
+  }, { passive: false });
 }
 
 function initAdmin() {
@@ -12258,6 +12286,7 @@ function init() {
   initSettings();
   initAdmin();
   initScoresSortBtn();
+  initAdminWordPeek();
   initPlayerModals();
   initCalendar();
   initBackPanelDrag();
