@@ -3822,7 +3822,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.1.0";
+const VERSION = "2.1.1";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
@@ -5698,6 +5698,7 @@ var _cycleAttemptCount = 0;
 var _pastToastShown = false;
 var _swipeHintShown = false;
 var _cycleGen = 0; // incremented on stop/start to cancel stale setTimeouts
+var _submitAnimating = false; // true while the hex submit button pop animation is playing
 
 // ── Tomorrow mode ────────────────────────────────────────────────────────────
 var _tomorrowMode = false;
@@ -6047,7 +6048,7 @@ function updateAnswerArea() {
     ansEl.style.fontSize = ""; ansEl.style.letterSpacing = "";
     if (promptEl)  promptEl.hidden  = false;
     if (resetBtn)  resetBtn.hidden  = true;
-    if (submitBtn) submitBtn.hidden = true;
+    if (submitBtn && !_submitAnimating) submitBtn.hidden = true;
     updateWordLevelBar(0);
     // Restart cycling if target has been found
     if (_cycleAttemptCount > 0 && !_cycleTimer) setTimeout(startCyclingMessages, 200);
@@ -6069,7 +6070,7 @@ function updateAnswerArea() {
   ansEl.hidden = false;
   if (promptEl)  promptEl.hidden  = true;
   if (resetBtn)  resetBtn.hidden  = false;
-  if (submitBtn) submitBtn.hidden = _scoreHighlightMode || selectedPath.length < 4;
+  if (submitBtn && !_submitAnimating) submitBtn.hidden = _scoreHighlightMode || selectedPath.length < 4;
 
   updateWordLevelBar(selectedPath.length);
 }
@@ -6234,6 +6235,19 @@ function restoreTileDefault(t) {
   t._resolvedLetter = "";
 }
 
+function animateSubmitBtn() {
+  if (reduceMotion || _submitAnimating) return;
+  var btn = document.getElementById("submit-btn");
+  if (!btn || btn.hidden) return;
+  _submitAnimating = true;
+  btn.classList.add("submit-pop");
+  btn.addEventListener("animationend", function() {
+    btn.classList.remove("submit-pop");
+    _submitAnimating = false;
+    btn.hidden = true;
+  }, { once: true });
+}
+
 function clearSelection() {
   if (_highlightTimer) { clearTimeout(_highlightTimer); _highlightTimer = null; }
   if (_scoreHighlightFadeTimer) { clearTimeout(_scoreHighlightFadeTimer); _scoreHighlightFadeTimer = null; }
@@ -6241,9 +6255,6 @@ function clearSelection() {
   tiles.forEach(function(t) { t.state = "neutral"; t._resolvedLetter = ""; });
   selectedPath = [];
   renderAllTiles();
-  // Restore submit button label (may have been set to "Submitted ✓" after lockValidWord)
-  var sBtn = document.getElementById("submit-btn");
-  if (sBtn) { sBtn.textContent = "Submit word"; sBtn.disabled = false; }
   updateAnswerArea();
   updateScoreDisplay(null);
   updateShareBtn();
@@ -6332,8 +6343,6 @@ function fadeValidToNeutral() {
         if (poly) poly.style.transition = "";
         if (txt)  txt.style.transition  = "";
       });
-      var sBtn = document.getElementById("submit-btn");
-      if (sBtn) { sBtn.textContent = "Submit word"; sBtn.disabled = false; }
       updateScoreDisplay(null);
       updateShareBtn();
     }, 700);
@@ -6468,6 +6477,7 @@ async function onPointerUp(e) {
     if (selectedPath.length === 1) { clearSelection(); return; } // reverted to start — silent clear
     if (selectedPath.length < 4) { flashInvalid("Need 4+"); return; }
     attemptCount++;
+    animateSubmitBtn();
     var hasBlanks = selectedPath.some(function(id) { return tiles[id].blank; });
     var answerEl = document.getElementById("answer-text");
     if (!hasBlanks) {
@@ -6519,6 +6529,7 @@ async function onPointerUp(e) {
   // Tapping the last tile with ≥2 letters: submit
   if (selectedPath.length >= 2 && selectedPath[selectedPath.length - 1] === tileId) {
     attemptCount++;
+    animateSubmitBtn();
     await submitTappedWord();
     return;
   }
@@ -6667,9 +6678,6 @@ function lockValidWord(word) {
     setTimeout(function() { showSpellingVariantAnim(variantInfo.locale); }, 500);
   }
 
-  // Change submit button to "Submitted" so it's clear the word was accepted
-  var _sBtn = document.getElementById("submit-btn");
-  if (_sBtn && !_sBtn.hidden) { _sBtn.textContent = "Submitted ✓"; _sBtn.disabled = true; }
 
   // After showing green, fade tiles back to neutral
   setTimeout(fadeValidToNeutral, 1500);
@@ -6707,6 +6715,7 @@ function flashInvalid(customCheer) {
 
 async function submitTappedWord() {
   if (selectedPath.length < 4) { showToast("Minimum 4 letters"); flashInvalid(); return; }
+  animateSubmitBtn(); // no-op if already animating (tile-tap path fires this before calling here)
   var hasBlanks = selectedPath.some(function(id) { return tiles[id].blank; });
   var answerEl2 = document.getElementById("answer-text");
   if (!hasBlanks) {

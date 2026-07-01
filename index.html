@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2.1.0" />
+  <link rel="stylesheet" href="style.css?v=2.1.1" />
 </head>
 <body>
   <!-- Screen reader live region — JS calls srAnnounce() to update this -->
@@ -102,7 +102,12 @@
           <!-- Submit area — fills gap between board controls and nav pill; button centres within it -->
           <!-- Swipe hint overlays this same space (position: absolute inside) -->
           <div id="submit-area">
-            <button id="submit-btn" aria-label="Submit word" hidden>Submit word</button>
+            <button id="submit-btn" aria-label="Submit word" hidden>
+              <svg viewBox="0 0 70 80" width="70" height="80" aria-hidden="true">
+                <polygon points="64.4,23 64.4,57 35,74 5.6,57 5.6,23 35,6" fill="var(--tile-selected)"/>
+                <polyline points="16,42 29,56 56,24" fill="none" stroke="white" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
             <div id="swipe-day-hint" hidden>
               <div class="swipe-hint-inner">
                 <svg class="swipe-hint-hand" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -1193,6 +1198,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 
-  <script src="game.js?v=2.1.0"></script>
+  <script src="game.js?v=2.1.1"></script>
 </body>
 </html>
