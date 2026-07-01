@@ -3822,11 +3822,31 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.1.12";
+const VERSION = "2.1.13";
+
+// Self-heal stale HTML: if the body data-app-version doesn't match,
+// the browser cached an old index.html while loading fresh JS.
+// Force a reload to a unique URL so the CDN returns the current HTML.
+(function() {
+  var htmlVer = document.body && document.body.getAttribute("data-app-version");
+  if (htmlVer && htmlVer !== VERSION) {
+    var bust = window.location.pathname + "?reload=" + VERSION + "&t=" + Date.now();
+    window.location.replace(bust);
+  }
+})();
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.1.13",
+    date: "2026-07-01",
+    title: "Self-healing version check: auto-reload on stale HTML cache",
+    changes: [
+      "Game now detects when the browser has cached an old HTML file but loaded fresh JS — automatically reloads to a unique URL to force the CDN to serve current HTML",
+      "Added no-cache meta tags and body data-app-version stamp to prevent iOS Safari from serving stale pages",
+    ],
+  },
   {
     version: "2.1.12",
     date: "2026-07-01",
