@@ -11666,6 +11666,9 @@ function expandAdminSection(id) {
   }
   closeSidebar();
   if (panel) panel.scrollTo({ top: 0, behavior: "instant" });
+  // Lazy-load data sections when navigated to
+  if (id === "testers")  renderAdminTesters();
+  if (id === "feedback") loadAdminFeedback();
 }
 
 function initAdminNav() {
@@ -11701,7 +11704,6 @@ function initAdminNav() {
   // Open Backlog by default
   expandAdminSection("backlog");
   initAdminFeedback();
-  renderAdminTesters();
 }
 
 function initScoresSortBtn() {
