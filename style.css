@@ -4871,3 +4871,126 @@ html[data-theme="dark"] .hint-pick-btn:active { background: rgba(255,255,255,0.1
 html[data-theme="dark"] .wl-sort-popup { background: #1c1c1e; border-color: rgba(255,255,255,0.1); }
 html[data-theme="dark"] .wl-sort-opt { color: rgba(255,255,255,0.9); border-bottom-color: rgba(255,255,255,0.08); }
 html[data-theme="dark"] .sc-score-card { background: #1c1c1e; }
+
+/* ── Bug report modal ────────────────────────────────────────────────── */
+#bug-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+#bug-modal[hidden] { display: none; }
+#bug-modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+}
+#bug-modal-card {
+  position: relative;
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-width: 480px;
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.18);
+}
+#bug-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 10px;
+  border-bottom: 1px solid #eee;
+  flex-shrink: 0;
+}
+#bug-modal-header h2 { margin: 0; font-size: 1.0625rem; color: #222; }
+#bug-modal-close {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 4px 6px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+}
+#bug-modal-form {
+  padding: 16px;
+  overflow-y: auto;
+  flex: 1;
+}
+#bug-modal-thanks {
+  padding: 32px 16px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+}
+#bug-modal-thanks[hidden] { display: none; }
+.bug-field { margin-bottom: 14px; }
+.bug-field label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #444;
+  margin-bottom: 5px;
+}
+.bug-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  resize: vertical;
+  color: #222;
+  background: #fafafa;
+}
+.bug-field textarea:focus { outline: 2px solid var(--brand); border-color: transparent; background: #fff; }
+.bug-meta-note { font-size: 0.73rem; color: #aaa; margin: 0 0 16px; }
+.bug-thanks-icon { margin-bottom: 4px; }
+.bug-thanks-title { margin: 0; font-size: 1.1rem; color: #222; }
+.bug-thanks-body { font-size: 0.87rem; color: #666; margin: 0 0 8px; }
+
+/* ── Admin feedback table ─────────────────────────────────────────── */
+.admin-feedback-row {
+  border-bottom: 1px solid #f0f0f0;
+  padding: 10px 0;
+}
+.admin-feedback-row:last-child { border-bottom: none; }
+.admin-feedback-meta { font-size: 0.72rem; color: #aaa; margin-bottom: 3px; }
+.admin-feedback-happened { font-size: 0.84rem; color: #222; margin-bottom: 3px; font-weight: 500; }
+.admin-feedback-expected { font-size: 0.82rem; color: #666; font-style: italic; margin-bottom: 3px; }
+.admin-feedback-detail { font-size: 0.72rem; color: #aaa; }
+
+/* ── Admin testers list ──────────────────────────────────────────── */
+.admin-tester-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 0.84rem;
+  color: #333;
+}
+.admin-tester-row:last-child { border-bottom: none; }
+.admin-tester-email { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-tester-revoke {
+  background: #fff3f3;
+  color: #c0392b;
+  border: 1px solid #f5c6c6;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  font-family: inherit;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.admin-tester-revoke:active { background: #fde8e8; }

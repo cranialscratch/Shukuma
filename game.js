@@ -3822,11 +3822,23 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.1.8";
+const VERSION = "2.1.9";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.1.9",
+    date: "2026-07-01",
+    title: "Bug reporting system for admin and testers",
+    changes: [
+      "Bug report button added to nav pill — visible only to admin and users granted tester status",
+      "Bug report modal: two-field form (what happened / what expected) with automatic game state, device, and version data attached",
+      "Reports saved to Firestore 'feedback' collection; admin can view all reports in new 'Reports' admin section",
+      "New 'Testers' admin section: grant or revoke tester access by email",
+      "Tester status stored as 'tester: true' on each user's Firestore doc",
+    ],
+  },
   {
     version: "2.1.8",
     date: "2026-07-01",
@@ -5778,6 +5790,14 @@ let db = null, fbAuth = null, fbStorage = null, currentUser = null, userProfile 
 
 const ADMIN_EMAIL = "matt@uservox.com";
 function isAdmin() { return !!(currentUser && currentUser.email === ADMIN_EMAIL); }
+function isTester() { return !!(currentUser && userProfile && userProfile.tester === true); }
+function canReportBug() { return isAdmin() || isTester(); }
+
+function updateBugBtn() {
+  var btn = document.getElementById("bug-report-btn");
+  if (!btn) return;
+  btn.style.display = canReportBug() ? "flex" : "none";
+}
 
 // ─── Tile factory ─────────────────────────────────────────────────────────────
 function makeTile(id, row, col, letter) {
@@ -7934,6 +7954,7 @@ async function resetAllScores() {
 function updateAdminAccess() {
   var btn = document.getElementById("settings-admin-btn");
   if (btn) btn.hidden = !isAdmin();
+  updateBugBtn();
   // Refresh palette list when admin signs in
   if (isAdmin()) {
     loadServerPalettes().then(function(palettes) { renderPaletteList(palettes); });
@@ -8087,6 +8108,7 @@ async function loadUserData(user) {
         userProfile.usernameLower = userProfile.username.toLowerCase();
       }
       checkTesterReset();
+      updateBugBtn();
     } else {
       const fallbackUsername = (user.displayName || user.email.split("@")[0]).toLowerCase().replace(/\s+/g, "").slice(0, 20);
       const d = {
@@ -11418,7 +11440,200 @@ var ADMIN_SECTIONS = [
   { id: "data",       label: "Data"       },
   { id: "audit",      label: "Audit"      },
   { id: "backlog",    label: "Backlog"    },
+  { id: "feedback",   label: "Reports"    },
+  { id: "testers",    label: "Testers"    },
 ];
+
+// ─── Bug reporting ────────────────────────────────────────────────────────────
+
+function collectBugContext() {
+  return {
+    version: VERSION,
+    puzzleDate: browsedDateStr || getDateString(),
+    bestScore: bestScore,
+    bestWord: bestWord || "",
+    foundWords: foundWords.slice(),
+    selectedPath: selectedPath.slice(),
+    allWordsFound: allWordsFound,
+    ticketCount: ticketCount,
+    uid: currentUser ? currentUser.uid : null,
+    email: currentUser ? (currentUser.email || "signed-in") : "guest",
+    username: userProfile ? (userProfile.username || "") : "",
+    userAgent: navigator.userAgent,
+    screenSize: window.screen.width + "x" + window.screen.height,
+    url: window.location.href,
+  };
+}
+
+function showBugReportModal() {
+  var modal = document.getElementById("bug-modal");
+  if (!modal) return;
+  var form   = document.getElementById("bug-modal-form");
+  var thanks = document.getElementById("bug-modal-thanks");
+  var ta1    = document.getElementById("bug-what-happened");
+  var ta2    = document.getElementById("bug-expected");
+  if (form)   form.style.display = "";
+  if (thanks) thanks.hidden = true;
+  if (ta1)    ta1.value = "";
+  if (ta2)    ta2.value = "";
+  modal.hidden = false;
+}
+
+function hideBugReportModal() {
+  var modal = document.getElementById("bug-modal");
+  if (modal) modal.hidden = true;
+}
+
+async function submitBugReport() {
+  if (!db) { showToast("No connection — try again later."); return; }
+  var ta1 = document.getElementById("bug-what-happened");
+  var ta2 = document.getElementById("bug-expected");
+  var what = (ta1 ? ta1.value.trim() : "");
+  if (!what) { if (ta1) ta1.focus(); return; }
+  var submitBtn = document.getElementById("bug-submit-btn");
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Sending…"; }
+  try {
+    var ctx = collectBugContext();
+    await db.collection("feedback").add({
+      whatHappened: what,
+      expected: ta2 ? ta2.value.trim() : "",
+      context: ctx,
+      submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    var form   = document.getElementById("bug-modal-form");
+    var thanks = document.getElementById("bug-modal-thanks");
+    if (form)   form.style.display = "none";
+    if (thanks) thanks.hidden = false;
+  } catch (e) {
+    showToast("Failed to send: " + e.message);
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "Submit Report"; }
+  }
+}
+
+function initBugReport() {
+  var btn      = document.getElementById("bug-report-btn");
+  var closeBtn = document.getElementById("bug-modal-close");
+  var overlay  = document.getElementById("bug-modal-overlay");
+  var submitBtn = document.getElementById("bug-submit-btn");
+  var doneBtn  = document.getElementById("bug-done-btn");
+
+  if (btn)      btn.addEventListener("click", showBugReportModal);
+  if (closeBtn) closeBtn.addEventListener("click", hideBugReportModal);
+  if (overlay)  overlay.addEventListener("click", hideBugReportModal);
+  if (submitBtn) submitBtn.addEventListener("click", submitBugReport);
+  if (doneBtn)  doneBtn.addEventListener("click", hideBugReportModal);
+
+  document.addEventListener("keydown", function(e) {
+    if (e.key === "Escape") {
+      var modal = document.getElementById("bug-modal");
+      if (modal && !modal.hidden) hideBugReportModal();
+    }
+  });
+}
+
+// ─── Admin: Feedback Reports ──────────────────────────────────────────────────
+
+async function loadAdminFeedback() {
+  var listEl = document.getElementById("admin-feedback-list");
+  if (!listEl) return;
+  if (!db || !isAdmin()) { listEl.textContent = "Admin only."; return; }
+  listEl.textContent = "Loading…";
+  try {
+    var snap = await db.collection("feedback").orderBy("submittedAt", "desc").limit(100).get();
+    if (snap.empty) { listEl.innerHTML = '<span style="color:#bbb">No reports yet.</span>'; return; }
+    var html = "";
+    snap.forEach(function(doc) {
+      var d = doc.data();
+      var ctx = d.context || {};
+      var ts = d.submittedAt ? d.submittedAt.toDate().toLocaleString() : "—";
+      var who = ctx.username ? ctx.username + " (" + ctx.email + ")" : (ctx.email || "unknown");
+      html += '<div class="admin-feedback-row">';
+      html += '<div class="admin-feedback-meta">' + escHtml(ts) + ' · ' + escHtml(who) + ' · v' + escHtml(ctx.version || "?") + ' · puzzle ' + escHtml(ctx.puzzleDate || "?") + '</div>';
+      html += '<div class="admin-feedback-happened">' + escHtml(d.whatHappened || "") + '</div>';
+      if (d.expected) html += '<div class="admin-feedback-expected">Expected: ' + escHtml(d.expected) + '</div>';
+      html += '<div class="admin-feedback-detail">score: ' + escHtml(String(ctx.bestScore || 0)) + ' · words: ' + escHtml(String((ctx.foundWords || []).length)) + ' · ' + escHtml(ctx.screenSize || "") + '</div>';
+      html += '</div>';
+    });
+    listEl.innerHTML = html;
+  } catch (e) {
+    listEl.textContent = "Error: " + e.message;
+  }
+}
+
+// ─── Admin: Testers ───────────────────────────────────────────────────────────
+
+async function renderAdminTesters() {
+  var listEl = document.getElementById("admin-testers-list");
+  if (!listEl) return;
+  if (!db || !isAdmin()) { listEl.textContent = "Admin only."; return; }
+  listEl.textContent = "Loading…";
+  try {
+    var snap = await db.collection("users").where("tester", "==", true).get();
+    if (snap.empty) { listEl.innerHTML = '<span style="color:#bbb">No testers yet.</span>'; return; }
+    var html = "";
+    snap.forEach(function(doc) {
+      var d = doc.data();
+      var uid = doc.id;
+      var display = (d.username || d.displayName || "") ? (d.username || d.displayName) + " — " + (d.email || uid) : (d.email || uid);
+      html += '<div class="admin-tester-row"><span class="admin-tester-email">' + escHtml(display) + '</span>';
+      html += '<button class="admin-tester-revoke" data-uid="' + escHtml(uid) + '">Revoke</button></div>';
+    });
+    listEl.innerHTML = html;
+    listEl.querySelectorAll(".admin-tester-revoke").forEach(function(btn) {
+      btn.addEventListener("click", function() { revokeTester(btn.dataset.uid, btn); });
+    });
+  } catch (e) {
+    listEl.textContent = "Error: " + e.message;
+  }
+}
+
+async function grantTesterByEmail() {
+  var input = document.getElementById("tester-grant-email");
+  var email = input ? input.value.trim().toLowerCase() : "";
+  if (!email) { if (input) input.focus(); return; }
+  if (!db || !isAdmin()) return;
+  var btn = document.getElementById("tester-grant-btn");
+  if (btn) { btn.disabled = true; btn.textContent = "…"; }
+  try {
+    var snap = await db.collection("users").where("email", "==", email).limit(1).get();
+    if (snap.empty) {
+      showToast("No account found for " + email);
+    } else {
+      await snap.docs[0].ref.update({ tester: true });
+      if (input) input.value = "";
+      showToast("Tester access granted to " + email);
+      renderAdminTesters();
+    }
+  } catch (e) {
+    showToast("Error: " + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = "Grant"; }
+  }
+}
+
+async function revokeTester(uid, btn) {
+  if (!db || !isAdmin() || !uid) return;
+  if (btn) { btn.disabled = true; btn.textContent = "…"; }
+  try {
+    await db.collection("users").doc(uid).update({ tester: false });
+    showToast("Tester access revoked.");
+    renderAdminTesters();
+  } catch (e) {
+    showToast("Error: " + e.message);
+    if (btn) { btn.disabled = false; btn.textContent = "Revoke"; }
+  }
+}
+
+function initAdminFeedback() {
+  var loadBtn = document.getElementById("admin-feedback-load-btn");
+  if (loadBtn) loadBtn.addEventListener("click", loadAdminFeedback);
+  var grantBtn = document.getElementById("tester-grant-btn");
+  if (grantBtn) grantBtn.addEventListener("click", grantTesterByEmail);
+  var emailInput = document.getElementById("tester-grant-email");
+  if (emailInput) emailInput.addEventListener("keydown", function(e) {
+    if (e.key === "Enter") grantTesterByEmail();
+  });
+}
 
 function openSidebar() {
   var nav = document.getElementById("admin-nav");
@@ -11485,6 +11700,8 @@ function initAdminNav() {
 
   // Open Backlog by default
   expandAdminSection("backlog");
+  initAdminFeedback();
+  renderAdminTesters();
 }
 
 function initScoresSortBtn() {
@@ -12364,6 +12581,7 @@ function init() {
   initSwipeNavigation();
   initSettings();
   initAdmin();
+  initBugReport();
   initScoresSortBtn();
   initAdminWordPeek();
   initPlayerModals();
