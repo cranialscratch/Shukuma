@@ -3822,11 +3822,21 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.1.5";
+const VERSION = "2.1.6";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.1.6",
+    date: "2026-07-01",
+    title: "Fix all-words-found celebration; revert swipe-hint icon",
+    changes: [
+      "All-words-found: fixed celebration not triggering on boards with blank tiles — blank tiles generate many valid words per tile path; game now tracks unique tile paths rather than unique words, so finding any one word along a path marks that path as complete",
+      "All-words-found: also fires on page reload if all words were already found in a prior session",
+      "Swipe hint: reverted to the original Lucide hand icon (stroke-width 1.9)",
+    ],
+  },
   {
     version: "2.0.98",
     date: "2026-06-30",
@@ -5733,6 +5743,10 @@ var _defCache = {};
 
 // All valid 4+ letter words findable on the current board (populated async at load)
 var allBoardWords = [];
+// Parallel array of path strings ("tileId,tileId,...") — one per allBoardWords entry; each path appears at most once
+var allBoardPaths = [];
+// Path strings recorded for each found word (allows blank-tile paths to count when user finds any valid word along that path)
+var foundPaths = [];
 
 // Maps found word (uppercase) → 0-based index of the blank tile in that word's path
 var foundWordBlanks = {};
@@ -5900,40 +5914,59 @@ async function resolveBlankPath(path) {
 }
 
 
-// Returns all valid 4+ letter words on the current board using the WORDS set
+// Returns all valid 4+ letter words on the current board using the WORDS set.
+// Also populates allBoardPaths with one path string per unique tile traversal sequence;
+// a blank tile can produce many valid words on the same path — only the first is recorded per path.
 function findAllBoardWords() {
   if (!tiles || !tiles.length || !WORD_PREFIXES) return [];
-  var found = new Set();
+  var found = new Set();           // unique words (for display)
+  var foundPathSet = new Set();    // unique path strings (for checkAllWordsFound)
+  var pathsOut = [];               // parallel to words: one path per unique tile path
+  var wordsOut = [];               // words paired to pathsOut
   var visited = new Uint8Array(tiles.length);
+  var currentPath = [];
 
   function dfs(tileId, word) {
     if (!WORD_PREFIXES.has(word)) return;
-    if (word.length >= 4 && WORDS.has(word) && !OFFENSIVE_WORDS.has(word)) found.add(word.toUpperCase());
+    if (word.length >= 4 && WORDS.has(word) && !OFFENSIVE_WORDS.has(word)) {
+      var pathKey = currentPath.join(",");
+      if (!foundPathSet.has(pathKey)) {
+        foundPathSet.add(pathKey);
+        wordsOut.push(word.toUpperCase());
+        pathsOut.push(pathKey);
+      }
+      found.add(word.toUpperCase());
+    }
     if (word.length >= 16) return;
     adjacency[tileId].forEach(function(nextId) {
       if (visited[nextId]) return;
       visited[nextId] = 1;
+      currentPath.push(nextId);
       var letter = tiles[nextId].letter.toLowerCase();
       if (letter === "") {
         for (var c = 97; c <= 122; c++) dfs(nextId, word + String.fromCharCode(c));
       } else {
         dfs(nextId, word + letter);
       }
+      currentPath.pop();
       visited[nextId] = 0;
     });
   }
 
   tiles.forEach(function(tile) {
     visited[tile.id] = 1;
+    currentPath.push(tile.id);
     var letter = tile.letter.toLowerCase();
     if (letter === "") {
       for (var c = 97; c <= 122; c++) dfs(tile.id, String.fromCharCode(c));
     } else {
       dfs(tile.id, letter);
     }
+    currentPath.pop();
     visited[tile.id] = 0;
   });
 
+  allBoardPaths = pathsOut;
   return Array.from(found).sort(function(a, b) { return b.length - a.length; });
 }
 
@@ -6274,8 +6307,10 @@ function restoreTileDefault(t) {
 function checkAllWordsFound() {
   if (allWordsFound) return;
   if (browsedDateStr) return; // only fires on today's board
-  if (allBoardWords.length === 0) return; // board words not yet computed
-  var remaining = allBoardWords.filter(function(w) { return !foundWords.includes(w); });
+  if (allBoardPaths.length === 0) return; // board words not yet computed
+  // Use path-based comparison: a blank-tile path is "found" if any valid word along that path was found
+  var foundPathSet = new Set(foundPaths);
+  var remaining = allBoardPaths.filter(function(p) { return !foundPathSet.has(p); });
   if (remaining.length > 0) return;
   onAllWordsFound();
 }
@@ -6723,6 +6758,7 @@ function lockValidWord(word) {
   renderAllTiles();
   const len = selectedPath.length;
   foundWords.push(word.toUpperCase());
+  foundPaths.push(selectedPath.join(","));
   setTimeout(checkAllWordsFound, 2200);
   if (len > bestScore) {
     bestScore = len;
@@ -7561,7 +7597,7 @@ function loadBoardForDate(ddmmyy) {
 
   // Reset game state for this date
   tiles = []; selectedPath = []; isDragging = false; playedPath = []; playedPathVisible = true; foundWords = [];
-  foundWordBlanks = {}; allBoardWords = []; allWordsFound = false;
+  foundWordBlanks = {}; allBoardWords = []; allBoardPaths = []; foundPaths = []; allWordsFound = false;
   var shareBtn = document.getElementById("share-btn");
   if (shareBtn) shareBtn.classList.remove("all-found", "share-gentle-throb");
   bestScore = 0; bestWord = ""; gameCompleted = false;
@@ -7614,7 +7650,7 @@ function loadBoardForDate(ddmmyy) {
 
   setTimeout(runBoardOpenAnimation, 100);
   // Populate all valid board words asynchronously (used in word list)
-  setTimeout(function() { buildWordPrefixes(); allBoardWords = findAllBoardWords(); }, 50);
+  setTimeout(function() { buildWordPrefixes(); allBoardWords = findAllBoardWords(); checkAllWordsFound(); }, 50);
 
   // If a best word exists from a previous play, show it on the board after the open animation
   if (bestWord) {
@@ -9702,7 +9738,7 @@ function saveState() {
   const elapsed = timerRunning ? activeTimeMs + (Date.now() - timerLastStart) : activeTimeMs;
   try {
     localStorage.setItem(storageKey(), JSON.stringify({
-      bestWord, bestScore, gameCompleted, attemptCount, validAttemptCount, hintsUsed, hintTicketsSpent, defineHintUsed, gameDefeated, activeTimeMs: elapsed, playedPath, inOneAchieved, foundWords, foundWordBlanks, targetFoundMs, targetFoundAttempts,
+      bestWord, bestScore, gameCompleted, attemptCount, validAttemptCount, hintsUsed, hintTicketsSpent, defineHintUsed, gameDefeated, activeTimeMs: elapsed, playedPath, inOneAchieved, foundWords, foundPaths, foundWordBlanks, targetFoundMs, targetFoundAttempts,
     }));
   } catch(_) {}
 }
@@ -9725,6 +9761,7 @@ function loadState() {
     gameDefeated     = s.gameDefeated || false;
     inOneAchieved    = s.inOneAchieved || false;
     foundWords       = Array.isArray(s.foundWords) ? s.foundWords : [];
+    foundPaths       = Array.isArray(s.foundPaths) ? s.foundPaths : [];
     targetFoundMs       = s.targetFoundMs || 0;
     targetFoundAttempts = s.targetFoundAttempts || 0;
     foundWordBlanks     = (s.foundWordBlanks && typeof s.foundWordBlanks === "object") ? s.foundWordBlanks : {};
