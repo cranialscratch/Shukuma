@@ -3822,7 +3822,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.1.3";
+const VERSION = "2.1.4";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
@@ -6224,10 +6224,7 @@ function buildBoard() {
   defs.innerHTML =
     '<pattern id="invalid-hatch" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">' +
     '<line x1="0" y1="0" x2="0" y2="8" stroke="rgba(0,0,0,0.22)" stroke-width="4"/>' +
-    '</pattern>' +
-    '<filter id="tile-shadow" x="-15%" y="-15%" width="130%" height="140%" color-interpolation-filters="sRGB">' +
-    '<feDropShadow dx="0" dy="2.5" stdDeviation="1.8" flood-opacity="0.38"/>' +
-    '</filter>';
+    '</pattern>';
   svg.appendChild(defs);
 
   tiles.forEach(tile => {
@@ -6246,7 +6243,6 @@ function buildBoard() {
     poly.setAttribute("d", hexPath(x, y, HEX_SIZE - 2, 4));
     poly.setAttribute("fill", c.fill);
     poly.setAttribute("stroke", "none");
-    poly.setAttribute("filter", "url(#tile-shadow)");
 
     const text = document.createElementNS(NS, "text");
     text.setAttribute("x", x);
@@ -6266,6 +6262,7 @@ function buildBoard() {
     g.appendChild(text);
     svg.appendChild(g);
   });
+  requestAnimationFrame(syncSubmitBtnSize);
 }
 
 // ─── Selection logic ──────────────────────────────────────────────────────────
@@ -6339,6 +6336,27 @@ function activateAllFoundShare() {
   // Initial throb after a short delay, then every ~3.5s
   setTimeout(throb, 900);
   setInterval(throb, 3500);
+}
+
+function syncSubmitBtnSize() {
+  var boardSvg = document.getElementById("hex-board");
+  var submitBtn = document.getElementById("submit-btn");
+  if (!boardSvg || !submitBtn) return;
+  var svgRect = boardSvg.getBoundingClientRect();
+  if (!svgRect.width) return;
+  var vbStr = boardSvg.getAttribute("viewBox");
+  if (!vbStr) return;
+  var vbW = parseFloat(vbStr.split(" ")[2]);
+  if (!vbW) return;
+  var scale = svgRect.width / vbW;
+  var r = HEX_SIZE - 2;
+  var tileW = Math.round(Math.sqrt(3) * r * scale);
+  var tileH = Math.round(2 * r * scale);
+  var innerSvg = submitBtn.querySelector("svg");
+  if (innerSvg) {
+    innerSvg.setAttribute("width", tileW);
+    innerSvg.setAttribute("height", tileH);
+  }
 }
 
 function animateSubmitBtn() {
@@ -10454,19 +10472,25 @@ function initSwipeDayHint() {
   var SHOW_MS   = 3500;  // visible for 3.5 s (covers 3 × 0.95 s sweeps)
   var REPEAT_MS = 16000; // re-check every 16 s
 
-  function resetIdle() { lastInteraction = Date.now(); }
-  document.addEventListener("pointerdown", resetIdle, { passive: true });
-  document.addEventListener("touchstart",  resetIdle, { passive: true });
-  document.addEventListener("date-navigated", function() {
-    lastInteraction = Date.now();
-    if (hintActive) dismissHint();
-  });
-
   function dismissHint() {
+    if (!hintActive) return;
     hintActive = false;
     hint.classList.remove("visible");
     setTimeout(function() { hint.hidden = true; }, 560);
   }
+
+  function resetIdle() {
+    lastInteraction = Date.now();
+    if (hintActive) dismissHint();
+  }
+  document.addEventListener("pointerdown", resetIdle, { passive: true });
+  document.addEventListener("touchstart",  resetIdle, { passive: true });
+  document.addEventListener("pointermove", resetIdle, { passive: true });
+  document.addEventListener("touchmove",   resetIdle, { passive: true });
+  document.addEventListener("date-navigated", function() {
+    lastInteraction = Date.now();
+    dismissHint();
+  });
 
   function maybeShow() {
     if (hintActive) return;
@@ -12279,6 +12303,9 @@ if (document.readyState === "loading") {
   init();
 }
 
-window.addEventListener("resize", function() { requestAnimationFrame(alignBoardControls); });
+window.addEventListener("resize", function() {
+  requestAnimationFrame(alignBoardControls);
+  requestAnimationFrame(syncSubmitBtnSize);
+});
 
 })();

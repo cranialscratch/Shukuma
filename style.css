@@ -247,7 +247,7 @@ html[data-textsize="xl"] {
 
 /* ── Word display area ───────────────────────────────────────────────── */
 #word-box {
-  margin: 4px 14px 0;
+  margin: 4px 14px 6px;
   height: 52px;
   display: block;
   line-height: 52px;
@@ -315,9 +315,9 @@ html[data-textsize="xl"] {
 }
 #reset-btn:hover { background: rgba(0,0,0,0.13); }
 
-/* ── Word level bar — sits flush as bottom border of topbar ─────────── */
+/* ── Word level bar — inset to align with flat section of pill base ─── */
 #word-level-bar {
-  margin: 0;
+  margin: 0 40px 4px;
   height: 2px;
   position: relative;
   background: rgba(0,0,0,0.07);
@@ -364,14 +364,6 @@ html[data-textsize="xl"] {
   touch-action: none;
 }
 
-/* Tile shadows — subtle depth for white tiles */
-.hex-tile polygon:not(.hatch-overlay) {
-  filter: drop-shadow(0 2px 5px rgba(0,0,0,0.10));
-  transition: filter 0.15s;
-}
-.hex-tile:active polygon:not(.hatch-overlay) {
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.07));
-}
 
 /* ── Stats row ─────────────────────────────────────────────────────── */
 #stats-row {
@@ -1148,7 +1140,7 @@ html[data-reduce-motion] .swipe-hint-icon    { animation: none !important; trans
 }
 .wl-row {
   display: grid;
-  grid-template-columns: 22px 1fr 72px 38px;
+  grid-template-columns: 22px 1fr 130px 38px;
   grid-template-rows: 40px auto;
   column-gap: 6px;
   align-items: center;
@@ -1484,8 +1476,8 @@ html[data-reduce-motion] .swipe-hint-icon    { animation: none !important; trans
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
   background: none;
   border: none;
   border-radius: 50%;
@@ -1556,7 +1548,7 @@ html[data-reduce-motion] .swipe-hint-icon    { animation: none !important; trans
   flex-shrink: 0;
 }
 .wl-bar-track {
-  width: 72px;
+  width: 100%;
   flex-shrink: 0;
   height: 5px;
   background: rgba(0,0,0,0.09);
@@ -1984,7 +1976,7 @@ html[data-reduce-motion] .swipe-hint-icon    { animation: none !important; trans
 .pm-avatar {
   width: 36px;
   height: 42px;  /* W:H = √3:2 pointy-top hex */
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: url(#hex-clip-rounded);
   color: #fff;
   font-size: 1.0rem;
   font-weight: 700;
@@ -2024,7 +2016,7 @@ html[data-reduce-motion] .swipe-hint-icon    { animation: none !important; trans
 .ppm-avatar-lg {
   width: 68px;
   height: 78px;  /* W:H = √3:2 pointy-top hex */
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: url(#hex-clip-rounded);
   color: #fff;
   font-size: 1.7rem;
   font-weight: 700;
@@ -2253,7 +2245,7 @@ html[data-reduce-motion] .swipe-hint-icon    { animation: none !important; trans
 #user-avatar {
   width: 64px;
   height: 74px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: url(#hex-clip-rounded);
   background: var(--brand);
   color: white;
   font-size: 1.5rem;
@@ -2353,7 +2345,7 @@ html[data-reduce-motion] .swipe-hint-icon    { animation: none !important; trans
 .badge-hex {
   width: 54px;
   height: 62px;  /* W:H = √3:2 ≈ 0.866 — matches game board pointy-top hex */
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: url(#hex-clip-rounded);
   background: #ffffff;
   display: flex;
   align-items: center;
@@ -2540,7 +2532,7 @@ html[data-reduce-motion] .swipe-hint-icon    { animation: none !important; trans
 .friend-avatar {
   width: 40px;
   height: 46px;  /* W:H = √3:2 pointy-top hex */
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: url(#hex-clip-rounded);
   background: var(--brand);
   color: #fff;
   font-weight: 700;
@@ -2600,7 +2592,7 @@ html[data-reduce-motion] .swipe-hint-icon    { animation: none !important; trans
 .bim-icon {
   width: 72px;
   height: 72px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: url(#hex-clip-rounded);
   background: #ede7f6;
   display: flex;
   align-items: center;
@@ -4356,7 +4348,7 @@ html[data-theme="dark"] #user-username-text { color: rgba(255,255,255,0.5); }
 #ep-avatar {
   width: 88px;
   height: 102px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: url(#hex-clip-rounded);
   background: var(--brand);
   color: white;
   font-size: 2rem;
