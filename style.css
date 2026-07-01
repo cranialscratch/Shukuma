@@ -4994,3 +4994,16 @@ html[data-theme="dark"] .sc-score-card { background: #1c1c1e; }
   transition: background 0.15s;
 }
 .admin-tester-revoke:active { background: #fde8e8; }
+.admin-tester-grant {
+  background: #f0faf4;
+  color: #1a7a3c;
+  border: 1px solid #b2dfca;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  font-family: inherit;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.admin-tester-grant:active { background: #d8f5e5; }

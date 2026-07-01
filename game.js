@@ -3822,11 +3822,20 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.1.10";
+const VERSION = "2.1.11";
 // Increment this whenever puzzle order changes — auto-clears stale local day state on next load.
 const PUZZLE_ORDER_VERSION = "2.0.25";
 
 const CHANGELOG = [
+  {
+    version: "2.1.11",
+    date: "2026-07-01",
+    title: "Admin Testers: show all users with Grant/Revoke per row",
+    changes: [
+      "Testers section now lists all registered users (up to 100) sorted by username — each row shows a Grant or Revoke button based on current tester status",
+      "Email input retained as a fallback for adding testers by email when the user isn't yet visible in the list",
+    ],
+  },
   {
     version: "2.1.10",
     date: "2026-07-01",
@@ -11576,22 +11585,47 @@ async function renderAdminTesters() {
   if (!db || !isAdmin()) { listEl.textContent = "Admin only."; return; }
   listEl.textContent = "Loading…";
   try {
-    var snap = await db.collection("users").where("tester", "==", true).get();
-    if (snap.empty) { listEl.innerHTML = '<span style="color:#bbb">No testers yet.</span>'; return; }
+    var snap = await db.collection("users").orderBy("usernameLower").limit(100).get();
+    if (snap.empty) { listEl.innerHTML = '<span style="color:#bbb">No registered users yet.</span>'; return; }
     var html = "";
     snap.forEach(function(doc) {
       var d = doc.data();
       var uid = doc.id;
-      var display = (d.username || d.displayName || "") ? (d.username || d.displayName) + " — " + (d.email || uid) : (d.email || uid);
-      html += '<div class="admin-tester-row"><span class="admin-tester-email">' + escHtml(display) + '</span>';
-      html += '<button class="admin-tester-revoke" data-uid="' + escHtml(uid) + '">Revoke</button></div>';
+      var isTesterUser = d.tester === true;
+      var name = d.username || d.displayName || "";
+      var email = d.email || uid;
+      var label = name ? escHtml(name) + ' <span style="color:#aaa;font-size:0.75rem">' + escHtml(email) + '</span>' : escHtml(email);
+      html += '<div class="admin-tester-row">';
+      html += '<span class="admin-tester-email">' + label + '</span>';
+      if (isTesterUser) {
+        html += '<button class="admin-tester-revoke" data-uid="' + escHtml(uid) + '">Revoke</button>';
+      } else {
+        html += '<button class="admin-tester-grant" data-uid="' + escHtml(uid) + '">Grant</button>';
+      }
+      html += '</div>';
     });
     listEl.innerHTML = html;
+    listEl.querySelectorAll(".admin-tester-grant").forEach(function(btn) {
+      btn.addEventListener("click", function() { setTesterByUid(btn.dataset.uid, true, btn); });
+    });
     listEl.querySelectorAll(".admin-tester-revoke").forEach(function(btn) {
-      btn.addEventListener("click", function() { revokeTester(btn.dataset.uid, btn); });
+      btn.addEventListener("click", function() { setTesterByUid(btn.dataset.uid, false, btn); });
     });
   } catch (e) {
     listEl.textContent = "Error: " + e.message;
+  }
+}
+
+async function setTesterByUid(uid, grant, btn) {
+  if (!db || !isAdmin() || !uid) return;
+  if (btn) { btn.disabled = true; btn.textContent = "…"; }
+  try {
+    await db.collection("users").doc(uid).update({ tester: grant });
+    showToast(grant ? "Tester access granted." : "Tester access revoked.");
+    renderAdminTesters();
+  } catch (e) {
+    showToast("Error: " + e.message);
+    if (btn) { btn.disabled = false; btn.textContent = grant ? "Grant" : "Revoke"; }
   }
 }
 
@@ -11616,19 +11650,6 @@ async function grantTesterByEmail() {
     showToast("Error: " + e.message);
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = "Grant"; }
-  }
-}
-
-async function revokeTester(uid, btn) {
-  if (!db || !isAdmin() || !uid) return;
-  if (btn) { btn.disabled = true; btn.textContent = "…"; }
-  try {
-    await db.collection("users").doc(uid).update({ tester: false });
-    showToast("Tester access revoked.");
-    renderAdminTesters();
-  } catch (e) {
-    showToast("Error: " + e.message);
-    if (btn) { btn.disabled = false; btn.textContent = "Revoke"; }
   }
 }
 
