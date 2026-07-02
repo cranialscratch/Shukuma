@@ -3822,7 +3822,7 @@ const FIREBASE_CONFIG = {
 };
 
 // ─── Version + changelog ──────────────────────────────────────────────────────
-const VERSION = "2.1.14";
+const VERSION = "2.1.15";
 
 // Self-heal stale HTML: if the body data-app-version doesn't match,
 // the browser cached an old index.html while loading fresh JS.
@@ -5818,6 +5818,8 @@ var allBoardWords = [];
 var allBoardPaths = [];
 // Representative word for each entry in allBoardPaths (parallel array, same index = same path)
 var allBoardWordsByPath = [];
+// True when allBoardWords/allBoardPaths were loaded from the Firestore certified list
+var _wordListFromFirestore = false;
 // Path strings recorded for each found word (blank-tile-safe: any word on a path marks that path done)
 var foundPaths = [];
 
@@ -5977,6 +5979,14 @@ async function resolveBlankPath(path) {
 
   var found = new Set();
 
+  // When the certified word list is loaded, check against it only — no API needed
+  if (_wordListFromFirestore && allBoardWords.length > 0) {
+    allCandidates.forEach(function(c) {
+      if (!OFFENSIVE_WORDS.has(c) && allBoardWords.includes(c.toUpperCase())) found.add(c);
+    });
+    return Array.from(found);
+  }
+
   // Fast pass: WORDS set (synchronous)
   allCandidates.forEach(function(c) {
     if (!OFFENSIVE_WORDS.has(c) && WORDS.has(c)) found.add(c);
@@ -6050,6 +6060,58 @@ function findAllBoardWords() {
   allBoardPaths = pathsOut;
   allBoardWordsByPath = wordsOut; // parallel to allBoardPaths — one representative word per unique tile path
   return Array.from(found).sort(function(a, b) { return b.length - a.length; });
+}
+
+// Returns all 4+ letter strings reachable on the current board using WORD_PREFIXES for pruning
+// but without filtering by WORDS — used by the admin certify tool to build a candidate list for
+// API validation. Returns a Map<UPPERCASE_WORD -> [pathKey, ...]>.
+function findAllBoardCandidates() {
+  if (!tiles || !tiles.length || !WORD_PREFIXES) return new Map();
+  var found = new Map(); // UPPERCASE_WORD -> array of pathKey strings
+  var visited = new Uint8Array(tiles.length);
+  var currentPath = [];
+
+  function dfs(tileId, word) {
+    if (!WORD_PREFIXES.has(word)) return;
+    if (word.length >= 4 && !OFFENSIVE_WORDS.has(word)) {
+      var upper = word.toUpperCase();
+      var pathKey = currentPath.join(",");
+      if (!found.has(upper)) {
+        found.set(upper, [pathKey]);
+      } else {
+        found.get(upper).push(pathKey);
+      }
+    }
+    if (word.length >= 16) return;
+    adjacency[tileId].forEach(function(nextId) {
+      if (visited[nextId]) return;
+      visited[nextId] = 1;
+      currentPath.push(nextId);
+      var letter = tiles[nextId].letter.toLowerCase();
+      if (letter === "") {
+        for (var c = 97; c <= 122; c++) dfs(nextId, word + String.fromCharCode(c));
+      } else {
+        dfs(nextId, word + letter);
+      }
+      currentPath.pop();
+      visited[nextId] = 0;
+    });
+  }
+
+  tiles.forEach(function(tile) {
+    visited[tile.id] = 1;
+    currentPath.push(tile.id);
+    var letter = tile.letter.toLowerCase();
+    if (letter === "") {
+      for (var c = 97; c <= 122; c++) dfs(tile.id, String.fromCharCode(c));
+    } else {
+      dfs(tile.id, letter);
+    }
+    currentPath.pop();
+    visited[tile.id] = 0;
+  });
+
+  return found;
 }
 
 // ─── Word validation ──────────────────────────────────────────────────────────
@@ -6740,16 +6802,21 @@ async function onPointerUp(e) {
     var hasBlanks = selectedPath.some(function(id) { return tiles[id].blank; });
     var answerEl = document.getElementById("answer-text");
     if (!hasBlanks) {
-      var validWord = validateWord(selectedPath);
-      if (validWord && !OFFENSIVE_WORDS.has(validWord.toLowerCase())) { lockValidWord(validWord); return; }
-      // API fallback for non-WORDS words
       var word = selectedPath.map(function(id) { return tiles[id].letter.toLowerCase(); }).join("");
-      if (!OFFENSIVE_WORDS.has(word)) {
-        isChecking = true; if (answerEl) answerEl.classList.add("checking");
-        var apiFound = false;
-        try { apiFound = await checkDictionaryAPI(word); } catch (_) {}
-        isChecking = false; if (answerEl) answerEl.classList.remove("checking");
-        if (apiFound) { lockValidWord(word); return; }
+      // When a certified word list is loaded, check against it only — no API call
+      if (_wordListFromFirestore && allBoardWords.length > 0) {
+        if (!OFFENSIVE_WORDS.has(word) && allBoardWords.includes(word.toUpperCase())) { lockValidWord(word); return; }
+      } else {
+        var validWord = validateWord(selectedPath);
+        if (validWord && !OFFENSIVE_WORDS.has(validWord.toLowerCase())) { lockValidWord(validWord); return; }
+        // API fallback for non-WORDS words (only when not using certified list)
+        if (!OFFENSIVE_WORDS.has(word)) {
+          isChecking = true; if (answerEl) answerEl.classList.add("checking");
+          var apiFound = false;
+          try { apiFound = await checkDictionaryAPI(word); } catch (_) {}
+          isChecking = false; if (answerEl) answerEl.classList.remove("checking");
+          if (apiFound) { lockValidWord(word); return; }
+        }
       }
     } else {
       // Blank path: find ALL valid words across all substitutions
@@ -6980,16 +7047,21 @@ async function submitTappedWord() {
   var hasBlanks = selectedPath.some(function(id) { return tiles[id].blank; });
   var answerEl2 = document.getElementById("answer-text");
   if (!hasBlanks) {
-    var validWord = validateWord(selectedPath);
-    if (validWord && !OFFENSIVE_WORDS.has(validWord.toLowerCase())) { lockValidWord(validWord); return; }
-    // API fallback for non-WORDS words
     var word2 = selectedPath.map(function(id) { return tiles[id].letter.toLowerCase(); }).join("");
-    if (!OFFENSIVE_WORDS.has(word2)) {
-      isChecking = true; if (answerEl2) answerEl2.classList.add("checking");
-      var found2 = false;
-      try { found2 = await checkDictionaryAPI(word2); } catch (_) {}
-      isChecking = false; if (answerEl2) answerEl2.classList.remove("checking");
-      if (found2) { lockValidWord(word2); return; }
+    // When a certified word list is loaded, check against it only — no API call
+    if (_wordListFromFirestore && allBoardWords.length > 0) {
+      if (!OFFENSIVE_WORDS.has(word2) && allBoardWords.includes(word2.toUpperCase())) { lockValidWord(word2); return; }
+    } else {
+      var validWord = validateWord(selectedPath);
+      if (validWord && !OFFENSIVE_WORDS.has(validWord.toLowerCase())) { lockValidWord(validWord); return; }
+      // API fallback for non-WORDS words (only when not using certified list)
+      if (!OFFENSIVE_WORDS.has(word2)) {
+        isChecking = true; if (answerEl2) answerEl2.classList.add("checking");
+        var found2 = false;
+        try { found2 = await checkDictionaryAPI(word2); } catch (_) {}
+        isChecking = false; if (answerEl2) answerEl2.classList.remove("checking");
+        if (found2) { lockValidWord(word2); return; }
+      }
     }
   } else {
     // Blank path: find ALL valid words across all substitutions
@@ -7697,7 +7769,7 @@ function loadBoardForDate(ddmmyy) {
 
   // Reset game state for this date
   tiles = []; selectedPath = []; isDragging = false; playedPath = []; playedPathVisible = true; foundWords = [];
-  foundWordBlanks = {}; allBoardWords = []; allBoardPaths = []; allBoardWordsByPath = []; foundPaths = []; allWordsFound = false;
+  foundWordBlanks = {}; allBoardWords = []; allBoardPaths = []; allBoardWordsByPath = []; foundPaths = []; allWordsFound = false; _wordListFromFirestore = false;
   var shareBtn = document.getElementById("share-btn");
   if (shareBtn) shareBtn.classList.remove("all-found", "share-gentle-throb");
   bestScore = 0; bestWord = ""; gameCompleted = false;
@@ -7749,17 +7821,44 @@ function loadBoardForDate(ddmmyy) {
   }
 
   setTimeout(runBoardOpenAnimation, 100);
-  // Populate all valid board words asynchronously (used in word list)
-  setTimeout(function() {
-    buildWordPrefixes();
-    allBoardWords = findAllBoardWords();
-    if (allWordsFound) {
-      // Already completed in a prior session — silently restore the UI
-      onAllWordsFound(true);
-    } else {
-      checkAllWordsFound();
-    }
-  }, 50);
+  // Populate all valid board words asynchronously — try Firestore certified list first
+  var _puzzleIdForLoad = puzzle ? puzzle.id : null;
+  if (_puzzleIdForLoad && db) {
+    db.collection("wordlists").doc(_puzzleIdForLoad).get()
+      .then(function(doc) {
+        var data = doc.exists ? doc.data() : null;
+        if (data && Array.isArray(data.words) && data.words.length) {
+          allBoardWords      = data.words;
+          allBoardPaths      = Array.isArray(data.paths) ? data.paths : [];
+          allBoardWordsByPath = Array.isArray(data.wordsByPath) ? data.wordsByPath : data.words;
+          _wordListFromFirestore = true;
+        } else {
+          // Not yet certified — compute locally
+          buildWordPrefixes();
+          allBoardWords = findAllBoardWords();
+          _wordListFromFirestore = false;
+        }
+        if (allWordsFound) { onAllWordsFound(true); }
+        else { checkAllWordsFound(); }
+      })
+      .catch(function() {
+        // Network error or Firestore unavailable — compute locally
+        buildWordPrefixes();
+        allBoardWords = findAllBoardWords();
+        _wordListFromFirestore = false;
+        if (allWordsFound) { onAllWordsFound(true); }
+        else { checkAllWordsFound(); }
+      });
+  } else {
+    // No puzzle ID or no db — compute locally after brief delay
+    setTimeout(function() {
+      buildWordPrefixes();
+      allBoardWords = findAllBoardWords();
+      _wordListFromFirestore = false;
+      if (allWordsFound) { onAllWordsFound(true); }
+      else { checkAllWordsFound(); }
+    }, 50);
+  }
 
   // If a best word exists from a previous play, show it on the board after the open animation
   if (bestWord) {
@@ -12103,7 +12202,7 @@ function initAdmin() {
   var resetAllScoresBtn = document.getElementById("admin-reset-all-scores-btn");
   if (resetAllScoresBtn) resetAllScoresBtn.addEventListener("click", resetAllScores);
 
-  // ── Word Check section (hold to reveal target word) ─────────────────────
+  // ── Word Check section (hold to reveal target word + certify word list) ─────
   (function() {
     var adminContent = document.getElementById("admin-content");
     if (!adminContent) return;
@@ -12111,6 +12210,8 @@ function initAdmin() {
     sec.className = "admin-section";
     sec.dataset.section = "wordcheck";
     sec.innerHTML = '<h3>Word Check</h3><p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:12px">Hold the button to reveal today\'s hidden target word. Admin only.</p>';
+
+    // ── Hold-to-reveal button ──
     var revealBtn = document.createElement("button");
     revealBtn.className = "admin-btn";
     revealBtn.style.cssText = "width:100%;user-select:none;-webkit-user-select:none;";
@@ -12130,6 +12231,128 @@ function initAdmin() {
     revealBtn.addEventListener("pointerleave", hideWord);
     sec.appendChild(revealBtn);
     sec.appendChild(revealDisplay);
+
+    // ── Compute & Certify button ──
+    var certSep = document.createElement("hr");
+    certSep.style.cssText = "margin:16px 0;border:none;border-top:1px solid var(--border,rgba(0,0,0,0.12));";
+    sec.appendChild(certSep);
+
+    var certTitle = document.createElement("p");
+    certTitle.style.cssText = "font-size:0.82rem;color:var(--text-secondary);margin-bottom:8px";
+    certTitle.textContent = "Pre-certify all valid words for the current puzzle. Run once before publishing.";
+    sec.appendChild(certTitle);
+
+    var certStatus = document.createElement("div");
+    certStatus.style.cssText = "font-size:0.78rem;color:var(--text-secondary);margin-bottom:8px;min-height:1.2em;";
+    sec.appendChild(certStatus);
+
+    var certProgress = document.createElement("div");
+    certProgress.style.cssText = "font-size:0.8rem;font-weight:600;color:var(--brand,#ff2d55);margin-bottom:10px;min-height:1.2em;";
+    sec.appendChild(certProgress);
+
+    var certBtn = document.createElement("button");
+    certBtn.className = "admin-btn";
+    certBtn.style.cssText = "width:100%;";
+    certBtn.textContent = "Compute & Certify Word List";
+    sec.appendChild(certBtn);
+
+    // Load existing certification status from Firestore
+    function loadCertStatus() {
+      if (!db || !puzzle) return;
+      db.collection("wordlists").doc(puzzle.id).get().then(function(doc) {
+        if (doc.exists && doc.data().certifiedAt) {
+          var d = doc.data();
+          certStatus.textContent = "Last certified: " + d.certifiedAt + " — " + (d.words || []).length + " words";
+          certStatus.style.color = "var(--text-secondary)";
+        } else {
+          certStatus.textContent = "Not yet certified for this puzzle.";
+          certStatus.style.color = "#d9534f";
+        }
+      }).catch(function() {
+        certStatus.textContent = "Could not load status.";
+      });
+    }
+    loadCertStatus();
+
+    certBtn.addEventListener("click", function() {
+      if (!puzzle) { showToast("No puzzle loaded"); return; }
+      if (!db) { showToast("Firestore not available"); return; }
+      if (certBtn.disabled) return;
+
+      certBtn.disabled = true;
+      certBtn.textContent = "Running...";
+      certProgress.textContent = "Building prefix set...";
+      certStatus.textContent = "";
+
+      // Ensure prefix set is built
+      buildWordPrefixes();
+
+      // Get all prefix-valid candidate strings from the board
+      var candidateMap = findAllBoardCandidates(); // Map<UPPER_WORD, pathKey[]>
+      var candidates = Array.from(candidateMap.keys());
+      certProgress.textContent = "Found " + candidates.length + " candidates. Checking against dictionary...";
+
+      var confirmed = [];          // { word, paths: string[] }
+      var checked = 0;
+      var total = candidates.length;
+
+      function checkNext(idx) {
+        if (idx >= total) {
+          // All done — write to Firestore
+          var words = confirmed.map(function(c) { return c.word; }).sort(function(a, b) { return b.length - a.length; });
+          var paths = confirmed.map(function(c) { return c.paths[0]; }); // primary path per word
+          var wordsByPath = words.slice(); // parallel — same word for now
+          var nowStr = new Date().toISOString().slice(0, 19).replace("T", " ");
+          certProgress.textContent = "Saving " + words.length + " certified words...";
+          db.collection("wordlists").doc(puzzle.id).set({
+            words: words,
+            paths: paths,
+            wordsByPath: wordsByPath,
+            puzzleId: puzzle.id,
+            certifiedAt: nowStr
+          }).then(function() {
+            certBtn.disabled = false;
+            certBtn.textContent = "Compute & Certify Word List";
+            certProgress.textContent = "";
+            certStatus.textContent = "Certified " + nowStr + " — " + words.length + " words";
+            certStatus.style.color = "#5cb85c";
+            showToast("Word list certified: " + words.length + " words");
+          }).catch(function(err) {
+            certBtn.disabled = false;
+            certBtn.textContent = "Compute & Certify Word List";
+            certProgress.textContent = "Save failed: " + (err.message || err);
+            certStatus.style.color = "#d9534f";
+          });
+          return;
+        }
+
+        var word = candidates[idx];
+        var lowerWord = word.toLowerCase();
+        checked++;
+        certProgress.textContent = "Checking " + checked + " / " + total + " — " + confirmed.length + " confirmed";
+
+        // Already in WORDS set — accept immediately without API call
+        if (WORDS.has(lowerWord)) {
+          confirmed.push({ word: word.toUpperCase(), paths: candidateMap.get(word) });
+          // Small yield so UI can update
+          setTimeout(function() { checkNext(idx + 1); }, 0);
+          return;
+        }
+
+        // Not in WORDS — check dictionary API (throttled)
+        checkDictionaryAPI(lowerWord).then(function(ok) {
+          if (ok && !OFFENSIVE_WORDS.has(lowerWord)) {
+            confirmed.push({ word: word.toUpperCase(), paths: candidateMap.get(word) });
+          }
+          setTimeout(function() { checkNext(idx + 1); }, 200); // 200ms between API calls
+        }).catch(function() {
+          setTimeout(function() { checkNext(idx + 1); }, 200);
+        });
+      }
+
+      checkNext(0);
+    });
+
     adminContent.insertBefore(sec, adminContent.firstChild);
   })();
 

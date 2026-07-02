@@ -35,5 +35,11 @@ service cloud.firestore {
       allow create: if isSignedIn();
       allow read, write: if isAdmin();
     }
+
+    // Word lists — pre-certified word lists per puzzle; signed-in users can read, only admin can write
+    match /wordlists/{puzzleId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
   }
 }
